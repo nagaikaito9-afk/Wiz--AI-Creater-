@@ -262,6 +262,11 @@ class AppController {
   }
 
   runCurrentProject() {
+    if (!window.supabaseAuth?.currentUser) {
+      if (window.showToast) window.showToast('ゲームを実行するにはログインが必要です。', 'warning');
+      window.supabaseAuth?.updateGateVisibility();
+      return;
+    }
     const active = window.editor?.activeFile || 'index.html';
     const target = (active.endsWith('.html') || active.endsWith('.py')) ? active : 'index.html';
     window.runner.run(target);
@@ -425,6 +430,13 @@ class AppController {
 
   // Send Message
   async handleSendMessage() {
+    // Auth guard: User must be logged in to use Wiz
+    if (!window.supabaseAuth?.currentUser) {
+      if (window.showToast) window.showToast('Wizを利用するにはログインが必要です。', 'warning');
+      window.supabaseAuth?.updateGateVisibility();
+      return;
+    }
+
     const text = this.userInput.value.trim();
     if (!text && this.attachments.length === 0) return;
 

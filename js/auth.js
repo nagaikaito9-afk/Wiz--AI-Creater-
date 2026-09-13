@@ -60,6 +60,9 @@ class SupabaseAuthManager {
     window.addEventListener('online', () => this.handleNetworkChange(true));
     window.addEventListener('offline', () => this.handleNetworkChange(false));
 
+    // Bind gate modal events
+    this.bindGateEvents();
+
     const client = await this.ensureSupabaseClient();
 
     if (client) {
@@ -82,6 +85,138 @@ class SupabaseAuthManager {
       }
     } else {
       this.updateUserUI(this.currentUser);
+    }
+  }
+
+  // Bind Auth Gate Modal Events
+  bindGateEvents() {
+    // Google Login from gate
+    document.getElementById('gate-google-login-btn')?.addEventListener('click', () => {
+      this.signInWithGoogle();
+    });
+
+    // Mock/Demo user login from gate
+    document.getElementById('gate-mock-login-btn')?.addEventListener('click', () => {
+      this.loginAsMockUser();
+    });
+
+    // Email Tabs
+    const tabLogin = document.getElementById('tab-login-btn');
+    const tabSignup = document.getElementById('tab-signup-btn');
+    const submitBtn = document.getElementById('gate-submit-btn');
+    let isSignupMode = false;
+
+    tabLogin?.addEventListener('click', () => {
+      isSignupMode = false;
+      tabLogin.classList.add('active');
+      tabSignup.classList.remove('active');
+      if (submitBtn) submitBtn.innerHTML = '<span>ログインする</span>';
+    });
+
+    tabSignup?.addEventListener('click', () => {
+      isSignupMode = true;
+      tabSignup.classList.add('active');
+      tabLogin.classList.remove('active');
+      if (submitBtn) submitBtn.innerHTML = '<span>新規登録する</span>';
+    });
+
+    // Email form submit
+    submitBtn?.addEventListener('click', async () => {
+      const emailInput = document.getElementById('gate-email-input');
+      const passwordInput = document.getElementById('gate-password-input');
+      const email = emailInput?.value.trim();
+      const password = passwordInput?.value;
+
+      if (!email || !password) {
+        if (window.showToast) window.showToast('メールアドレスとパスワードを入力してください', 'warning');
+        return;
+      }
+      if (password.length < 6) {
+        if (window.showToast) window.showToast('パスワードは6文字以上で入力してください', 'warning');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>処理中...</span>';
+
+      try {
+        if (isSignupMode) {
+          await this.signUpWithEmail(email, password);
+        } else {
+          await this.signInWithEmail(email, password);
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = isSignupMode ? '<span>新規登録する</span>' : '<span>ログインする</span>';
+      }
+    });
+  }
+
+  // Supabase Email Login
+  async signInWithEmail(email, password) {
+    const client = await this.ensureSupabaseClient();
+    if (!client) return;
+
+    try {
+      const { data, error } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.warn('Sign in with email error:', error);
+        if (window.showToast) window.showToast(`ログイン失敗: ${error.message}`, 'error');
+        return;
+      }
+
+      if (data?.user) {
+        this.currentUser = data.user;
+        this.updateUserUI(data.user);
+        if (window.showToast) window.showToast('ログインしました！', 'success');
+      }
+    } catch (e) {
+      if (window.showToast) window.showToast(`ログイン処理エラー: ${e.message}`, 'error');
+    }
+  }
+
+  // Supabase Email SignUp
+  async signUpWithEmail(email, password) {
+    const client = await this.ensureSupabaseClient();
+    if (!client) return;
+
+    try {
+      const { data, error } = await client.auth.signUp({
+        email,
+        password
+      });
+
+      if (error) {
+        console.warn('Sign up error:', error);
+        if (window.showToast) window.showToast(`登録失敗: ${error.message}`, 'error');
+        return;
+      }
+
+      if (data?.user) {
+        this.currentUser = data.user;
+        this.updateUserUI(data.user);
+        if (window.showToast) window.showToast('アカウントを作成しログインしました！', 'success');
+      }
+    } catch (e) {
+      if (window.showToast) window.showToast(`登録処理エラー: ${e.message}`, 'error');
+    }
+  }
+
+  // Update Gate Visibility (Lock screen until logged in)
+  updateGateVisibility() {
+    const gateModal = document.getElementById('auth-gate-modal');
+    if (!gateModal) return;
+
+    if (this.currentUser) {
+      gateModal.style.display = 'none';
+      document.body.classList.remove('auth-locked');
+    } else {
+      gateModal.style.display = 'flex';
+      document.body.classList.add('auth-locked');
     }
   }
 
@@ -226,6 +361,8 @@ class SupabaseAuthManager {
 
   // Update UI Elements with user profile
   updateUserUI(user) {
+    this.updateGateVisibility();
+
     const userContainer = document.getElementById('sidebar-user-area');
     if (!userContainer) return;
 
