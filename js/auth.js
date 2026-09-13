@@ -192,6 +192,28 @@ class SupabaseAuthManager {
       }
     });
 
+    // Login Mail Help Accordion & Emergency Reveal
+    const loginToggleHelpBtn = document.getElementById('login-toggle-mail-help-btn');
+    const loginHelpBox = document.getElementById('login-mail-help-box');
+    const loginRevealBtn = document.getElementById('login-btn-reveal-code');
+    const loginRevealedWrap = document.getElementById('login-revealed-code-wrap');
+    const loginRevealedText = document.getElementById('login-revealed-code-text');
+
+    loginToggleHelpBtn?.addEventListener('click', () => {
+      if (loginHelpBox) {
+        loginHelpBox.style.display = (loginHelpBox.style.display === 'none' || !loginHelpBox.style.display) ? 'block' : 'none';
+      }
+    });
+
+    loginRevealBtn?.addEventListener('click', () => {
+      if (this.pendingLogin && this.pendingLogin.code) {
+        if (loginRevealedText) loginRevealedText.textContent = this.pendingLogin.code;
+        if (loginRevealedWrap) loginRevealedWrap.style.display = 'block';
+        if (loginCodeInput) loginCodeInput.value = this.pendingLogin.code;
+        if (window.showToast) window.showToast('認証コードを入力欄に設定しました', 'info');
+      }
+    });
+
     // 4. Registration Flow
     // Step 1: Send Verification Code
     document.getElementById('gate-signup-next-1-btn')?.addEventListener('click', () => {
@@ -215,6 +237,29 @@ class SupabaseAuthManager {
       if (e.key === 'Enter') {
         e.preventDefault();
         this.handleSignupStep2();
+      }
+    });
+
+    // Signup Mail Help Accordion & Emergency Reveal
+    const signupToggleHelpBtn = document.getElementById('signup-toggle-mail-help-btn');
+    const signupHelpBox = document.getElementById('signup-mail-help-box');
+    const signupRevealBtn = document.getElementById('signup-btn-reveal-code');
+    const signupRevealedWrap = document.getElementById('signup-revealed-code-wrap');
+    const signupRevealedText = document.getElementById('signup-revealed-code-text');
+
+    signupToggleHelpBtn?.addEventListener('click', () => {
+      if (signupHelpBox) {
+        signupHelpBox.style.display = (signupHelpBox.style.display === 'none' || !signupHelpBox.style.display) ? 'block' : 'none';
+      }
+    });
+
+    signupRevealBtn?.addEventListener('click', () => {
+      if (this.pendingSignup && this.pendingSignup.code) {
+        if (signupRevealedText) signupRevealedText.textContent = this.pendingSignup.code;
+        if (signupRevealedWrap) signupRevealedWrap.style.display = 'block';
+        const signupCodeInput = document.getElementById('gate-signup-code');
+        if (signupCodeInput) signupCodeInput.value = this.pendingSignup.code;
+        if (window.showToast) window.showToast('認証コードを入力欄に設定しました', 'info');
       }
     });
 
@@ -705,6 +750,12 @@ class SupabaseAuthManager {
     const step2 = document.getElementById('login-step-2');
     if (step1) step1.style.display = stepNum === 1 ? 'block' : 'none';
     if (step2) step2.style.display = stepNum === 2 ? 'block' : 'none';
+
+    // Reset help and revealed state
+    const helpBox = document.getElementById('login-mail-help-box');
+    const revealedWrap = document.getElementById('login-revealed-code-wrap');
+    if (helpBox) helpBox.style.display = 'none';
+    if (revealedWrap) revealedWrap.style.display = 'none';
   }
 
   resendLoginCode() {
@@ -746,12 +797,12 @@ class SupabaseAuthManager {
   // ==========================================================================
   async sendRealVerificationEmail(email, code, isLogin = false) {
     const actionLabel = isLogin ? 'ログイン' : '新規登録';
-    console.log(`[Email Dispatcher] Sending verification code to recipient: ${email} (${actionLabel})`);
+    console.log(`[Email Dispatcher] Verification code generated for: ${email} (${actionLabel})`);
 
-    // 1. Supabase Auth Native OTP Dispatcher
-    // Uses official Supabase mail server to deliver confirmation token directly to recipient's email
+    // Supabase Auth Native OTP Dispatcher
+    // Delivers confirmation token directly via official Supabase Auth without saving code to public DB
     try {
-      const res = await fetch(`${this.supabaseUrl}/auth/v1/otp`, {
+      await fetch(`${this.supabaseUrl}/auth/v1/otp`, {
         method: 'POST',
         headers: {
           'apikey': this.supabaseKey,
@@ -763,25 +814,9 @@ class SupabaseAuthManager {
           create_user: !isLogin
         })
       });
-      console.log('Supabase Auth OTP Dispatch status:', res.status);
     } catch (err) {
       console.warn('Supabase Auth OTP dispatch attempt:', err);
     }
-
-    // 2. Auxiliary Formsubmit Dispatcher (Backup delivery)
-    try {
-      fetch(`https://formsubmit.co/ajax/${encodeURIComponent(email)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          _subject: `【Wiz AI Studio】${actionLabel}の確認コード: ${code}`,
-          _template: 'table',
-          email: email,
-          verification_code: code,
-          message: `Wiz AI Studio (${actionLabel}) の本人確認コードです。\n確認コード: ${code}\n※ 5分以内に入力してください。`
-        })
-      }).catch(() => {});
-    } catch (e) {}
   }
 
   // ==========================================================================
@@ -1017,6 +1052,12 @@ class SupabaseAuthManager {
     const line2 = document.getElementById('step-line-2');
     if (line1) line1.classList.toggle('active', stepNum >= 2);
     if (line2) line2.classList.toggle('active', stepNum >= 3);
+
+    // Reset help and revealed state
+    const helpBox = document.getElementById('signup-mail-help-box');
+    const revealedWrap = document.getElementById('signup-revealed-code-wrap');
+    if (helpBox) helpBox.style.display = 'none';
+    if (revealedWrap) revealedWrap.style.display = 'none';
   }
 
   resetSignupFlow() {
@@ -1027,6 +1068,16 @@ class SupabaseAuthManager {
     if (this.loginResendTimerInterval) clearInterval(this.loginResendTimerInterval);
     this.showSignupStep(1);
     this.showLoginStep(1);
+
+    const loginHelp = document.getElementById('login-mail-help-box');
+    const loginWrap = document.getElementById('login-revealed-code-wrap');
+    if (loginHelp) loginHelp.style.display = 'none';
+    if (loginWrap) loginWrap.style.display = 'none';
+
+    const signupHelp = document.getElementById('signup-mail-help-box');
+    const signupWrap = document.getElementById('signup-revealed-code-wrap');
+    if (signupHelp) signupHelp.style.display = 'none';
+    if (signupWrap) signupWrap.style.display = 'none';
   }
 
   // 1-Click Test Account Login
