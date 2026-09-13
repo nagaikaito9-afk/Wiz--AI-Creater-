@@ -17,10 +17,12 @@ class SupabaseAuthManager {
     this.currentUser = null;
     this.isOnline = navigator.onLine;
 
-    // Sign-up and 2FA temporary states
+    // Sign-up, Login and 2FA temporary states (In-memory only, never saved to DB or local storage)
     this.pendingSignup = null;
+    this.pendingLogin = null;
     this.pending2fa = null;
     this.resendTimerInterval = null;
+    this.loginResendTimerInterval = null;
 
     this.ensureSeedAccounts();
     this.init();
@@ -160,21 +162,34 @@ class SupabaseAuthManager {
       this.resetSignupFlow();
     });
 
-    // 3. Login Flow
+    // 3. Login Flow (2-Step Email Code Verification)
     const loginSubmitBtn = document.getElementById('gate-login-submit-btn');
     const loginIdInput = document.getElementById('gate-login-identifier');
     const loginPassInput = document.getElementById('gate-login-password');
-    const login2faInput = document.getElementById('gate-login-2fa-code');
+    const loginVerifyBtn = document.getElementById('gate-login-verify-btn');
+    const loginCodeInput = document.getElementById('gate-login-code');
+    const loginBackBtn = document.getElementById('gate-login-back-btn');
+    const loginResendBtn = document.getElementById('login-resend-code-btn');
 
-    loginSubmitBtn?.addEventListener('click', () => this.handleLoginSubmit());
+    loginSubmitBtn?.addEventListener('click', () => this.handleLoginStep1());
+    loginVerifyBtn?.addEventListener('click', () => this.handleLoginStep2());
+    loginBackBtn?.addEventListener('click', () => this.showLoginStep(1));
+    loginResendBtn?.addEventListener('click', () => this.resendLoginCode());
 
-    [loginIdInput, loginPassInput, login2faInput].forEach(inp => {
+    [loginIdInput, loginPassInput].forEach(inp => {
       inp?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          this.handleLoginSubmit();
+          this.handleLoginStep1();
         }
       });
+    });
+
+    loginCodeInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.handleLoginStep2();
+      }
     });
 
     // 4. Registration Flow
@@ -196,13 +211,10 @@ class SupabaseAuthManager {
       this.resendSignupCode();
     });
 
-    // Step 2 Autofill Helper
-    document.getElementById('btn-autofill-code')?.addEventListener('click', () => {
-      const code = this.pendingSignup?.code;
-      const codeInput = document.getElementById('gate-signup-code');
-      if (code && codeInput) {
-        codeInput.value = code;
-        if (window.showToast) window.showToast(`認証コード [ ${code} ] を入力しました！`, 'success');
+    document.getElementById('gate-signup-code')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.handleSignupStep2();
       }
     });
 
@@ -585,12 +597,12 @@ class SupabaseAuthManager {
   }
 
   // Handle Login Submission
-  handleLoginSubmit() {
+  // ==========================================================================
+  // LOGIN FLOW (2-Step Verification with Real Email Code)
+  // ==========================================================================
+  handleLoginStep1() {
     const idInput = document.getElementById('gate-login-identifier');
     const passInput = document.getElementById('gate-login-password');
-    const codeInput = document.getElementById('gate-login-2fa-code');
-    const group2fa = document.getElementById('gate-login-2fa-group');
-    const submitBtn = document.getElementById('gate-login-submit-btn');
 
     const identifier = idInput?.value.replace(/^@/, '').trim().toLowerCase();
     const password = passInput?.value || '';
@@ -616,47 +628,66 @@ class SupabaseAuthManager {
       return;
     }
 
-    // Check if user has Two-Factor Authentication (2FA) enabled
-    if (user.is2faEnabled) {
-      if (!this.pending2fa) {
-        // Generate and send 6-digit code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        this.pending2fa = {
-          user: user,
-          code: code,
-          expiresAt: Date.now() + 5 * 60 * 1000
-        };
+    // Generate in-memory 6-digit verification code (Never saved to Supabase DB or persistent storage!)
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.pendingLogin = {
+      user: user,
+      email: user.email,
+      code: code,
+      expiresAt: Date.now() + 5 * 60 * 1000
+    };
 
-        if (group2fa) group2fa.style.display = 'block';
-        if (codeInput) {
-          codeInput.value = '';
-          codeInput.focus();
-        }
-        if (submitBtn) submitBtn.innerHTML = '<span>確認コードを認証してログイン</span>';
-
-        if (window.showToast) {
-          window.showToast(`🔐 2段階認証コード [ ${code} ] を送信しました（テスト用表示）`, 'info');
-        }
-        return;
-      }
-
-      // Check entered 2FA code
-      const enteredCode = codeInput?.value.trim();
-      if (enteredCode !== this.pending2fa.code) {
-        if (window.showToast) window.showToast('認証コードが一致しません。もう一度お確かめください。', 'error');
-        return;
-      }
-
-      // Code matched!
-      this.pending2fa = null;
+    // Update Login Step 2 UI
+    const targetEl = document.getElementById('login-verify-email-target');
+    if (targetEl) targetEl.textContent = user.email || identifier;
+    const codeInput = document.getElementById('gate-login-code');
+    if (codeInput) {
+      codeInput.value = '';
+      setTimeout(() => codeInput.focus(), 150);
     }
 
-    // Login successful
+    this.showLoginStep(2);
+    this.startLoginResendCountdown();
+
+    // Dispatch real email to user's inbox
+    this.sendRealVerificationEmail(user.email, code, true);
+
+    if (window.showToast) {
+      window.showToast(`✉️ ${user.email} 宛にログイン確認コードを送信しました。メールをご確認ください。`, 'info');
+    }
+  }
+
+  handleLoginStep2() {
+    const codeInput = document.getElementById('gate-login-code');
+    const entered = codeInput?.value.trim();
+
+    if (!this.pendingLogin) {
+      this.showLoginStep(1);
+      return;
+    }
+
+    if (Date.now() > this.pendingLogin.expiresAt) {
+      if (window.showToast) window.showToast('認証コードの有効期限が切れました。「コードを再送」してください。', 'warning');
+      return;
+    }
+
+    // Verify code (Secure in-memory check without exposure)
+    if (entered !== this.pendingLogin.code) {
+      if (window.showToast) window.showToast('認証コードが一致しません。メール内の6ケタコードをご確認ください。', 'error');
+      return;
+    }
+
+    // Code verified! Complete login
+    const user = this.pendingLogin.user;
     this.currentUser = user;
+    this.pendingLogin = null;
+    if (this.loginResendTimerInterval) clearInterval(this.loginResendTimerInterval);
+
     localStorage.setItem('wiz_mock_user', JSON.stringify(user));
     if (user.email) {
       try { localStorage.setItem('wiz_last_login_email', user.email); } catch (e) {}
     }
+
     this.updateGateVisibility();
     this.updateUserUI(user);
 
@@ -669,27 +700,93 @@ class SupabaseAuthManager {
     }
   }
 
-  // Send verification code via real public email dispatch API (Web3Forms/REST)
-  async sendRealVerificationEmail(email, code) {
-    try {
-      const res = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          access_key: '56d3969e-cf2d-45bf-a6d1-41b4e0573e86',
-          subject: `【Wiz AI Studio】本人確認コード: ${code}`,
-          from_name: 'Wiz AI Studio 認証センター',
-          email: email,
-          message: `Wiz AI Studio (AIゲームクリエイター) へようこそ！\n\nあなたの本人確認コードは 【 ${code} 】 です。\n有効期限は5分間です。\n\n画面の入力欄にこの6ケタコードを入力して、新規登録を完了してください。`
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log('Real Email dispatch result:', data);
-    } catch (e) {
-      console.warn('Real Email dispatch background attempt:', e);
+  showLoginStep(stepNum) {
+    const step1 = document.getElementById('login-step-1');
+    const step2 = document.getElementById('login-step-2');
+    if (step1) step1.style.display = stepNum === 1 ? 'block' : 'none';
+    if (step2) step2.style.display = stepNum === 2 ? 'block' : 'none';
+  }
+
+  resendLoginCode() {
+    if (!this.pendingLogin) return;
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.pendingLogin.code = code;
+    this.pendingLogin.expiresAt = Date.now() + 5 * 60 * 1000;
+    this.startLoginResendCountdown();
+
+    this.sendRealVerificationEmail(this.pendingLogin.email, code, true);
+
+    if (window.showToast) {
+      window.showToast(`✉️ ${this.pendingLogin.email} 宛に新しいログイン確認コードを再送しました！`, 'info');
     }
   }
 
+  startLoginResendCountdown() {
+    if (this.loginResendTimerInterval) clearInterval(this.loginResendTimerInterval);
+    let secondsLeft = 60;
+    const textEl = document.getElementById('login-code-countdown-text');
+    const resendBtn = document.getElementById('login-resend-code-btn');
+
+    if (resendBtn) resendBtn.disabled = true;
+    if (textEl) textEl.textContent = `残り有効時間: ${secondsLeft}秒`;
+
+    this.loginResendTimerInterval = setInterval(() => {
+      secondsLeft--;
+      if (textEl) textEl.textContent = `残り有効時間: ${secondsLeft}秒`;
+      if (secondsLeft <= 0) {
+        clearInterval(this.loginResendTimerInterval);
+        if (resendBtn) resendBtn.disabled = false;
+        if (textEl) textEl.textContent = 'コードの有効期限が切れました。再送信してください。';
+      }
+    }, 1000);
+  }
+
+  // ==========================================================================
+  // REAL EMAIL DISPATCH ENGINE (Direct to recipient, zero DB storage)
+  // ==========================================================================
+  async sendRealVerificationEmail(email, code, isLogin = false) {
+    const actionLabel = isLogin ? 'ログイン' : '新規登録';
+    console.log(`[Email Dispatcher] Sending verification code to recipient: ${email} (${actionLabel})`);
+
+    // 1. Supabase Auth Native OTP Dispatcher
+    // Uses official Supabase mail server to deliver confirmation token directly to recipient's email
+    try {
+      const res = await fetch(`${this.supabaseUrl}/auth/v1/otp`, {
+        method: 'POST',
+        headers: {
+          'apikey': this.supabaseKey,
+          'Authorization': `Bearer ${this.supabaseKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          create_user: !isLogin
+        })
+      });
+      console.log('Supabase Auth OTP Dispatch status:', res.status);
+    } catch (err) {
+      console.warn('Supabase Auth OTP dispatch attempt:', err);
+    }
+
+    // 2. Auxiliary Formsubmit Dispatcher (Backup delivery)
+    try {
+      fetch(`https://formsubmit.co/ajax/${encodeURIComponent(email)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          _subject: `【Wiz AI Studio】${actionLabel}の確認コード: ${code}`,
+          _template: 'table',
+          email: email,
+          verification_code: code,
+          message: `Wiz AI Studio (${actionLabel}) の本人確認コードです。\n確認コード: ${code}\n※ 5分以内に入力してください。`
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // ==========================================================================
+  // SIGNUP FLOW (Pure Email Verification - Secret Code in Email Only)
+  // ==========================================================================
   // Signup Step 1: Input Email + Password -> Send 6-digit code
   handleSignupStep1() {
     const emailInput = document.getElementById('gate-signup-email');
@@ -715,7 +812,7 @@ class SupabaseAuthManager {
       return;
     }
 
-    // Generate 6-digit verification code
+    // Generate in-memory 6-digit verification code (Never saved to Supabase DB or persistent storage!)
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     this.pendingSignup = {
       email: email,
@@ -730,18 +827,16 @@ class SupabaseAuthManager {
     const codeInput = document.getElementById('gate-signup-code');
     if (codeInput) codeInput.value = '';
 
-    const liveBadge = document.getElementById('live-generated-code-badge');
-    if (liveBadge) liveBadge.textContent = code;
-
     const statusText = document.getElementById('verify-email-status-text');
     if (statusText) statusText.textContent = '6ケタの確認コードを送信しました。メールをご確認ください。';
 
     this.showSignupStep(2);
     this.startResendCountdown();
-    this.sendRealVerificationEmail(email, code);
+    this.sendRealVerificationEmail(email, code, false);
 
+    // Notice toast WITHOUT exposing secret code
     if (window.showToast) {
-      window.showToast(`✉️ ${email} 宛に認証コード [ ${code} ] を送信しました！`, 'info');
+      window.showToast(`✉️ ${email} 宛に本人確認コードを送信しました。メールをご確認ください。`, 'info');
     }
   }
 
@@ -755,8 +850,14 @@ class SupabaseAuthManager {
       return;
     }
 
+    if (Date.now() > this.pendingSignup.expiresAt) {
+      if (window.showToast) window.showToast('認証コードの有効期限が切れました。「コードを再送」してください。', 'warning');
+      return;
+    }
+
+    // Secure verification: strictly compare against in-memory secret code
     if (entered !== this.pendingSignup.code) {
-      if (window.showToast) window.showToast('認証コードが一致しません。もう一度ご確認ください。', 'error');
+      if (window.showToast) window.showToast('認証コードが一致しません。メール内の6ケタコードをご確認ください。', 'error');
       return;
     }
 
@@ -786,13 +887,10 @@ class SupabaseAuthManager {
     this.pendingSignup.expiresAt = Date.now() + 5 * 60 * 1000;
     this.startResendCountdown();
 
-    const liveBadge = document.getElementById('live-generated-code-badge');
-    if (liveBadge) liveBadge.textContent = code;
-
-    this.sendRealVerificationEmail(this.pendingSignup.email, code);
+    this.sendRealVerificationEmail(this.pendingSignup.email, code, false);
 
     if (window.showToast) {
-      window.showToast(`✉️ ${this.pendingSignup.email} 宛に新しい認証コード [ ${code} ] を再送しました！`, 'info');
+      window.showToast(`✉️ ${this.pendingSignup.email} 宛に新しい確認コードを再送しました！`, 'info');
     }
   }
 
@@ -923,14 +1021,12 @@ class SupabaseAuthManager {
 
   resetSignupFlow() {
     this.pendingSignup = null;
+    this.pendingLogin = null;
     this.pending2fa = null;
     if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
+    if (this.loginResendTimerInterval) clearInterval(this.loginResendTimerInterval);
     this.showSignupStep(1);
-
-    const group2fa = document.getElementById('gate-login-2fa-group');
-    if (group2fa) group2fa.style.display = 'none';
-    const submitBtn = document.getElementById('gate-login-submit-btn');
-    if (submitBtn) submitBtn.innerHTML = '<span>ログインする</span>';
+    this.showLoginStep(1);
   }
 
   // 1-Click Test Account Login

@@ -892,36 +892,55 @@
         </div>
 
         <!-- LOGIN VIEW -->
+        <!-- LOGIN VIEW (2 Steps with Email Verification Code) -->
         <div id="auth-view-login">
           <form id="auth-login-form" onsubmit="return false;">
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-envelope"></i> メールアドレス または ユーザーID</label>
-              <input type="text" id="gate-login-identifier" placeholder="example@email.com または @user_id" class="auth-input" required autocomplete="username">
-            </div>
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-lock"></i> Emailのパスワード</label>
-              <input type="password" id="gate-login-password" placeholder="ご入力のEmailのパスワード" class="auth-input" required autocomplete="current-password">
-              <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
-                ※ ご入力いただいたメールアドレスのパスワードを入力してください
-              </span>
+            <!-- Login Step 1: Identifier + Password -->
+            <div id="login-step-1">
+              <div class="auth-field">
+                <label class="auth-field-label"><i class="fa-solid fa-envelope"></i> メールアドレス または ユーザーID</label>
+                <input type="text" id="gate-login-identifier" placeholder="example@email.com または @user_id" class="auth-input" required autocomplete="username">
+              </div>
+              <div class="auth-field">
+                <label class="auth-field-label"><i class="fa-solid fa-lock"></i> Emailのパスワード</label>
+                <input type="password" id="gate-login-password" placeholder="ご入力のEmailのパスワード" class="auth-input" required autocomplete="current-password">
+                <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+                  ※ ご入力いただいたメールアドレスのパスワードを入力してください
+                </span>
+              </div>
+              <button type="button" id="gate-login-submit-btn" class="btn btn-primary auth-submit-btn">
+                <span>認証コードを送信して次へ</span> <i class="fa-solid fa-arrow-right"></i>
+              </button>
             </div>
 
-            <!-- 2FA Code Group (Displayed only if account has 2FA enabled) -->
-            <div class="auth-field" id="gate-login-2fa-group" style="display:none;">
-              <div class="auth-2fa-alert">
-                <i class="fa-solid fa-shield-halved"></i>
+            <!-- Login Step 2: 6-Digit Email Code Verification -->
+            <div id="login-step-2" style="display:none;">
+              <div class="code-verify-banner">
+                <i class="fa-regular fa-paper-plane"></i>
                 <div>
-                  <strong>2段階認証が有効です</strong>
-                  <p>メール宛に送信された6ケタの認証コードを入力してください。</p>
+                  <p><strong id="login-verify-email-target">example@email.com</strong> 宛に</p>
+                  <p id="login-verify-email-status-text">6ケタのログイン認証コードを送信しました。</p>
                 </div>
               </div>
-              <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
-              <input type="text" id="gate-login-2fa-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
-            </div>
 
-            <button type="button" id="gate-login-submit-btn" class="btn btn-primary auth-submit-btn">
-              <span>ログインする</span>
-            </button>
+              <div class="auth-field">
+                <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
+                <input type="text" id="gate-login-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
+                <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+                  ※ メール内に記載された確認コードを入力してください（迷惑メールフォルダもご確認ください）
+                </span>
+              </div>
+              <div class="code-timer-row">
+                <span id="login-code-countdown-text">残り有効時間: 60秒</span>
+                <button type="button" id="login-resend-code-btn" class="btn-text-subtle" disabled>コードを再送</button>
+              </div>
+              <div class="step-buttons-row">
+                <button type="button" id="gate-login-back-btn" class="btn btn-ghost">戻る</button>
+                <button type="button" id="gate-login-verify-btn" class="btn btn-primary">
+                  <span>ログインを完了する</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 
@@ -964,23 +983,12 @@
               </div>
             </div>
 
-            <!-- Notice / Quick Auto-fill if email delay occurs -->
-            <div class="code-notice-box" id="code-notice-box" style="margin: 0.6rem 0; padding: 0.75rem 0.85rem; border-radius: var(--radius-md); background: rgba(0, 242, 254, 0.08); border: 1px dashed rgba(0, 242, 254, 0.4); text-align: left;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size: 0.76rem; color: var(--text-secondary);"><i class="fa-solid fa-envelope-circle-check"></i> 送信した認証コード:</span>
-                <strong id="live-generated-code-badge" style="font-family: var(--font-mono); font-size: 1.15rem; letter-spacing: 2px; color: var(--wiz-cyan);">------</strong>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.4rem;">
-                <span style="font-size:0.72rem; color:var(--text-muted);">※ メールが届かない場合も、このコードで認証できます</span>
-                <button type="button" id="btn-autofill-code" class="btn btn-ghost" style="padding: 2px 8px; font-size: 0.75rem; color: var(--wiz-cyan); border-color: var(--wiz-cyan); cursor: pointer;">
-                  <i class="fa-solid fa-arrow-turn-down"></i> このコードを自動入力
-                </button>
-              </div>
-            </div>
-
             <div class="auth-field">
               <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
               <input type="text" id="gate-signup-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
+              <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+                ※ メール内に記載された確認コードを入力してください（迷惑メールフォルダもご確認ください）
+              </span>
             </div>
             <div class="code-timer-row">
               <span id="code-countdown-text">残り有効時間: 60秒</span>
