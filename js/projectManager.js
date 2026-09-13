@@ -205,6 +205,23 @@ class ProjectManager {
     return this.rooms.find(r => r.id === this.activeRoomId) || this.rooms[0];
   }
 
+  getAllRooms() {
+    return [...this.rooms];
+  }
+
+  getCrossRoomMemoryPrompt() {
+    if (!this.crossRoomMemoryEnabled) return '';
+    const otherRooms = this.rooms.filter(r => r.id !== this.activeRoomId);
+    if (otherRooms.length === 0) return '';
+
+    const summaries = otherRooms.slice(0, 3).map(r => {
+      const ruleText = r.rules ? ` (ルール: ${r.rules.slice(0, 40)}...)` : '';
+      return `- プロジェクト「${r.name}」${ruleText}`;
+    }).join('\n');
+
+    return `【ユーザーが過去に作成した他のプロジェクト情報（横断メモリ）】:\n${summaries}\nこれらの文脈やユーザーの好みを踏まえてアシストしてください。`;
+  }
+
   getCurrentUserId() {
     return window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
   }
@@ -626,7 +643,7 @@ class ProjectManager {
       const isActive = room.id === this.activeRoomId;
       const isPinned = Boolean(room.isPinned);
       const card = document.createElement('div');
-      card.className = `room-item-card ${isActive ? 'active' : ''} ${isPinned ? 'is-pinned' : ''}`;
+      card.className = `room-item-card room-item ${isActive ? 'active' : ''} ${isPinned ? 'is-pinned' : ''}`;
       card.setAttribute('data-room-id', room.id);
 
       const hasRules = room.rules && room.rules.trim().length > 0;
@@ -639,7 +656,7 @@ class ProjectManager {
         <div class="room-details">
           <div class="room-title-line">
             ${isPinned ? '<span class="pinned-indicator-icon" title="ピン留め中"><i class="fa-solid fa-thumbtack"></i></span>' : ''}
-            <span class="room-name" title="${this.escapeHtml(room.name)}">${this.escapeHtml(room.name)}</span>
+            <span class="room-name room-title" title="${this.escapeHtml(room.name)}">${this.escapeHtml(room.name)}</span>
           </div>
           <div class="room-meta-tags">
             <span class="room-role-pill role-${role}">${role === 'admin' ? '管理者' : role === 'editor' ? '編集者' : '観覧者'}</span>

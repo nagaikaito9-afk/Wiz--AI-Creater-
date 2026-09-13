@@ -523,16 +523,28 @@ class AppController {
       // Process actions returned by Wiz
       const actionResult = await window.agentActions.processResponse(response.text, this.messagesContainer);
 
-      // Check if user requested specific image operations and execute fallback if AI didn't output action tag
-      const hasExecutedImageAction = actionResult.actionsCount > 0;
+      // Check if user requested specific image or studio operations and execute fallback if AI didn't output action tag
+      const hasExecutedAnyAction = actionResult.actionsCount > 0;
 
       if (actionResult.cleanText) {
         this.appendMessage('wiz', actionResult.cleanText, false);
       }
 
+      // 0. Studio Room Creation: "新しい『〇〇』チャットを作って" or "〇〇プロジェクトを作って"
+      const createRoomMatch = text.match(/(?:新しい)?(?:『(.+?)』|「(.+?)」|(.+?))\s*(?:チャット|部屋|プロジェクト)\s*(?:を|で)?(?:作って|作成して|立ち上げて|オープンして)/i);
+      if (createRoomMatch && !hasExecutedAnyAction) {
+        const roomName = (createRoomMatch[1] || createRoomMatch[2] || createRoomMatch[3] || '新しいプロジェクト').trim();
+        if (roomName && !/コード|プログラム|ゲーム/.test(roomName)) {
+          await window.agentActions.executeAction({
+            type: 'create_room',
+            name: roomName
+          }, this.messagesContainer);
+        }
+      }
+
       // 1. Pixel Art Request: "ドット絵で○○を描いて"
       const pixelArtMatch = text.match(/(?:ドット絵|ピクセルアート)で\s*(.+?)\s*(?:を描いて|作って|生成して|描画して|ちょうだい|お願い|$)/i);
-      if (pixelArtMatch && !hasExecutedImageAction) {
+      if (pixelArtMatch && !hasExecutedAnyAction) {
         const subject = pixelArtMatch[1] || 'hero';
         await window.agentActions.executeAction({
           type: 'generate_pixel_art',
@@ -558,7 +570,7 @@ class AppController {
       // 3. Regular AI Image Request: "○○の画像を描いて/生成して"
       const imageGenMatch = text.match(/(?:画像|イラスト|グラフィック).*(?:描いて|生成して|作って|描画して)/i) ||
                             text.match(/(.+?)の画像(?:を|で)?(?:描いて|生成して|作って)/i);
-      if (imageGenMatch && !pixelArtMatch && !screenshotMatch && !hasExecutedImageAction) {
+      if (imageGenMatch && !pixelArtMatch && !screenshotMatch && !hasExecutedAnyAction) {
         const prompt = text.replace(/画像|イラスト|グラフィック|描いて|生成して|作って|描画して|お願い|を|で|の/g, ' ').trim() || 'game concept art';
         await window.agentActions.executeAction({
           type: 'generate_image',
@@ -574,7 +586,7 @@ class AppController {
       const bgmMatch = text.match(/(?:BGM|効果音|音楽|サウンド).*(?:追加|つけて|鳴らして)/i);
       const itemMatch = text.match(/(?:アイテム|武器|パワーアップ).*(?:追加|作って)/i);
 
-      if (!hasExecutedImageAction) {
+      if (!hasExecutedAnyAction) {
         if (enemyMatch) {
           window.agentActions.appendOptionsCard(this.messagesContainer, 'どんな敵を追加する？', [
             '遠距離魔法スライム', '高速突進ウルフ', '巨大ボスゴーレム', '空中飛翔ワイバーン'

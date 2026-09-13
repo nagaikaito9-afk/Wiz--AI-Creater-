@@ -34,6 +34,12 @@ class WizAIEngine {
     this.chatPrompt = `${this.basePersona}
 現在あなたは【通常会話モード】です。
 ユーザーと気軽に雑談したり、ゲームの面白いアイデアやルール、キャラクター設定の企画相談に乗ったりしてください。
+また、スタジオ内の操作（「新しい『○○』チャットを作って」「○○チャットに切り替えて」「設定を開いて」「フレンド画面を開いて」など）を求められた場合は、親切に回答するとともに以下の専用アクションタグを使って自律的に操作を行ってください：
+- 新しいチャット部屋作成: <wiz_action type="create_room" name="プロジェクト名" />
+- チャット部屋切り替え: <wiz_action type="switch_room" name="プロジェクト名" />
+- 画面切り替え: <wiz_action type="switch_view" mode="preview または code または logs" />
+- モーダル・機能起動: <wiz_action type="open_modal" target="settings または rules または friends または team" />
+
 ユーザーが「プログラム作成モードにして」や「コードを書いて」と求めたら、「プログラム作成モードに切り替えてコードを編集するよ！」と案内してください。
 `;
 
@@ -140,7 +146,9 @@ class WizAIEngine {
     }
 
     // Inject Cross-Room Memory if enabled
-    const crossMemory = window.projectManager?.getCrossRoomMemoryPrompt();
+    const crossMemory = (window.projectManager && typeof window.projectManager.getCrossRoomMemoryPrompt === 'function')
+      ? window.projectManager.getCrossRoomMemoryPrompt()
+      : '';
     if (crossMemory) {
       enrichedPrompt += `\n\n${crossMemory}\n`;
     }

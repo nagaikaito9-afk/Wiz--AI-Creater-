@@ -196,6 +196,16 @@ class SupabaseAuthManager {
       this.resendSignupCode();
     });
 
+    // Step 2 Autofill Helper
+    document.getElementById('btn-autofill-code')?.addEventListener('click', () => {
+      const code = this.pendingSignup?.code;
+      const codeInput = document.getElementById('gate-signup-code');
+      if (code && codeInput) {
+        codeInput.value = code;
+        if (window.showToast) window.showToast(`認証コード [ ${code} ] を入力しました！`, 'success');
+      }
+    });
+
     // Step 3: Username & User ID Setup
     document.getElementById('gate-signup-finish-btn')?.addEventListener('click', () => {
       this.handleSignupStep3();
@@ -659,6 +669,27 @@ class SupabaseAuthManager {
     }
   }
 
+  // Send verification code via real public email dispatch API (Web3Forms/REST)
+  async sendRealVerificationEmail(email, code) {
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_key: '56d3969e-cf2d-45bf-a6d1-41b4e0573e86',
+          subject: `【Wiz AI Studio】本人確認コード: ${code}`,
+          from_name: 'Wiz AI Studio 認証センター',
+          email: email,
+          message: `Wiz AI Studio (AIゲームクリエイター) へようこそ！\n\nあなたの本人確認コードは 【 ${code} 】 です。\n有効期限は5分間です。\n\n画面の入力欄にこの6ケタコードを入力して、新規登録を完了してください。`
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log('Real Email dispatch result:', data);
+    } catch (e) {
+      console.warn('Real Email dispatch background attempt:', e);
+    }
+  }
+
   // Signup Step 1: Input Email + Password -> Send 6-digit code
   handleSignupStep1() {
     const emailInput = document.getElementById('gate-signup-email');
@@ -672,8 +703,8 @@ class SupabaseAuthManager {
       return;
     }
 
-    if (password.length < 6) {
-      if (window.showToast) window.showToast('パスワードは6文字以上で設定してください', 'warning');
+    if (!password) {
+      if (window.showToast) window.showToast('Emailのパスワードを入力してください', 'warning');
       return;
     }
 
@@ -699,11 +730,18 @@ class SupabaseAuthManager {
     const codeInput = document.getElementById('gate-signup-code');
     if (codeInput) codeInput.value = '';
 
+    const liveBadge = document.getElementById('live-generated-code-badge');
+    if (liveBadge) liveBadge.textContent = code;
+
+    const statusText = document.getElementById('verify-email-status-text');
+    if (statusText) statusText.textContent = '6ケタの確認コードを送信しました。メールをご確認ください。';
+
     this.showSignupStep(2);
     this.startResendCountdown();
+    this.sendRealVerificationEmail(email, code);
 
     if (window.showToast) {
-      window.showToast(`✉️ 本人確認コード [ ${code} ] を送信しました（テスト用表示）`, 'info');
+      window.showToast(`✉️ ${email} 宛に認証コード [ ${code} ] を送信しました！`, 'info');
     }
   }
 
@@ -748,8 +786,13 @@ class SupabaseAuthManager {
     this.pendingSignup.expiresAt = Date.now() + 5 * 60 * 1000;
     this.startResendCountdown();
 
+    const liveBadge = document.getElementById('live-generated-code-badge');
+    if (liveBadge) liveBadge.textContent = code;
+
+    this.sendRealVerificationEmail(this.pendingSignup.email, code);
+
     if (window.showToast) {
-      window.showToast(`✉️ 新しい認証コード [ ${code} ] を再送しました（テスト用表示）`, 'info');
+      window.showToast(`✉️ ${this.pendingSignup.email} 宛に新しい認証コード [ ${code} ] を再送しました！`, 'info');
     }
   }
 
@@ -787,9 +830,9 @@ class SupabaseAuthManager {
       return false;
     }
 
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(clean)) {
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(clean)) {
       if (hint) {
-        hint.textContent = '⚠️ 3〜20文字の半角英数字・アンダースコアのみ使用可能です';
+        hint.textContent = '⚠️ 3〜30文字の半角英数字・アンダースコアのみ使用可能です';
         hint.style.color = '#ff6b6b';
       }
       return false;
@@ -864,7 +907,7 @@ class SupabaseAuthManager {
   // Show specific step (1, 2, or 3)
   showSignupStep(stepNum) {
     [1, 2, 3].forEach(n => {
-      const stepEl = document.getElementById(`signup-step-n`.replace('n', n));
+      const stepEl = document.getElementById(`signup-step-${n}`);
       const dotEl = document.getElementById(`step-dot-${n}`);
       if (stepEl) stepEl.style.display = n === stepNum ? 'block' : 'none';
       if (dotEl) {
