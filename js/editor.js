@@ -27,8 +27,24 @@ class CodeEditorManager {
     this.aiBadge = document.getElementById('ai-editing-indicator');
     this.downloadCurrentFileBtn = document.getElementById('download-current-file-btn');
     this.contextMenu = document.getElementById('code-context-menu');
+    this.wizUndoBtn = document.getElementById('wiz-undo-btn');
+
+    // Image Viewer Overlay
+    this.imageViewerContainer = document.getElementById('image-viewer-container');
+    this.imageViewerImg = document.getElementById('image-viewer-img');
+    this.imageViewerInfo = document.getElementById('image-viewer-info');
+    this.imageViewerDownloadBtn = document.getElementById('image-viewer-download-btn');
+
+    // View panes
+    this.viewCodeBtn = document.getElementById('view-mode-code-btn');
+    this.viewPreviewBtn = document.getElementById('view-mode-preview-btn');
+    this.viewLogsBtn = document.getElementById('view-mode-logs-btn');
+    this.paneCode = document.getElementById('pane-code-view');
+    this.panePreview = document.getElementById('pane-preview-view');
+    this.paneLogs = document.getElementById('pane-logs-view');
 
     this.initEvents();
+    this.initViewSwitcher();
     this.initContextMenu();
     this.renderTree();
     this.openFile('index.html');
@@ -99,12 +115,49 @@ class CodeEditorManager {
       }
     });
 
+    // Wiz Undo Button
+    this.wizUndoBtn?.addEventListener('click', () => {
+      window.vfs.undo();
+    });
+
+    // Image Viewer Download Button
+    this.imageViewerDownloadBtn?.addEventListener('click', () => {
+      if (this.activeFile) {
+        window.vfs.downloadSingleFile(this.activeFile);
+      }
+    });
+
     // Explorer Buttons
     document.getElementById('btn-add-file')?.addEventListener('click', () => this.promptCreateFile());
     document.getElementById('new-file-quick-btn')?.addEventListener('click', () => this.promptCreateFile());
     document.getElementById('btn-add-folder')?.addEventListener('click', () => this.promptCreateFolder());
     document.getElementById('new-folder-quick-btn')?.addEventListener('click', () => this.promptCreateFolder());
     document.getElementById('btn-refresh-tree')?.addEventListener('click', () => this.renderTree());
+  }
+
+  // View Switcher (Code, Preview, Logs)
+  initViewSwitcher() {
+    this.viewCodeBtn?.addEventListener('click', () => this.switchView('code'));
+    this.viewPreviewBtn?.addEventListener('click', () => {
+      this.switchView('preview');
+      // If runner has target, trigger openInPanel
+      if (window.runner) {
+        window.runner.openInPanel(window.runner.activeRunTarget || this.activeFile || 'index.html');
+      }
+    });
+    this.viewLogsBtn?.addEventListener('click', () => this.switchView('logs'));
+  }
+
+  switchView(viewName) {
+    // Buttons
+    this.viewCodeBtn?.classList.toggle('active', viewName === 'code');
+    this.viewPreviewBtn?.classList.toggle('active', viewName === 'preview');
+    this.viewLogsBtn?.classList.toggle('active', viewName === 'logs');
+
+    // Panes
+    if (this.paneCode) this.paneCode.style.display = viewName === 'code' ? 'flex' : 'none';
+    if (this.panePreview) this.panePreview.style.display = viewName === 'preview' ? 'flex' : 'none';
+    if (this.paneLogs) this.paneLogs.style.display = viewName === 'logs' ? 'flex' : 'none';
   }
 
   // Right-Click Context Menu (Cut, Copy, Paste, Ask)
@@ -253,15 +306,61 @@ class CodeEditorManager {
     this.renderTree();
   }
 
+  isImageFile(filePath) {
+    const ext = this.getFileExtension(filePath);
+    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'ico', 'bmp'].includes(ext);
+  }
+
   loadFileContent(filePath, content) {
-    this.textarea.value = content;
     this.activeFileNameEl.textContent = filePath.split('/').pop();
     this.updateFileIcon(filePath);
     this.updateSyntaxBadge(filePath);
-    this.updateLineNumbers();
-    this.updateHighlighting();
-    this.updateCursorPos();
     this.setDirty(false);
+
+    if (this.isImageFile(filePath)) {
+      // Hide text editor, show image viewer
+      this.textarea.style.display = 'none';
+      this.lineNumbers.style.display = 'none';
+      this.highlightLayer.style.display = 'none';
+      if (this.imageViewerContainer) {
+        this.imageViewerContainer.style.display = 'flex';
+      }
+
+      let src = content;
+      if (typeof content === 'string' && content.trim().startsWith('<svg')) {
+        src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(content);
+      } else if (typeof content === 'string' && !content.startsWith('data:') && !content.startsWith('http') && !content.startsWith('blob:')) {
+        // Handle raw base64 or binary string
+        src = `data:image/png;base64,${content}`;
+      }
+
+      if (this.imageViewerImg) {
+        this.imageViewerImg.onload = () => {
+          if (this.imageViewerInfo) {
+            this.imageViewerInfo.textContent = `${this.imageViewerImg.naturalWidth} x ${this.imageViewerImg.naturalHeight} px`;
+          }
+        };
+        this.imageViewerImg.onerror = () => {
+          if (this.imageViewerInfo) {
+            this.imageViewerInfo.textContent = '画像プレビュー不可';
+          }
+        };
+        this.imageViewerImg.src = src;
+      }
+    } else {
+      // Show text editor, hide image viewer
+      if (this.imageViewerContainer) {
+        this.imageViewerContainer.style.display = 'none';
+      }
+      this.textarea.style.display = 'block';
+      this.lineNumbers.style.display = 'block';
+      this.highlightLayer.style.display = 'block';
+
+      this.textarea.value = content;
+      this.updateLineNumbers();
+      this.updateHighlighting();
+      this.updateCursorPos();
+    }
   }
 
   closeTab(filePath, e) {
@@ -274,6 +373,12 @@ class CodeEditorManager {
         this.activeFile = null;
         this.textarea.value = '';
         this.activeFileNameEl.textContent = 'ファイルなし';
+        if (this.imageViewerContainer) {
+          this.imageViewerContainer.style.display = 'none';
+        }
+        this.textarea.style.display = 'block';
+        this.lineNumbers.style.display = 'block';
+        this.highlightLayer.style.display = 'block';
         this.updateLineNumbers();
         this.updateHighlighting();
       }
@@ -319,11 +424,12 @@ class CodeEditorManager {
   updateHighlighting() {
     const ext = this.getFileExtension(this.activeFile);
     let lang = 'html';
-    if (ext === 'js') lang = 'javascript';
-    else if (ext === 'css') lang = 'css';
+    if (ext === 'js' || ext === 'mjs' || ext === 'cjs' || ext === 'ts') lang = 'javascript';
+    else if (ext === 'css' || ext === 'scss' || ext === 'less') lang = 'css';
     else if (ext === 'py') lang = 'python';
-    else if (ext === 'cpp' || ext === 'hpp') lang = 'cpp';
+    else if (['cpp', 'hpp', 'c', 'h', 'cc', 'cxx'].includes(ext)) lang = 'cpp';
     else if (ext === 'json') lang = 'javascript';
+    else if (ext === 'md' || ext === 'markdown') lang = 'markdown';
 
     this.highlightCode.className = `language-${lang}`;
     this.highlightCode.textContent = this.textarea.value;
@@ -363,16 +469,56 @@ class CodeEditorManager {
   getIconClassForFile(filePath) {
     const ext = this.getFileExtension(filePath);
     switch (ext) {
-      case 'html': return 'fa-brands fa-html5 node-icon';
-      case 'css': return 'fa-brands fa-css3-alt node-icon';
-      case 'js': return 'fa-brands fa-js node-icon';
-      case 'py': return 'fa-brands fa-python node-icon';
+      case 'html':
+      case 'htm':
+        return 'fa-brands fa-html5 node-icon icon-html';
+      case 'css':
+      case 'scss':
+      case 'less':
+        return 'fa-brands fa-css3-alt node-icon icon-css';
+      case 'js':
+      case 'mjs':
+      case 'cjs':
+      case 'ts':
+        return 'fa-brands fa-js node-icon icon-js';
+      case 'py':
+        return 'fa-brands fa-python node-icon icon-python';
       case 'cpp':
       case 'hpp':
-      case 'c': return 'fa-solid fa-code node-icon';
-      case 'json': return 'fa-solid fa-brackets-curly node-icon';
-      case 'md': return 'fa-solid fa-file-lines node-icon';
-      default: return 'fa-regular fa-file-code node-icon';
+      case 'c':
+      case 'h':
+      case 'cc':
+      case 'cxx':
+        return 'fa-solid fa-code node-icon icon-cpp';
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'webp':
+      case 'gif':
+      case 'bmp':
+      case 'ico':
+        return 'fa-regular fa-file-image node-icon icon-image';
+      case 'svg':
+        return 'fa-solid fa-bezier-curve node-icon icon-svg';
+      case 'json':
+        return 'fa-solid fa-brackets-curly node-icon icon-json';
+      case 'md':
+      case 'markdown':
+      case 'txt':
+        return 'fa-solid fa-file-lines node-icon icon-doc';
+      case 'wav':
+      case 'mp3':
+      case 'ogg':
+      case 'm4a':
+        return 'fa-solid fa-file-audio node-icon icon-audio';
+      case 'zip':
+      case 'rar':
+      case '7z':
+      case 'tar':
+      case 'gz':
+        return 'fa-solid fa-file-zipper node-icon icon-zip';
+      default:
+        return 'fa-regular fa-file-code node-icon';
     }
   }
 

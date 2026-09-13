@@ -64,11 +64,14 @@
       <button id="run-project-btn" class="btn btn-primary run-btn" title="現在のプログラムを実行 (Ctrl+Enter)">
         <i class="fa-solid fa-play"></i> <span>実行</span>
       </button>
+      <button id="wiz-undo-btn" class="btn btn-ghost" title="Wizによる変更を元に戻す (Undo)">
+        <i class="fa-solid fa-clock-rotate-left"></i> <span>Wiz変更Undo</span>
+      </button>
       <button id="export-zip-btn" class="btn btn-ghost" title="プロジェクトをZIPでダウンロード">
         <i class="fa-solid fa-download"></i> <span>ZIP保存</span>
       </button>
-      <button id="theme-settings-btn" class="btn btn-icon" title="テーマカラー変更 (ダーク / ホワイト / グレー)">
-        <i class="fa-solid fa-palette"></i>
+      <button id="theme-settings-btn" class="btn btn-icon" title="設定 (テーマ / 自動デバッグ / 実行画面表示)">
+        <i class="fa-solid fa-sliders"></i>
       </button>
       <button id="reset-project-header-btn" class="btn btn-icon" title="初期サンプルゲームにリセット">
         <i class="fa-solid fa-rotate-left"></i>
@@ -82,18 +85,64 @@
   <!-- Main Workspace Layout -->
   <div class="workspace-container" id="workspace-container">
     
-    <!-- LEFT PANEL: Chat with Wiz -->
+    <!-- LEFTMOST PANEL: ChatGPT-like Project / Rooms Sidebar -->
+    <aside class="project-sidebar" id="project-sidebar">
+      <div class="sidebar-header">
+        <button id="new-project-btn" class="btn-new-chat">
+          <i class="fa-solid fa-plus"></i>
+          <span>新しいプロジェクト</span>
+        </button>
+        <button id="collapse-rooms-btn" class="btn-icon-subtle" title="プロジェクト一覧を閉じる">
+          <i class="fa-solid fa-angles-left"></i>
+        </button>
+      </div>
+
+      <!-- Projects / Rooms List -->
+      <div class="project-rooms-list" id="project-rooms-list">
+        <!-- Dynamically rendered rooms -->
+      </div>
+
+      <!-- Bottom: Supabase User Profile & Google Login -->
+      <div class="sidebar-user-area" id="sidebar-user-area">
+        <!-- Rendered by auth.js -->
+      </div>
+    </aside>
+
+    <!-- CENTER PANEL: Chat with Wiz -->
     <section class="chat-section" id="chat-section">
       <!-- Chat Header Info -->
       <div class="chat-header-bar">
-        <div class="wiz-status">
-          <span class="avatar-mini"><i class="fa-solid fa-hat-wizard"></i></span>
-          <div class="wiz-info">
-            <strong>Wiz (ウィズ)</strong>
-            <span class="status-desc" id="wiz-mode-label">通常会話モード (何でも気軽に聞いてね！)</span>
+        <div class="chat-header-left">
+          <button id="open-rooms-btn" class="btn-icon-subtle open-rooms-btn" title="プロジェクト一覧を開く">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="active-project-badge" id="active-project-badge">
+            <i class="fa-solid fa-folder-closed"></i>
+            <span id="active-project-name-display">ネオン・ブロック崩し</span>
+          </div>
+          <div class="wiz-status">
+            <span class="avatar-mini"><i class="fa-solid fa-hat-wizard"></i></span>
+            <div class="wiz-info">
+              <strong>Wiz (ウィズ)</strong>
+              <span class="status-desc" id="wiz-mode-label">通常会話モード</span>
+            </div>
           </div>
         </div>
+
         <div class="chat-actions">
+          <!-- Project Rules Button -->
+          <button id="project-rules-btn" class="btn-rules" title="この部屋のプロジェクトルールを設定">
+            <i class="fa-solid fa-scroll"></i>
+            <span>プロジェクトルール</span>
+          </button>
+          <!-- Supabase Online / Sync Status Badge -->
+          <div id="cloud-status-badge" class="cloud-status-pill online" title="Supabase クラウドオンライン">
+            <span class="status-dot"></span>
+            <span>オンライン</span>
+          </div>
+          <span id="auto-debug-badge" class="badge-pill" style="display:none;" title="エラーを検知するとWizが自動修正します">
+            <i class="fa-solid fa-bug-slash"></i> 自動デバッグON
+          </span>
           <button id="clear-chat-btn" class="btn-mini" title="チャット履歴をクリア">
             <i class="fa-solid fa-trash-can"></i>
           </button>
@@ -152,16 +201,25 @@
     <!-- RESIZE HANDLE -->
     <div class="split-resizer" id="split-resizer"></div>
 
-    <!-- RIGHT PANEL: Code Editor & File Workspace (Collapsible) -->
+    <!-- RIGHT PANEL: Code Editor, Preview & Logs (Collapsible) -->
     <section class="editor-section" id="editor-section">
       
       <!-- Top Action Bar inside Editor -->
       <div class="editor-top-bar">
-        <div class="active-file-indicator">
-          <i class="fa-solid fa-code file-icon" id="active-file-icon"></i>
-          <span id="active-file-name">index.html</span>
-          <span class="dirty-dot" id="file-dirty-dot" style="display:none;"></span>
+        <!-- View Mode Switcher: Code / Preview / Logs -->
+        <div class="right-view-selector">
+          <button id="view-mode-code-btn" class="view-tab-btn active" title="コード編集画面">
+            <i class="fa-solid fa-code"></i> <span>コード</span>
+          </button>
+          <button id="view-mode-preview-btn" class="view-tab-btn" title="プログラム実行・プレビュー画面">
+            <i class="fa-solid fa-gamepad"></i> <span>実行画面</span>
+          </button>
+          <button id="view-mode-logs-btn" class="view-tab-btn" title="実行ログ・コンソール">
+            <i class="fa-solid fa-terminal"></i> <span>ログ</span>
+            <span id="log-counter-badge" class="counter-badge" style="display:none;">0</span>
+          </button>
         </div>
+
         <div class="editor-quick-actions">
           <button id="download-current-file-btn" class="btn-icon-subtle" title="現在開いているファイルを個別ダウンロード">
             <i class="fa-solid fa-download"></i>
@@ -181,7 +239,7 @@
         </div>
       </div>
 
-      <!-- Editor Inner Split: File Tree + Code/Tabs -->
+      <!-- Editor Inner Split: File Tree + View Panel -->
       <div class="editor-workspace-body">
         
         <!-- Left Sub-panel: File Explorer -->
@@ -199,34 +257,92 @@
           </div>
         </div>
 
-        <!-- Right Sub-panel: Code Area & Preview Tabs -->
+        <!-- Right Main View Panel (Code / Preview / Logs) -->
         <div class="code-area-panel">
           
-          <!-- Open File Tabs -->
-          <div class="editor-tabs-bar" id="editor-tabs-bar">
-            <!-- Dynamic tabs -->
+          <!-- VIEW 1: CODE EDITOR -->
+          <div class="view-content-pane active" id="pane-code-view">
+            <!-- Open File Tabs -->
+            <div class="editor-tabs-bar" id="editor-tabs-bar">
+              <!-- Dynamic tabs -->
+            </div>
+
+            <!-- Active Code Content with Context Menu -->
+            <div class="code-editor-container" id="code-editor-container">
+              <div class="line-numbers" id="editor-line-numbers">1</div>
+              <textarea id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+              <pre class="highlight-layer" id="highlight-layer"><code id="highlight-code" class="language-html"></code></pre>
+
+              <!-- Image Viewer Overlay for png, jpg, webp, svg, etc. -->
+              <div class="image-viewer-container" id="image-viewer-container" style="display: none;">
+                <div class="image-viewer-card">
+                  <div class="image-canvas-checker">
+                    <img id="image-viewer-img" src="" alt="Preview">
+                  </div>
+                  <div class="image-viewer-meta">
+                    <span id="image-viewer-info">100 x 100 px</span>
+                    <button id="image-viewer-download-btn" class="btn btn-ghost"><i class="fa-solid fa-download"></i> ダウンロード</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Status Bar -->
+            <div class="editor-status-bar">
+              <div class="status-left">
+                <span id="cursor-position-info">行 1, 列 1</span>
+                <span id="file-encoding-info">UTF-8</span>
+              </div>
+              <div class="status-right">
+                <span id="file-syntax-badge" class="syntax-badge">HTML</span>
+                <span id="ai-editing-indicator" class="ai-badge" style="display: none;">
+                  <i class="fa-solid fa-sparkles fa-spin"></i> Wizが編集中...
+                </span>
+              </div>
+            </div>
           </div>
 
-          <!-- Active Code Content with Context Menu -->
-          <div class="code-editor-container" id="code-editor-container">
-            <div class="line-numbers" id="editor-line-numbers">1</div>
-            <textarea id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-            <pre class="highlight-layer" id="highlight-layer"><code id="highlight-code" class="language-html"></code></pre>
+          <!-- VIEW 2: INLINE GAME RUNNER / PREVIEW -->
+          <div class="view-content-pane" id="pane-preview-view" style="display:none;">
+            <div class="pane-header-toolbar">
+              <div class="toolbar-left">
+                <i class="fa-solid fa-gamepad" style="color:var(--wiz-cyan);"></i>
+                <span>実行対象: <strong id="inline-preview-target">index.html</strong></span>
+                <span class="live-pill">LIVE</span>
+              </div>
+              <div class="toolbar-right">
+                <button id="inline-preview-restart-btn" class="btn-tool-mini" title="再実行"><i class="fa-solid fa-rotate-right"></i> 再読み込み</button>
+                <button id="inline-preview-modal-btn" class="btn-tool-mini" title="全画面モーダルで開く"><i class="fa-solid fa-expand"></i> 全画面</button>
+              </div>
+            </div>
+            <div class="pane-body-wrapper">
+              <iframe id="inline-preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock" allow="autoplay; fullscreen"></iframe>
+              <div id="inline-python-wrapper" style="display:none; flex:1; background:var(--bg-editor); padding:1rem; flex-direction:column;">
+                <div class="python-console-header">
+                  <span><i class="fa-brands fa-python"></i> Python 実行コンソール</span>
+                  <span id="inline-py-status" class="py-status">待機中</span>
+                </div>
+                <pre id="inline-python-output" class="python-output"></pre>
+              </div>
+            </div>
           </div>
 
-          <!-- Bottom Status Bar -->
-          <div class="editor-status-bar">
-            <div class="status-left">
-              <span id="cursor-position-info">行 1, 列 1</span>
-              <span id="file-encoding-info">UTF-8</span>
+          <!-- VIEW 3: INLINE CONSOLE LOGS -->
+          <div class="view-content-pane" id="pane-logs-view" style="display:none;">
+            <div class="pane-header-toolbar">
+              <div class="toolbar-left">
+                <i class="fa-solid fa-terminal" style="color:var(--wiz-cyan);"></i>
+                <span>実行ログ &amp; コンソール</span>
+              </div>
+              <div class="toolbar-right">
+                <button id="clear-inline-logs-btn" class="btn-tool-mini"><i class="fa-solid fa-trash-can"></i> ログ消去</button>
+              </div>
             </div>
-            <div class="status-right">
-              <span id="file-syntax-badge" class="syntax-badge">HTML</span>
-              <span id="ai-editing-indicator" class="ai-badge" style="display: none;">
-                <i class="fa-solid fa-sparkles fa-spin"></i> Wizが編集中...
-              </span>
+            <div class="console-drawer-logs" id="inline-console-logs" style="flex:1; background:var(--bg-editor); padding:0.8rem 1rem;">
+              <div class="log-item info">[System] ログモニター待機中</div>
             </div>
           </div>
+
         </div>
 
       </div>
@@ -234,7 +350,7 @@
 
   </div>
 
-  <!-- FLOATING PREVIEW MODAL / RUNNER -->
+  <!-- FLOATING PREVIEW MODAL / RUNNER (Fullscreen Option) -->
   <div class="preview-modal-overlay" id="preview-modal-overlay" style="display:none;">
     <div class="preview-modal-window">
       <div class="preview-modal-header">
@@ -257,12 +373,9 @@
       </div>
       
       <div class="preview-modal-body">
-        <!-- Web Game iframe -->
         <div class="preview-iframe-wrapper" id="preview-iframe-wrapper">
           <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock" allow="autoplay; fullscreen"></iframe>
         </div>
-        
-        <!-- Python Runner Output Console -->
         <div class="preview-python-wrapper" id="preview-python-wrapper" style="display:none;">
           <div class="python-console-header">
             <span><i class="fa-brands fa-python"></i> Pyodide Python 実行コンソール</span>
@@ -300,32 +413,98 @@
     </button>
   </div>
 
-  <!-- THEME SETTINGS MODAL (Dark, White, Gray - No API settings!) -->
+  <!-- SETTINGS MODAL (Theme, Auto-Debug, Run Target View - No API settings!) -->
   <div class="modal-backdrop" id="theme-settings-modal" style="display: none;">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-palette"></i> テーマカラー変更</h3>
+        <h3><i class="fa-solid fa-sliders"></i> スタジオ設定</h3>
         <button id="close-theme-modal-btn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-secondary);">お好みの外観テーマを選択してください：</p>
-        <div class="theme-options-grid">
-          <div class="theme-card active" data-theme="theme-dark" id="theme-card-dark">
-            <div class="theme-preview-circle theme-dark-circle"></div>
-            <span>ダーク</span>
+        <!-- 1. Theme Selection -->
+        <div class="setting-block">
+          <label class="setting-label"><i class="fa-solid fa-palette"></i> テーマカラー</label>
+          <div class="theme-options-grid">
+            <div class="theme-card active" data-theme="theme-dark" id="theme-card-dark">
+              <div class="theme-preview-circle theme-dark-circle"></div>
+              <span>ダーク</span>
+            </div>
+            <div class="theme-card" data-theme="theme-white" id="theme-card-white">
+              <div class="theme-preview-circle theme-white-circle"></div>
+              <span>ホワイト</span>
+            </div>
+            <div class="theme-card" data-theme="theme-gray" id="theme-card-gray">
+              <div class="theme-preview-circle theme-gray-circle"></div>
+              <span>グレー</span>
+            </div>
           </div>
-          <div class="theme-card" data-theme="theme-white" id="theme-card-white">
-            <div class="theme-preview-circle theme-white-circle"></div>
-            <span>ホワイト</span>
+        </div>
+
+        <!-- 2. Auto Debug Mode -->
+        <div class="setting-block">
+          <div class="setting-toggle-row">
+            <div class="toggle-info">
+              <strong><i class="fa-solid fa-bug-slash"></i> 自動デバッグモード</strong>
+              <p>プログラム実行中にエラーが発生した場合、Wizが自動でエラーログを解析しコードを修正します。</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-auto-debug-checkbox">
+              <span class="slider"></span>
+            </label>
           </div>
-          <div class="theme-card" data-theme="theme-gray" id="theme-card-gray">
-            <div class="theme-preview-circle theme-gray-circle"></div>
-            <span>グレー</span>
+        </div>
+
+        <!-- 3. Preview Display Mode -->
+        <div class="setting-block">
+          <label class="setting-label"><i class="fa-solid fa-gamepad"></i> 実行画面の表示先</label>
+          <div class="radio-options-row">
+            <label class="radio-card">
+              <input type="radio" name="preview-target-view" value="panel" checked>
+              <span>右側パネル内で実行 (推奨)</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="preview-target-view" value="modal">
+              <span>全画面モーダルで実行</span>
+            </label>
+          </div>
+        <!-- 4. Cross-Room Memory (これまでの会話を維持する) -->
+        <div class="setting-block">
+          <div class="setting-toggle-row">
+            <div class="toggle-info">
+              <strong><i class="fa-solid fa-brain"></i> これまでの会話を維持する</strong>
+              <p>チェックを入れると、別の部屋で話した内容や企画アイデアをWizが引き継いで記憶します。</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-cross-room-memory-checkbox">
+              <span class="slider"></span>
+            </label>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="apply-theme-btn" class="btn btn-primary">適用して閉じる</button>
+        <button id="apply-theme-btn" class="btn btn-primary">保存して閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECT RULES MODAL (部屋ごとのルール設定) -->
+  <div class="modal-backdrop" id="project-rules-modal" style="display: none;">
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-scroll"></i> <span id="project-rules-modal-title">プロジェクトルール</span></h3>
+        <button id="close-rules-modal-btn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.8rem; line-height: 1.5;">
+          この部屋（ゲーム）の制作ルールや方針を自由に記述してください。<br>
+          Wizが自動で読み取り、チャットの提案やゲームのコード生成に直接反映します。
+        </p>
+        <div class="rules-editor-wrap">
+          <textarea id="project-rules-textarea" rows="7" spellcheck="false" class="form-textarea" placeholder="【記述例】&#10;このゲームはすべてドット絵で制作する。&#10;RPGゲームで、主人公の名前はゼファー。&#10;ダークファンタジーな世界観。"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="save-project-rules-btn" class="btn btn-primary"><i class="fa-solid fa-check"></i> ルールを保存</button>
       </div>
     </div>
   </div>
@@ -354,10 +533,14 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/dialog.js"></script>
   <script src="js/fileSystem.js"></script>
+  <script src="js/imageGenerator.js"></script>
   <script src="js/runner.js"></script>
   <script src="js/editor.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/projectManager.js"></script>
   <script src="js/wiz.js"></script>
   <script src="js/agentActions.js"></script>
   <script src="js/app.js"></script>

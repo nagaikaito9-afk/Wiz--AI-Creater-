@@ -58,11 +58,27 @@ class WizAIEngine {
 4. プログラム実行（プレビューを開く）:
 <wiz_action type="run" path="index.html または script.py" />
 
-5. 自動クリック＆スクリーンショット撮影（「○○ボタンを押した結果の画像を送って」などの高度なリクエスト用）:
+5. 実行画面の画像キャプチャ（「実行したときの画像を送って」など）:
+<wiz_action type="capture_preview" path="index.html" caption="実行画面のスクリーンショット" />
+
+6. ドット絵グラフィック生成（「ドット絵で○○を描いて」など）:
+<wiz_action type="generate_pixel_art" subject="勇者/スライム/剣/ポーションなど" caption="ドット絵グラフィック" />
+
+7. AI高品質イラスト生成（「○○の画像を描いて/生成して」など）:
+<wiz_action type="generate_image" prompt="英語または日本語のプロンプト" caption="AI生成グラフィック" />
+
+8. 自動クリック＆スクリーンショット撮影（「○○ボタンを押した結果の画像を送って」など）:
 <wiz_action type="click_and_capture" path="index.html" selector="セレクタまたはボタンテキスト" delay="1200" caption="キャプション説明" />
+
+9. インタラクティブ選択肢の提示（詳細が指定されていない質問へのサポート）:
+ユーザーが「敵を追加して」「BGMをつけて」「ステージを増やして」「アイテムを追加して」など、具体的な仕様・好みが指定されていない抽象的なリクエストをした場合、
+「どんな敵を追加する？」「どんなステージにする？」という問いかけとともに、タップ可能な選択肢ボタン群を以下のタグで出力してください。
+形式: <wiz_options question="どんな敵を追加する？" options="遠距離魔法スライム,高速突進ウルフ,巨大ボスゴーレム,飛翔ワイバーン" />
+※ ユーザーはボタンをワンクリックするだけで回答して開発を進められます。
 
 【コーディング時の重要なルール】:
 - 【重要】作成・編集・削除したファイルやフォルダについては、あなた（Wiz）自身の言葉で「〇〇を作ったよ！」「〇〇を更新しておいたから右側のコードタブを見てみてね！」のように親切かつ自然にチャットで伝えてください。
+- プロジェクトルールが設定されている場合、ゲームのジャンルやグラフィック、設計方針においてそのルールを最優先で順守してください。
 - HTMLゲームの場合、基本は index.html、css/style.css、js/game.js などのモジュール構成を推奨しますが、要望に応じて自由に設計してください。
 - ユーザーに分かりやすい親切な解説を添えつつ、必要なファイルは漏れなく <wiz_action> で出力してください。
 - ユーザーが「実行して！」と言った場合は <wiz_action type="run" path="実行ファイルパス" /> を含めてください。
@@ -92,6 +108,18 @@ class WizAIEngine {
   async sendMessage(userText, attachments = []) {
     const systemInstruction = this.mode === 'code' ? this.codePrompt : this.chatPrompt;
     let enrichedPrompt = userText;
+
+    // Inject active room's Project Rules
+    const activeRoom = window.projectManager?.getActiveRoom();
+    if (activeRoom && activeRoom.rules && activeRoom.rules.trim()) {
+      enrichedPrompt += `\n\n【この部屋のプロジェクトルール（最優先で遵守してください）】:\n${activeRoom.rules}\n`;
+    }
+
+    // Inject Cross-Room Memory if enabled
+    const crossMemory = window.projectManager?.getCrossRoomMemoryPrompt();
+    if (crossMemory) {
+      enrichedPrompt += `\n\n${crossMemory}\n`;
+    }
 
     // In code mode, always append current project file structure
     if (this.mode === 'code') {

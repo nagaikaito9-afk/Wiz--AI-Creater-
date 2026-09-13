@@ -984,6 +984,129 @@ body {
   color: var(--text-primary);
 }
 
+/* Settings Blocks & Toggles */
+.setting-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.setting-block:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.setting-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.setting-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.toggle-info strong {
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.toggle-info p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  line-height: 1.4;
+}
+
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  transition: .25s;
+  border-radius: 24px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  transition: .25s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--wiz-cyan);
+  border-color: var(--wiz-cyan);
+}
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* Radio Options Row */
+.radio-options-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.radio-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+.radio-card:hover {
+  border-color: var(--wiz-cyan);
+}
+.radio-card input {
+  accent-color: var(--wiz-cyan);
+}
+
+/* Badge Pill */
+.badge-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .modal-footer {
   padding: 0.85rem 1.25rem;
   border-top: 1px solid var(--border-subtle);
@@ -991,3 +1114,426 @@ body {
   justify-content: flex-end;
   gap: 0.6rem;
 }
+
+/* ==========================================================================
+   ChatGPT-like Project & Rooms Sidebar
+   ========================================================================== */
+.project-sidebar {
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: all var(--transition-normal);
+  z-index: 20;
+}
+
+.project-sidebar.collapsed {
+  margin-left: -250px;
+}
+
+.sidebar-header {
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.btn-new-chat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--accent-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 242, 254, 0.2);
+}
+.btn-new-chat:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.project-rooms-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.6rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  position: relative;
+  user-select: none;
+}
+.room-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.room-item.active {
+  background: rgba(0, 242, 254, 0.12);
+  color: var(--wiz-cyan);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  font-weight: 600;
+}
+
+.room-icon {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.room-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.room-title {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-rule-tag {
+  font-size: 0.65rem;
+  color: var(--wiz-purple);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.room-actions {
+  display: none;
+  gap: 0.2rem;
+}
+.room-item:hover .room-actions {
+  display: flex;
+}
+
+.btn-room-action {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.btn-room-action:hover {
+  color: var(--text-primary);
+}
+.btn-room-action.delete:hover {
+  color: var(--danger);
+}
+
+/* Sidebar User / Auth Area */
+.sidebar-user-area {
+  padding: 0.65rem 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.user-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.user-avatar-wrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.user-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--wiz-cyan);
+}
+
+.user-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--border-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.user-online-pip {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-tertiary);
+}
+
+.user-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-logout {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  transition: color var(--transition-fast);
+}
+.btn-logout:hover {
+  color: var(--danger);
+}
+
+.btn-google-login {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #fff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.btn-google-login:hover {
+  background: #f8f9fa;
+  border-color: #d2e3fc;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+
+/* Chat Header Left (Rooms Toggle & Project Badge) */
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.open-rooms-btn {
+  display: none;
+}
+.project-sidebar.collapsed ~ .chat-section .open-rooms-btn {
+  display: flex;
+}
+
+.active-project-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.active-project-badge i {
+  color: var(--wiz-cyan);
+}
+
+/* Project Rules Button in Header */
+.btn-rules {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.btn-rules:hover {
+  background: var(--border-medium);
+  color: var(--text-primary);
+  border-color: var(--wiz-purple);
+}
+.btn-rules.has-rules {
+  background: rgba(157, 78, 221, 0.15);
+  border-color: rgba(157, 78, 221, 0.4);
+  color: var(--wiz-purple);
+}
+
+/* Supabase Online Status Badge */
+.cloud-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.cloud-status-pill.online {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.cloud-status-pill.syncing {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--wiz-cyan);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+}
+.cloud-status-pill.offline {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+.cloud-status-pill .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.cloud-status-pill .status-dot.offline {
+  background: var(--text-muted);
+}
+
+/* Rules Editor Form */
+.rules-editor-wrap {
+  width: 100%;
+}
+.form-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--wiz-purple);
+  box-shadow: 0 0 0 2px rgba(157, 78, 221, 0.2);
+}
+
+/* ==========================================================================
+   Interactive Options (選択肢ボタン機能)
+   ========================================================================== */
+.wiz-options-card {
+  margin: 0.75rem 0 0.25rem;
+  background: rgba(16, 22, 38, 0.75);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease;
+}
+
+.wiz-options-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--wiz-cyan);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.wiz-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.wiz-option-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.wiz-option-btn:hover {
+  background: rgba(0, 242, 254, 0.15);
+  border-color: var(--wiz-cyan);
+  color: var(--wiz-cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 242, 254, 0.25);
+}
+
+.wiz-option-btn i {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+

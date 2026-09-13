@@ -1,8 +1,9 @@
 /**
- * Wiz AI Game Creator - Agent Actions Executor
- * Parses and executes actions emitted by Wiz (<wiz_action> tags)
- * Handles file creations, modifications, runs, and screenshot captures.
- * No annoying "Created/Updated" action cards; Wiz reports changes naturally in text!
+ * Wiz AI Game Creator - Agent Actions Executor (Enhanced Edition)
+ * Handles:
+ * - File creations & modifications
+ * - Direct execution & capture screenshot (with download button)
+ * - Pixel Art & Imagen AI image generation
  */
 
 class AgentActionsExecutor {
@@ -10,7 +11,7 @@ class AgentActionsExecutor {
     this.actionRegex = /<wiz_action\s+([^>]+)>(?:([\s\S]*?)<\/wiz_action>|)/g;
   }
 
-  // Parse attributes from <wiz_action key="val" key2="val2">
+  // Parse attributes from <wiz_action key="val">
   parseAttributes(attrString) {
     const attrs = {};
     const regex = /([a-zA-Z0-9_-]+)=["']([^"']*)["']/g;
@@ -36,19 +37,47 @@ class AgentActionsExecutor {
         type: attrs.type,
         path: attrs.path,
         selector: attrs.selector,
+        subject: attrs.subject || attrs.prompt,
+        prompt: attrs.prompt || attrs.subject,
         delay: parseInt(attrs.delay, 10) || 1200,
         caption: attrs.caption || '',
         content: content
       });
     }
 
-    // Strip actions from chat bubble text for clean reading
+    // Parse <wiz_options question="..." options="..." />
+    const optionsRegex = /<wiz_options\s+([^>]+)>(?:([\s\S]*?)<\/wiz_options>|)/g;
+    let optMatch;
+    while ((optMatch = optionsRegex.exec(responseText)) !== null) {
+      const attrs = this.parseAttributes(optMatch[1]);
+      let optionsList = [];
+      if (attrs.options) {
+        optionsList = attrs.options.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (optMatch[2]) {
+        optionsList = optMatch[2].split('\n').map(s => s.replace(/^[-*•\d.]\s*/, '').trim()).filter(Boolean);
+      }
+      if (optionsList.length > 0) {
+        actions.push({
+          type: 'show_options',
+          question: attrs.question || 'どんな設定にする？',
+          options: optionsList
+        });
+      }
+    }
+
     cleanText = cleanText.replace(/<wiz_action[\s\S]*?<\/wiz_action>/g, '').trim();
     cleanText = cleanText.replace(/<wiz_action[^>]*\/>/g, '').trim();
+    cleanText = cleanText.replace(/<wiz_options[\s\S]*?<\/wiz_options>/g, '').trim();
+    cleanText = cleanText.replace(/<wiz_options[^>]*\/>/g, '').trim();
 
     // Execute actions sequentially in background
     if (actions.length > 0) {
-      window.editor.showAiEditing(true);
+      const hasFileMod = actions.some(a => ['write_file', 'create_dir', 'delete_file'].includes(a.type));
+      if (hasFileMod && window.vfs) {
+        window.vfs.saveSnapshot('Wizによるコード生成・編集');
+      }
+
+      window.editor?.showAiEditing(true);
 
       for (const action of actions) {
         try {
@@ -58,7 +87,7 @@ class AgentActionsExecutor {
         }
       }
 
-      window.editor.showAiEditing(false);
+      window.editor?.showAiEditing(false);
     }
 
     return {
@@ -67,49 +96,78 @@ class AgentActionsExecutor {
     };
   }
 
-  // Execute single action silently (Wiz speaks naturally about modified files!)
+  // Execute single action
   async executeAction(action, messageContainer) {
     switch (action.type) {
       case 'write_file': {
         const path = window.vfs.normalizePath(action.path);
         window.vfs.createFile(path, action.content);
         window.editor.openFile(path);
-        // Do NOT append card; Wiz describes changes in conversation
         break;
       }
 
       case 'create_dir': {
         const path = window.vfs.normalizePath(action.path);
         window.vfs.createDir(path);
-        // Do NOT append card
         break;
       }
 
       case 'delete_file': {
         const path = window.vfs.normalizePath(action.path);
         window.vfs.delete(path);
-        // Do NOT append card
         break;
       }
 
       case 'run': {
         const path = window.vfs.normalizePath(action.path || 'index.html');
-        // Trigger run modal
         window.runner.run(path);
         break;
       }
 
+      case 'capture_preview':
       case 'click_and_capture': {
         const path = window.vfs.normalizePath(action.path || 'index.html');
         try {
           const imgDataUrl = await window.runner.executeAndCapture(path, action.selector, action.delay);
-          this.appendImageMessage(messageContainer, imgDataUrl, action.caption || `${path} の実行画面 (操作: ${action.selector || '初期画面'})`);
+          this.appendImageMessage(messageContainer, imgDataUrl, action.caption || `${path} の実行画面`, 'screenshot.png');
         } catch (e) {
           console.error('Capture failed:', e);
-          if (window.showToast) {
-            window.showToast(`画面キャプチャに失敗しました: ${e.message}`, 'error');
-          }
+          if (window.showToast) window.showToast(`画面キャプチャに失敗しました: ${e.message}`, 'error');
         }
+        break;
+      }
+
+      case 'generate_pixel_art': {
+        try {
+          const subject = action.subject || 'hero';
+          const imgDataUrl = window.imageGen.generatePixelArt(subject);
+          this.appendImageMessage(messageContainer, imgDataUrl, action.caption || `🎨 ドット絵グラフィック: ${subject}`, `${subject}_pixelart.png`);
+          // Also save to VFS if path specified
+          if (action.path) {
+            window.vfs.createFile(action.path, imgDataUrl);
+          }
+        } catch (e) {
+          console.error('Pixel art generation failed:', e);
+        }
+        break;
+      }
+
+      case 'generate_image': {
+        try {
+          const prompt = action.prompt || 'game fantasy art';
+          const imgDataUrl = await window.imageGen.generateAiImage(prompt);
+          this.appendImageMessage(messageContainer, imgDataUrl, action.caption || `✨ AI生成グラフィック: ${prompt}`, 'ai_generated.png');
+          if (action.path) {
+            window.vfs.createFile(action.path, imgDataUrl);
+          }
+        } catch (e) {
+          console.error('AI image generation failed:', e);
+        }
+        break;
+      }
+
+      case 'show_options': {
+        this.appendOptionsCard(messageContainer, action.question, action.options);
         break;
       }
 
@@ -118,8 +176,45 @@ class AgentActionsExecutor {
     }
   }
 
-  // Append screenshot image into chat
-  appendImageMessage(container, dataUrl, caption) {
+  // Append Interactive Options Card (選択肢ボタン)
+  appendOptionsCard(container, question, optionsList) {
+    if (!container || !optionsList || optionsList.length === 0) return;
+
+    const card = document.createElement('div');
+    card.className = 'wiz-options-card';
+
+    const title = document.createElement('div');
+    title.className = 'wiz-options-title';
+    title.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>${question || 'どんな設定にする？'}</span>`;
+    card.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'wiz-options-grid';
+
+    optionsList.forEach(optText => {
+      const btn = document.createElement('button');
+      btn.className = 'wiz-option-btn';
+      btn.innerHTML = `<i class="fa-solid fa-play"></i> <span>${optText}</span>`;
+      btn.onclick = () => {
+        // Automatically set into chat input and trigger send!
+        const input = document.getElementById('chat-user-input');
+        if (input) {
+          input.value = optText;
+          if (window.app) {
+            window.app.handleSendMessage();
+          }
+        }
+      };
+      grid.appendChild(btn);
+    });
+
+    card.appendChild(grid);
+    container.appendChild(card);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  // Append screenshot or generated image into chat with one-click Download button!
+  appendImageMessage(container, dataUrl, caption, defaultDownloadFilename = 'image.png') {
     if (!container) return;
     const wrap = document.createElement('div');
     wrap.className = 'chat-image-preview';
@@ -131,9 +226,32 @@ class AgentActionsExecutor {
 
     const cap = document.createElement('div');
     cap.className = 'chat-image-caption';
-    cap.innerHTML = `<i class="fa-solid fa-image"></i> ${caption}`;
-    wrap.appendChild(cap);
+    cap.style.display = 'flex';
+    cap.style.alignItems = 'center';
+    cap.style.justifyContent = 'space-between';
 
+    const label = document.createElement('div');
+    label.innerHTML = `<i class="fa-solid fa-image"></i> ${caption}`;
+    cap.appendChild(label);
+
+    // Download Button for the Image
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'btn-tool-mini';
+    dlBtn.innerHTML = '<i class="fa-solid fa-download"></i> 保存';
+    dlBtn.title = '画像をローカルにダウンロード';
+    dlBtn.onclick = (e) => {
+      e.stopPropagation();
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = defaultDownloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (window.showToast) window.showToast('画像を保存しました！', 'success');
+    };
+    cap.appendChild(dlBtn);
+
+    wrap.appendChild(cap);
     container.appendChild(wrap);
     container.scrollTop = container.scrollHeight;
   }

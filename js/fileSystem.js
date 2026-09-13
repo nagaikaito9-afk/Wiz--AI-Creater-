@@ -12,7 +12,44 @@ class VirtualFileSystem {
       children: {}
     };
     this.listeners = [];
+    this.undoHistory = []; // Snapshots for Wiz Undo feature
+    this.maxHistory = 20;
     this.load();
+  }
+
+  // Save snapshot before modifications
+  saveSnapshot(actionLabel = 'Wizの変更') {
+    try {
+      const snapshot = JSON.stringify(this.root);
+      this.undoHistory.push({
+        label: actionLabel,
+        time: Date.now(),
+        data: snapshot
+      });
+      if (this.undoHistory.length > this.maxHistory) {
+        this.undoHistory.shift();
+      }
+    } catch (e) {
+      console.warn('Failed to save snapshot:', e);
+    }
+  }
+
+  // Undo last modification
+  undo() {
+    if (this.undoHistory.length === 0) {
+      if (window.showToast) window.showToast('元に戻せる変更履歴がありません', 'info');
+      return false;
+    }
+    const last = this.undoHistory.pop();
+    try {
+      this.root = JSON.parse(last.data);
+      this.notify();
+      if (window.showToast) window.showToast(`直前の変更（${last.label}）を取り消しました`, 'success');
+      return true;
+    } catch (e) {
+      console.error('Failed to undo:', e);
+      return false;
+    }
   }
 
   // Subscribe to changes
@@ -31,6 +68,15 @@ class VirtualFileSystem {
     if (saved) {
       try {
         this.root = JSON.parse(saved);
+        // Ensure new sample files exist if user has older cached VFS
+        if (!this.exists('cpp/game_logic.hpp')) {
+          this.createFile('cpp/game_logic.hpp', `// C++ Header File Example\n#ifndef GAME_LOGIC_HPP\n#define GAME_LOGIC_HPP\n\n#include <string>\n\nstruct GameConfig {\n    int maxScore = 99999;\n    float gravity = 9.8f;\n    std::string title = "Wiz AI Game";\n};\n\n#endif\n`);
+        }
+        if (!this.exists('assets/hero.png')) {
+          const heroDotPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAJElEQVQoU2NkYGD4z4AGGOE8mGg0FcDVkRWhqMDqB7i6QawLADmFBB2mP4h+AAAAAElFTkSuQmCC';
+          this.createFile('assets/hero.png', heroDotPng);
+          this.createFile('assets/gem.webp', heroDotPng);
+        }
         return;
       } catch (e) {
         console.error('Failed to parse saved VFS:', e);
@@ -473,6 +519,26 @@ int main() {
     return 0;
 }
 `);
+
+    this.createFile('cpp/game_logic.hpp', `// C++ Header File Example
+#ifndef GAME_LOGIC_HPP
+#define GAME_LOGIC_HPP
+
+#include <string>
+
+struct GameConfig {
+    int maxScore = 99999;
+    float gravity = 9.8f;
+    std::string title = "Wiz AI Game";
+};
+
+#endif // GAME_LOGIC_HPP
+`);
+
+    // Sample Pixel Art Sprite (PNG Data URL)
+    const heroDotPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAJElEQVQoU2NkYGD4z4AGGOE8mGg0FcDVkRWhqMDqB7i6QawLADmFBB2mP4h+AAAAAElFTkSuQmCC';
+    this.createFile('assets/hero.png', heroDotPng);
+    this.createFile('assets/gem.webp', heroDotPng);
   }
 
   // Path normalization: "a/b/../c" => "a/c"
