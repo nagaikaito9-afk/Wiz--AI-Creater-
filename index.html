@@ -33,8 +33,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
 </head>
 <body class="theme-dark">
-  <!-- Top Navigation Header -->
-  <header class="app-header">
+  <!-- Studio Main Application Container (Visible only after login) -->
+  <div id="studio-app-root" style="display: none;">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
     <div class="header-left">
       <div class="brand">
         <div class="brand-avatar">
@@ -352,6 +354,7 @@
     </section>
 
   </div>
+  </div> <!-- End #studio-app-root -->
 
   <!-- FLOATING PREVIEW MODAL / RUNNER (Fullscreen Option) -->
   <div class="preview-modal-overlay" id="preview-modal-overlay" style="display:none;">
@@ -490,19 +493,53 @@
     </div>
   </div>
 
-  <!-- AUTH GATE MODAL (ログイン必須ゲート: ログインしないとWizは使えません) -->
-  <div class="modal-backdrop auth-gate-backdrop" id="auth-gate-modal" style="display: none;">
+  <!-- AUTH GATE / LOGIN SCREEN (ログイン必須画面: ログイン後にスタジオが開きます) -->
+  <div class="modal-backdrop auth-gate-backdrop" id="auth-gate-modal">
     <div class="auth-gate-card">
-      <button id="close-auth-gate-btn" class="btn-close gate-close-btn" title="閉じる (ゲスト利用)"><i class="fa-solid fa-xmark"></i></button>
       <div class="auth-gate-brand">
         <div class="auth-avatar-glow">
           <i class="fa-solid fa-hat-wizard"></i>
         </div>
         <h2>Wiz AI Studio</h2>
-        <p class="auth-gate-subtitle">賢者Wizとゲームを制作するには、ログインが必要です。</p>
+        <p class="auth-gate-subtitle">AI賢者Wizとゲームを作るには、ログインしてください。</p>
       </div>
 
-      <!-- OAuth Login Buttons (GitHub & Google) -->
+      <!-- 1. FEATURED: Big Prominent 1-Click Test Account Button -->
+      <div class="auth-gate-section auth-featured-test">
+        <button id="gate-mock-login-btn" class="btn-gate-test-account" type="button">
+          <div class="test-btn-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <div class="test-btn-text">
+            <span class="test-btn-title">テスト用アカウントでログイン</span>
+            <span class="test-btn-desc">登録不要・ワンクリックでスタジオの全機能が使えます</span>
+          </div>
+          <div class="test-btn-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+        </button>
+      </div>
+
+      <div class="auth-divider"><span>または メール / アカウントでログイン</span></div>
+
+      <!-- 2. Email / Username Login & Registration -->
+      <div class="auth-email-section">
+        <div class="auth-tabs">
+          <button id="tab-login-btn" class="auth-tab-btn active" type="button">ログイン</button>
+          <button id="tab-signup-btn" class="auth-tab-btn" type="button">新規登録</button>
+        </div>
+        <form id="auth-email-form" onsubmit="return false;">
+          <div class="auth-field">
+            <input type="text" id="gate-email-input" placeholder="メールアドレス または ユーザー名" class="auth-input" required autocomplete="username">
+          </div>
+          <div class="auth-field">
+            <input type="password" id="gate-password-input" placeholder="パスワード (6文字以上)" class="auth-input" required autocomplete="current-password">
+          </div>
+          <button type="button" id="gate-submit-btn" class="btn btn-primary auth-submit-btn">
+            <span>ログインする</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="auth-divider"><span>または 外部アカウント</span></div>
+
+      <!-- 3. OAuth Login Buttons (GitHub & Google) -->
       <div class="auth-gate-section auth-oauth-grid">
         <button id="gate-github-login-btn" class="btn-gate-oauth btn-gate-github" type="button">
           <i class="fa-brands fa-github"></i>
@@ -517,46 +554,6 @@
           </svg>
           <span>Google でログイン</span>
         </button>
-      </div>
-
-      <div class="auth-divider"><span>または</span></div>
-
-      <!-- Supabase Email Login / Register -->
-      <div class="auth-email-section">
-        <div class="auth-tabs">
-          <button id="tab-login-btn" class="auth-tab-btn active" type="button">ログイン</button>
-          <button id="tab-signup-btn" class="auth-tab-btn" type="button">新規登録</button>
-        </div>
-        <form id="auth-email-form" onsubmit="return false;">
-          <div class="auth-field">
-            <input type="email" id="gate-email-input" placeholder="メールアドレス" class="auth-input" required autocomplete="email">
-          </div>
-          <div class="auth-field">
-            <input type="password" id="gate-password-input" placeholder="パスワード (6文字以上)" class="auth-input" required autocomplete="current-password">
-          </div>
-          <button type="button" id="gate-submit-btn" class="btn btn-primary auth-submit-btn">
-            <span>ログインする</span>
-          </button>
-        </form>
-      </div>
-
-      <!-- Quick Test Login & Supabase Setup Guidance -->
-      <div class="auth-footer-actions">
-        <button id="gate-mock-login-btn" class="btn-text-subtle" type="button">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> テスト用アカウントですぐに始める
-        </button>
-        <details class="supabase-setup-details">
-          <summary><i class="fa-solid fa-circle-question"></i> SupabaseのGoogleログインについて</summary>
-          <div class="setup-content">
-            <p>※現在Supabase側でGoogleプロバイダがOFF（未設定）のため、Googleログインを押すとエラーになる場合があります。</p>
-            <ol>
-              <li>Supabaseダッシュボードを開く</li>
-              <li><strong>Authentication > Providers > Google</strong> をONにする</li>
-              <li>Google Cloud Consoleの Client ID と Secret を設定</li>
-            </ol>
-            <p>設定完了までは、上記の<strong>「メールログイン」</strong>または<strong>「テストアカウント」</strong>で全機能をご利用いただけます。</p>
-          </div>
-        </details>
       </div>
     </div>
   </div>
