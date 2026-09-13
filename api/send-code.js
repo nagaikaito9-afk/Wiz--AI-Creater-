@@ -76,7 +76,37 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2. Try Supabase Auth Native OTP Dispatcher fallback
+  // 2. Try Brevo (Sendinblue) API if BREVO_API_KEY is provided (300 free emails/day)
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  if (brevoApiKey) {
+    try {
+      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'Wiz AI Studio', email: process.env.MAIL_FROM || 'noreply@wiz-game.dev' },
+          to: [{ email: email }],
+          subject: subject,
+          htmlContent: html
+        })
+      });
+
+      if (brevoRes.ok) {
+        return res.status(200).json({ success: true, provider: 'brevo' });
+      } else {
+        const errData = await brevoRes.text();
+        console.warn('[SendCode] Brevo API error:', errData);
+      }
+    } catch (e) {
+      console.warn('[SendCode] Brevo error:', e);
+    }
+  }
+
+  // 3. Try Supabase Auth Native OTP Dispatcher fallback
   const supabaseUrl = process.env.SUPABASE_URL || 'https://vlgcixctrafjfbtkztpw.supabase.co';
   const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_wXpTnSpge6PLD60ns7BLAA_Lr8ONbPT';
   try {

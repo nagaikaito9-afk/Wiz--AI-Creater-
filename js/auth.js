@@ -819,7 +819,13 @@ class SupabaseAuthManager {
     // Check if email already registered
     const users = this.getLocalUsers();
     if (users.some(u => (u.email || '').toLowerCase() === email)) {
-      if (window.showToast) window.showToast('このメールアドレスは既に登録されています。ログインをお試しください。', 'warning');
+      if (window.showToast) {
+        window.showToast('このメールアドレスは既に登録されています。ログイン画面に移動しました。', 'info');
+      }
+      const tabLogin = document.getElementById('tab-login-btn');
+      if (tabLogin) tabLogin.click();
+      const loginIdInput = document.getElementById('gate-login-identifier');
+      if (loginIdInput) loginIdInput.value = email;
       return;
     }
 
