@@ -935,27 +935,6 @@
                 <button type="button" id="login-resend-code-btn" class="btn-text-subtle" disabled>コードを再送</button>
               </div>
 
-              <!-- Mail Troubleshooting & Emergency Code Access -->
-              <div class="auth-help-accordion" style="margin: 0.5rem 0 0.8rem 0; text-align: center;">
-                <button type="button" id="login-toggle-mail-help-btn" class="btn-text-subtle" style="font-size:0.74rem; color:var(--text-muted); text-decoration:underline; cursor:pointer;">
-                  <i class="fa-regular fa-circle-question"></i> メールが届かない・確認できない場合
-                </button>
-                <div id="login-mail-help-box" style="display:none; margin-top:0.4rem; padding:0.6rem 0.8rem; background:rgba(255,255,255,0.03); border:1px solid var(--border-light); border-radius:var(--radius-sm); font-size:0.74rem; color:var(--text-secondary); text-align:left; line-height:1.5;">
-                  <p>・ 迷惑メール（Spam）フォルダーをご確認ください。</p>
-                  <p>・ メールの受信制限がかかっている場合は「コードを再送」をお試しください。</p>
-                  <div style="margin-top:0.4rem; padding-top:0.4rem; border-top:1px dashed var(--border-light); display:flex; align-items:center; justify-content:space-between;">
-                    <span>🛡️ 緊急用コード確認:</span>
-                    <button type="button" id="login-btn-reveal-code" class="btn btn-ghost" style="padding:2px 8px; font-size:0.72rem; color:var(--wiz-cyan); border-color:rgba(0,242,254,0.4);">
-                      確認コードを表示
-                    </button>
-                  </div>
-                  <div id="login-revealed-code-wrap" style="display:none; margin-top:0.3rem; text-align:center;">
-                    <span style="font-size:0.75rem; color:var(--text-muted);">認証コード: </span>
-                    <strong id="login-revealed-code-text" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--wiz-cyan); letter-spacing:2px;"></strong>
-                  </div>
-                </div>
-              </div>
-
               <div class="step-buttons-row">
                 <button type="button" id="gate-login-back-btn" class="btn btn-ghost">戻る</button>
                 <button type="button" id="gate-login-verify-btn" class="btn btn-primary">
@@ -1017,26 +996,6 @@
               <button type="button" id="resend-code-btn" class="btn-text-subtle" disabled>コードを再送</button>
             </div>
 
-            <!-- Mail Troubleshooting & Emergency Code Access -->
-            <div class="auth-help-accordion" style="margin: 0.5rem 0 0.8rem 0; text-align: center;">
-              <button type="button" id="signup-toggle-mail-help-btn" class="btn-text-subtle" style="font-size:0.74rem; color:var(--text-muted); text-decoration:underline; cursor:pointer;">
-                <i class="fa-regular fa-circle-question"></i> メールが届かない・確認できない場合
-              </button>
-              <div id="signup-mail-help-box" style="display:none; margin-top:0.4rem; padding:0.6rem 0.8rem; background:rgba(255,255,255,0.03); border:1px solid var(--border-light); border-radius:var(--radius-sm); font-size:0.74rem; color:var(--text-secondary); text-align:left; line-height:1.5;">
-                <p>・ 迷惑メール（Spam）フォルダーをご確認ください。</p>
-                <p>・ メールの受信制限がかかっている場合は「コードを再送」をお試しください。</p>
-                <div style="margin-top:0.4rem; padding-top:0.4rem; border-top:1px dashed var(--border-light); display:flex; align-items:center; justify-content:space-between;">
-                  <span>🛡️ 緊急用コード確認:</span>
-                  <button type="button" id="signup-btn-reveal-code" class="btn btn-ghost" style="padding:2px 8px; font-size:0.72rem; color:var(--wiz-cyan); border-color:rgba(0,242,254,0.4);">
-                    確認コードを表示
-                  </button>
-                </div>
-                <div id="signup-revealed-code-wrap" style="display:none; margin-top:0.3rem; text-align:center;">
-                  <span style="font-size:0.75rem; color:var(--text-muted);">本人確認コード: </span>
-                  <strong id="signup-revealed-code-text" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--wiz-cyan); letter-spacing:2px;"></strong>
-                </div>
-              </div>
-            </div>
             <div class="step-buttons-row">
               <button type="button" id="gate-signup-back-2-btn" class="btn btn-ghost">戻る</button>
               <button type="button" id="gate-signup-next-2-btn" class="btn btn-primary">
