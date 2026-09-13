@@ -816,19 +816,6 @@ class SupabaseAuthManager {
       return;
     }
 
-    // Check if email already registered
-    const users = this.getLocalUsers();
-    if (users.some(u => (u.email || '').toLowerCase() === email)) {
-      if (window.showToast) {
-        window.showToast('このメールアドレスは既に登録されています。ログイン画面に移動しました。', 'info');
-      }
-      const tabLogin = document.getElementById('tab-login-btn');
-      if (tabLogin) tabLogin.click();
-      const loginIdInput = document.getElementById('gate-login-identifier');
-      if (loginIdInput) loginIdInput.value = email;
-      return;
-    }
-
     // Generate in-memory 6-digit verification code (Never saved to Supabase DB or persistent storage!)
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     this.pendingSignup = {
@@ -997,7 +984,10 @@ class SupabaseAuthManager {
       }
     };
 
-    const users = this.getLocalUsers();
+    const users = this.getLocalUsers().filter(u =>
+      (u.email || '').toLowerCase() !== this.pendingSignup.email.toLowerCase() &&
+      (u.userId || '').toLowerCase() !== userId
+    );
     users.push(newUser);
     this.saveLocalUsers(users);
 
