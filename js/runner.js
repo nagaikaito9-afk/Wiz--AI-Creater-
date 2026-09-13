@@ -25,8 +25,15 @@ class ProgramRunner {
     this.modalTargetLabel = document.getElementById('preview-target-file');
     this.modalConsoleLogs = document.getElementById('console-drawer-logs');
 
-    // Inline Panel DOM
+    // Inline Panel DOM & Stage Elements
     this.inlineIframe = document.getElementById('inline-preview-iframe');
+    this.stageContainer = document.getElementById('preview-stage-container');
+    this.stageViewport = document.getElementById('preview-stage-viewport');
+    this.aspectSelect = document.getElementById('preview-aspect-select');
+    this.fpsBadge = document.getElementById('preview-fps-badge');
+    this.pauseBtn = document.getElementById('preview-pause-btn');
+    this.muteBtn = document.getElementById('preview-mute-btn');
+
     this.inlinePythonWrapper = document.getElementById('inline-python-wrapper');
     this.inlinePythonOutput = document.getElementById('inline-python-output');
     this.inlinePyStatus = document.getElementById('inline-py-status');
@@ -34,14 +41,25 @@ class ProgramRunner {
     this.inlineConsoleLogs = document.getElementById('inline-console-logs');
     this.logCounterBadge = document.getElementById('log-counter-badge');
     
+    // State
+    this.currentAspect = localStorage.getItem('wiz_preview_aspect') || '4-3';
+    this.isPaused = false;
+    this.isMuted = false;
+    this.resizeObserver = null;
+
     this.initEvents();
+    this.initStageSizing();
+    this.initPreviewTools();
   }
 
   initEvents() {
-    // Listen to iframe logs
+    // Listen to iframe logs and FPS
     window.addEventListener('message', (e) => {
-      if (e.data && e.data.type === 'WIZ_IFRAME_LOG') {
+      if (!e.data) return;
+      if (e.data.type === 'WIZ_IFRAME_LOG') {
         this.addConsoleLog(e.data.level, e.data.message);
+      } else if (e.data.type === 'WIZ_IFRAME_FPS') {
+        this.updateFpsBadge(e.data.fps);
       }
     });
 
@@ -62,6 +80,178 @@ class ProgramRunner {
         this.closeModal();
       }
     });
+  }
+
+  // Stage Sizing & Auto-Scale (Guarantees zero distortion & zero overflow)
+  initStageSizing() {
+    if (this.aspectSelect) {
+      this.aspectSelect.value = this.currentAspect;
+      this.aspectSelect.addEventListener('change', () => {
+        this.currentAspect = this.aspectSelect.value;
+        localStorage.setItem('wiz_preview_aspect', this.currentAspect);
+        this.updateStageDimensions();
+      });
+    }
+
+    if (this.stageContainer) {
+      if (window.ResizeObserver) {
+        this.resizeObserver = new ResizeObserver(() => {
+          this.updateStageDimensions();
+        });
+        this.resizeObserver.observe(this.stageContainer);
+      }
+      window.addEventListener('resize', () => this.updateStageDimensions());
+    }
+
+    // Initial sizing
+    setTimeout(() => this.updateStageDimensions(), 100);
+  }
+
+  updateStageDimensions() {
+    if (!this.stageContainer || !this.stageViewport) return;
+
+    const containerW = this.stageContainer.clientWidth;
+    const containerH = this.stageContainer.clientHeight;
+    if (!containerW || !containerH) return;
+
+    // Safety padding so viewport never touches edges
+    const pad = 16;
+    const availW = Math.max(100, containerW - pad);
+    const availH = Math.max(100, containerH - pad);
+
+    if (this.currentAspect === 'auto') {
+      this.stageViewport.style.width = '100%';
+      this.stageViewport.style.height = '100%';
+      this.stageViewport.style.aspectRatio = 'auto';
+      return;
+    }
+
+    const ratioMap = {
+      '16-9': 16 / 9,
+      '4-3': 4 / 3,
+      '9-16': 9 / 16,
+      '1-1': 1 / 1
+    };
+
+    const targetRatio = ratioMap[this.currentAspect] || (4 / 3);
+
+    let targetW = availW;
+    let targetH = targetW / targetRatio;
+
+    if (targetH > availH) {
+      targetH = availH;
+      targetW = targetH * targetRatio;
+    }
+
+    this.stageViewport.style.width = `${Math.floor(targetW)}px`;
+    this.stageViewport.style.height = `${Math.floor(targetH)}px`;
+    this.stageViewport.style.aspectRatio = String(targetRatio);
+  }
+
+  // Preview Tools (Screenshot, Pause, Mute, FPS)
+  initPreviewTools() {
+    // Screenshot
+    document.getElementById('preview-screenshot-btn')?.addEventListener('click', () => this.captureScreenshot());
+
+    // Pause / Resume
+    this.pauseBtn?.addEventListener('click', () => {
+      this.isPaused = !this.isPaused;
+      const label = document.getElementById('pause-btn-label');
+      const icon = this.pauseBtn.querySelector('i');
+      if (this.isPaused) {
+        if (icon) icon.className = 'fa-solid fa-play';
+        if (label) label.textContent = '再開';
+        this.pauseBtn.classList.add('active');
+      } else {
+        if (icon) icon.className = 'fa-solid fa-pause';
+        if (label) label.textContent = '停止';
+        this.pauseBtn.classList.remove('active');
+      }
+
+      this.inlineIframe?.contentWindow?.postMessage({ type: 'WIZ_SET_PAUSE', paused: this.isPaused }, '*');
+      this.modalIframe?.contentWindow?.postMessage({ type: 'WIZ_SET_PAUSE', paused: this.isPaused }, '*');
+
+      if (window.showToast) {
+        window.showToast(this.isPaused ? 'ゲームを一時停止しました' : 'ゲームを再開しました', 'info');
+      }
+    });
+
+    // Mute / Unmute
+    this.muteBtn?.addEventListener('click', () => {
+      this.isMuted = !this.isMuted;
+      const label = document.getElementById('mute-btn-label');
+      const icon = this.muteBtn.querySelector('i');
+      if (this.isMuted) {
+        if (icon) icon.className = 'fa-solid fa-volume-xmark';
+        if (label) label.textContent = '消音中';
+        this.muteBtn.classList.add('active');
+      } else {
+        if (icon) icon.className = 'fa-solid fa-volume-high';
+        if (label) label.textContent = '消音';
+        this.muteBtn.classList.remove('active');
+      }
+
+      this.inlineIframe?.contentWindow?.postMessage({ type: 'WIZ_MUTE_AUDIO', muted: this.isMuted }, '*');
+      this.modalIframe?.contentWindow?.postMessage({ type: 'WIZ_MUTE_AUDIO', muted: this.isMuted }, '*');
+
+      if (window.showToast) {
+        window.showToast(this.isMuted ? '消音（ミュート）にしました' : '消音を解除しました', 'info');
+      }
+    });
+  }
+
+  // Capture Game Screenshot (Downloads PNG)
+  async captureScreenshot() {
+    try {
+      let dataUrl = null;
+      // 1. Try reading canvas directly from iframe
+      const doc = this.inlineIframe?.contentDocument;
+      const canvas = doc?.querySelector('canvas');
+      if (canvas) {
+        try {
+          dataUrl = canvas.toDataURL('image/png');
+        } catch (e) {
+          console.warn('Canvas toDataURL warning:', e);
+        }
+      }
+
+      // 2. Fallback using html2canvas on stage viewport
+      if (!dataUrl && window.html2canvas && this.stageViewport) {
+        const rendered = await window.html2canvas(this.stageViewport, { backgroundColor: '#000000' });
+        dataUrl = rendered.toDataURL('image/png');
+      }
+
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.download = `game_screenshot_${Date.now()}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        if (window.showToast) window.showToast('ゲーム画面のスクリーンショットを保存しました！📸', 'success');
+      } else {
+        if (window.showToast) window.showToast('スクリーンショットのキャプチャに失敗しました', 'warning');
+      }
+    } catch (err) {
+      console.error('Screenshot error:', err);
+      if (window.showToast) window.showToast('キャプチャ中にエラーが発生しました', 'error');
+    }
+  }
+
+  updateFpsBadge(fps) {
+    if (!this.fpsBadge) return;
+    this.fpsBadge.textContent = `${fps} FPS`;
+    if (fps >= 50) {
+      this.fpsBadge.style.color = '#10b981';
+      this.fpsBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+    } else if (fps >= 30) {
+      this.fpsBadge.style.color = '#f59e0b';
+      this.fpsBadge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+    } else {
+      this.fpsBadge.style.color = '#ef4444';
+      this.fpsBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+    }
   }
 
   clearConsole() {
@@ -140,6 +330,9 @@ class ProgramRunner {
     if (this.inlineTargetLabel) {
       this.inlineTargetLabel.textContent = filePath;
     }
+
+    this.updateStageDimensions();
+    setTimeout(() => this.updateStageDimensions(), 100);
 
     if (filePath.endsWith('.py')) {
       this.runPythonInline(filePath);

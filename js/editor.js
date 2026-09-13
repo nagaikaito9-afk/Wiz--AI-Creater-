@@ -35,6 +35,13 @@ class CodeEditorManager {
     this.imageViewerInfo = document.getElementById('image-viewer-info');
     this.imageViewerDownloadBtn = document.getElementById('image-viewer-download-btn');
 
+    // Audio Viewer Overlay
+    this.audioViewerContainer = document.getElementById('audio-viewer-container');
+    this.audioViewerEl = document.getElementById('audio-viewer-element');
+    this.audioViewerFilename = document.getElementById('audio-viewer-filename');
+    this.audioViewerInfo = document.getElementById('audio-viewer-info');
+    this.audioViewerDownloadBtn = document.getElementById('audio-viewer-download-btn');
+
     // View panes
     this.viewCodeBtn = document.getElementById('view-mode-code-btn');
     this.viewPreviewBtn = document.getElementById('view-mode-preview-btn');
@@ -127,6 +134,13 @@ class CodeEditorManager {
       }
     });
 
+    // Audio Viewer Download Button
+    this.audioViewerDownloadBtn?.addEventListener('click', () => {
+      if (this.activeFile) {
+        window.vfs.downloadSingleFile(this.activeFile);
+      }
+    });
+
     // Explorer Buttons
     document.getElementById('btn-add-file')?.addEventListener('click', () => this.promptCreateFile());
     document.getElementById('new-file-quick-btn')?.addEventListener('click', () => this.promptCreateFile());
@@ -158,6 +172,10 @@ class CodeEditorManager {
     if (this.paneCode) this.paneCode.style.display = viewName === 'code' ? 'flex' : 'none';
     if (this.panePreview) this.panePreview.style.display = viewName === 'preview' ? 'flex' : 'none';
     if (this.paneLogs) this.paneLogs.style.display = viewName === 'logs' ? 'flex' : 'none';
+
+    if (viewName === 'preview') {
+      setTimeout(() => window.runner?.updateStageDimensions(), 50);
+    }
   }
 
   // Right-Click Context Menu (Cut, Copy, Paste, Ask)
@@ -311,6 +329,11 @@ class CodeEditorManager {
     return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'ico', 'bmp'].includes(ext);
   }
 
+  isAudioFile(filePath) {
+    const ext = this.getFileExtension(filePath);
+    return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'weba', 'mid', 'midi'].includes(ext);
+  }
+
   loadFileContent(filePath, content) {
     if (this.activeFileNameEl) {
       this.activeFileNameEl.textContent = filePath.split('/').pop();
@@ -319,6 +342,45 @@ class CodeEditorManager {
     this.updateSyntaxBadge(filePath);
     this.setDirty(false);
 
+    // Stop any playing audio
+    if (this.audioViewerEl) {
+      this.audioViewerEl.pause();
+      this.audioViewerEl.currentTime = 0;
+    }
+
+    // 1. Check Audio File
+    if (this.isAudioFile(filePath)) {
+      this.textarea.style.display = 'none';
+      this.lineNumbers.style.display = 'none';
+      this.highlightLayer.style.display = 'none';
+      if (this.imageViewerContainer) this.imageViewerContainer.style.display = 'none';
+      if (this.audioViewerContainer) this.audioViewerContainer.style.display = 'flex';
+
+      const fileName = filePath.split('/').pop();
+      if (this.audioViewerFilename) this.audioViewerFilename.textContent = fileName;
+      const ext = this.getFileExtension(filePath);
+      if (this.audioViewerInfo) this.audioViewerInfo.textContent = `${ext.toUpperCase()} オーディオファイル (再生・試聴可能)`;
+
+      let src = content;
+      if (typeof content === 'string') {
+        if (!content.startsWith('data:') && !content.startsWith('http') && !content.startsWith('blob:')) {
+          const mime = ext === 'wav' ? 'audio/wav' : ext === 'ogg' ? 'audio/ogg' : 'audio/mpeg';
+          src = `data:${mime};base64,${content}`;
+        }
+      }
+
+      if (this.audioViewerEl) {
+        this.audioViewerEl.src = src;
+        this.audioViewerEl.load();
+      }
+      return;
+    }
+
+    if (this.audioViewerContainer) {
+      this.audioViewerContainer.style.display = 'none';
+    }
+
+    // 2. Check Image File
     if (this.isImageFile(filePath)) {
       // Hide text editor, show image viewer
       this.textarea.style.display = 'none';
@@ -350,7 +412,7 @@ class CodeEditorManager {
         this.imageViewerImg.src = src;
       }
     } else {
-      // Show text editor, hide image viewer
+      // Show text editor, hide image & audio viewer
       if (this.imageViewerContainer) {
         this.imageViewerContainer.style.display = 'none';
       }
@@ -379,6 +441,13 @@ class CodeEditorManager {
         }
         if (this.imageViewerContainer) {
           this.imageViewerContainer.style.display = 'none';
+        }
+        if (this.audioViewerContainer) {
+          this.audioViewerContainer.style.display = 'none';
+        }
+        if (this.audioViewerEl) {
+          this.audioViewerEl.pause();
+          this.audioViewerEl.src = '';
         }
         this.textarea.style.display = 'block';
         this.lineNumbers.style.display = 'block';

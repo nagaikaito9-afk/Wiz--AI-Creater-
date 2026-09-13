@@ -694,28 +694,6 @@ body {
   border-color: var(--border-medium);
 }
 
-.prompt-chips {
-  display: flex;
-  gap: 0.35rem;
-  overflow-x: auto;
-  margin-left: auto;
-}
-.chip {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 0.72rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--transition-fast);
-}
-.chip:hover {
-  background: var(--border-medium);
-  color: var(--text-primary);
-}
-
 .input-box-wrapper {
   position: relative;
   display: flex;

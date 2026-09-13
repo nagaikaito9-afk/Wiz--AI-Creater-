@@ -63,6 +63,9 @@
     </div>
 
     <div class="header-right">
+      <button id="open-soundfx-btn" class="btn btn-ghost" title="8-bit レトロ効果音ジェネレーター">
+        <i class="fa-solid fa-volume-high"></i> <span>効果音作成</span>
+      </button>
       <button id="run-project-btn" class="btn btn-primary run-btn" title="現在のプログラムを実行 (Ctrl+Enter)">
         <i class="fa-solid fa-play"></i> <span>実行</span>
       </button>
@@ -181,11 +184,6 @@
             <i class="fa-solid fa-folder-open"></i> <span>フォルダ添付</span>
             <input type="file" id="folder-upload-input" webkitdirectory directory multiple style="display:none;">
           </label>
-          <div class="prompt-chips">
-            <button class="chip" data-prompt="このプログラムを実行して！">▶ 実行して！</button>
-            <button class="chip" data-prompt="ブロック崩しゲームを作って！">🎮 ブロック崩し作成</button>
-            <button class="chip" data-prompt="index.htmlを実行して「スタート」を押したら何が出るか画像を送って">📸 画面キャプチャ要求</button>
-          </div>
         </div>
 
         <div class="input-box-wrapper">
@@ -290,6 +288,37 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Audio Player Overlay for mp3, wav, ogg, m4a, etc. -->
+              <div class="audio-viewer-container" id="audio-viewer-container" style="display: none;">
+                <div class="audio-viewer-card">
+                  <div class="audio-visual-header">
+                    <div class="audio-disc-glow">
+                      <i class="fa-solid fa-music"></i>
+                    </div>
+                    <div class="audio-bars-wave">
+                      <span class="bar bar-1"></span>
+                      <span class="bar bar-2"></span>
+                      <span class="bar bar-3"></span>
+                      <span class="bar bar-4"></span>
+                      <span class="bar bar-5"></span>
+                      <span class="bar bar-6"></span>
+                    </div>
+                  </div>
+                  <div class="audio-meta-area">
+                    <h4 class="audio-file-name" id="audio-viewer-filename">sound.mp3</h4>
+                    <span class="audio-file-info" id="audio-viewer-info">オーディオファイル</span>
+                  </div>
+                  <div class="audio-controls-area">
+                    <audio id="audio-viewer-element" controls controlsList="nodownload" preload="auto"></audio>
+                  </div>
+                  <div class="audio-actions-area">
+                    <button id="audio-viewer-download-btn" class="btn btn-ghost">
+                      <i class="fa-solid fa-download"></i> ダウンロード
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Bottom Status Bar -->
@@ -309,19 +338,47 @@
 
           <!-- VIEW 2: INLINE GAME RUNNER / PREVIEW -->
           <div class="view-content-pane" id="pane-preview-view" style="display:none;">
-            <div class="pane-header-toolbar">
+            <div class="pane-header-toolbar preview-toolbar-rich">
               <div class="toolbar-left">
                 <i class="fa-solid fa-gamepad" style="color:var(--wiz-cyan);"></i>
-                <span>実行対象: <strong id="inline-preview-target">index.html</strong></span>
+                <span>対象: <strong id="inline-preview-target">index.html</strong></span>
                 <span class="live-pill">LIVE</span>
+                <span id="preview-fps-badge" class="fps-badge">60 FPS</span>
               </div>
               <div class="toolbar-right">
-                <button id="inline-preview-restart-btn" class="btn-tool-mini" title="再実行"><i class="fa-solid fa-rotate-right"></i> 再読み込み</button>
-                <button id="inline-preview-modal-btn" class="btn-tool-mini" title="全画面モーダルで開く"><i class="fa-solid fa-expand"></i> 全画面</button>
+                <!-- Aspect Ratio Selector -->
+                <div class="ratio-select-wrapper" title="画面比率（アスペクト比）">
+                  <i class="fa-solid fa-display"></i>
+                  <select id="preview-aspect-select" class="mini-select">
+                    <option value="16-9">16:9 (PC横画面)</option>
+                    <option value="4-3" selected>4:3 (レトロ標準)</option>
+                    <option value="9-16">9:16 (スマホ縦画面)</option>
+                    <option value="1-1">1:1 (正方形)</option>
+                    <option value="auto">自動フィット</option>
+                  </select>
+                </div>
+                
+                <!-- Speed / Pause -->
+                <button id="preview-pause-btn" class="btn-tool-mini" title="一時停止 / 再開"><i class="fa-solid fa-pause"></i> <span id="pause-btn-label">停止</span></button>
+                <button id="preview-mute-btn" class="btn-tool-mini" title="消音 (ミュート)"><i class="fa-solid fa-volume-high"></i> <span id="mute-btn-label">消音</span></button>
+
+                <!-- Screenshot -->
+                <button id="preview-screenshot-btn" class="btn-tool-mini" title="ゲーム画面を画像で保存 (PNG)"><i class="fa-solid fa-camera"></i> <span>スクショ</span></button>
+
+                <!-- Restart & Fullscreen -->
+                <button id="inline-preview-restart-btn" class="btn-tool-mini" title="再実行"><i class="fa-solid fa-rotate-right"></i> <span>再読込</span></button>
+                <button id="inline-preview-modal-btn" class="btn-tool-mini" title="全画面モーダルで開く"><i class="fa-solid fa-expand"></i> <span>全画面</span></button>
               </div>
             </div>
-            <div class="pane-body-wrapper">
-              <iframe id="inline-preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock" allow="autoplay; fullscreen"></iframe>
+            <div class="pane-body-wrapper" id="preview-pane-wrapper">
+              <!-- Stage Container that centers and scales the viewport without overflow -->
+              <div class="preview-stage-container" id="preview-stage-container">
+                <div class="preview-stage-viewport ratio-4-3" id="preview-stage-viewport">
+                  <iframe id="inline-preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock" allow="autoplay; fullscreen"></iframe>
+                </div>
+              </div>
+
+              <!-- Python Runner View -->
               <div id="inline-python-wrapper" style="display:none; flex:1; background:var(--bg-editor); padding:1rem; flex-direction:column;">
                 <div class="python-console-header">
                   <span><i class="fa-brands fa-python"></i> Python 実行コンソール</span>
@@ -582,6 +639,84 @@
     </div>
   </div>
 
+  <!-- SOUND FX GENERATOR MODAL (8-bit レトロ効果音ジェネレーター) -->
+  <div class="modal-backdrop" id="sound-fx-modal" style="display: none;">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-volume-high" style="color:var(--wiz-cyan);"></i> 8-bit レトロ効果音ジェネレーター</h3>
+        <button id="close-soundfx-modal-btn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;">
+          外部オーディオファイル不要！Web Audio APIによりブラウザ内で8-bitピコピコ効果音を直接生成します。<br>
+          各音を試聴し、「現在のコードに自動挿入」を押すと、あなたのゲームに効果音関数が即座に追加されます。
+        </p>
+        <div class="soundfx-grid">
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">🆙 ジャンプ音 (Jump)</span>
+              <span class="soundfx-desc">ピョンと跳ね上がる上昇スクエア波</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="jump" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">🪙 コイン取得音 (Coin)</span>
+              <span class="soundfx-desc">キラリと響くツートーンサイン波</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="coin" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">🔫 レーザー発射 (Laser)</span>
+              <span class="soundfx-desc">ピシュンと降下するノコギリ波</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="laser" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">💥 爆発音 (Explosion)</span>
+              <span class="soundfx-desc">重厚なホワイトノイズ減衰音</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="explosion" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">⚡ パワーアップ (Power Up)</span>
+              <span class="soundfx-desc">元気よく上昇するアルペジオ音</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="powerup" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">💢 被弾・ダメージ (Hit)</span>
+              <span class="soundfx-desc">ドンッと響く低周波三角波</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="hit" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">🎺 クリアファンファーレ (Win)</span>
+              <span class="soundfx-desc">ステージクリアの勝利メロディ</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="win" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+          <div class="soundfx-card">
+            <div class="soundfx-info">
+              <span class="soundfx-name">☠️ ゲームオーバー (Game Over)</span>
+              <span class="soundfx-desc">トボトボと下降する哀愁のメロディ</span>
+            </div>
+            <button class="btn-play-sfx" data-sound="gameover" type="button"><i class="fa-solid fa-play"></i> 試聴</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button id="copy-soundfx-code-btn" class="btn btn-ghost" type="button"><i class="fa-regular fa-copy"></i> コードをコピー</button>
+        <button id="insert-soundfx-code-btn" class="btn btn-primary" type="button"><i class="fa-solid fa-file-code"></i> 現在のコードに自動挿入</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -610,6 +745,7 @@
   <script src="js/dialog.js"></script>
   <script src="js/fileSystem.js"></script>
   <script src="js/imageGenerator.js"></script>
+  <script src="js/soundFx.js"></script>
   <script src="js/runner.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/auth.js"></script>

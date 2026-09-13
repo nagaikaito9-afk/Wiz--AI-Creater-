@@ -73,7 +73,6 @@ class AppController {
     this.initLayoutEvents();
     this.initChatEvents();
     this.initAttachmentEvents();
-    this.initQuickChips();
     this.initProjectReset();
     this.initSettingsModal();
     this.sendGreeting();
@@ -241,6 +240,7 @@ class AppController {
       if (newChatWidth >= minChat && containerWidth - newChatWidth >= minEditor) {
         const editorPercent = ((containerWidth - newChatWidth) / containerWidth) * 100;
         this.editorSection.style.width = `${editorPercent}%`;
+        window.runner?.updateStageDimensions();
       }
     });
 
@@ -250,6 +250,7 @@ class AppController {
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
         this.splitResizer?.classList.remove('dragging');
+        window.runner?.updateStageDimensions();
       }
     });
   }
@@ -258,6 +259,7 @@ class AppController {
     if (this.isSidebarCollapsed) {
       this.isSidebarCollapsed = false;
       this.editorSection.classList.remove('collapsed');
+      setTimeout(() => window.runner?.updateStageDimensions(), 100);
     }
   }
 
@@ -334,16 +336,6 @@ class AppController {
       window.wizAI.setMode('code');
       this.expandSidebar();
     }
-  }
-
-  initQuickChips() {
-    document.querySelectorAll('.prompt-chips .chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const text = chip.getAttribute('data-prompt');
-        this.userInput.value = text;
-        this.handleSendMessage();
-      });
-    });
   }
 
   initProjectReset() {
@@ -863,10 +855,11 @@ class AppController {
 
     for (const file of filesToProcess) {
       const isImage = file.type.startsWith('image/');
+      const isAudio = file.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac|flac|weba)$/i.test(file.name);
       let base64 = null;
       let text = null;
 
-      if (isImage) {
+      if (isImage || isAudio) {
         base64 = await this.readFileAsBase64(file);
       } else {
         text = await this.readFileAsText(file);
@@ -877,6 +870,7 @@ class AppController {
         type: file.type,
         size: file.size,
         isImage: isImage,
+        isAudio: isAudio,
         base64: base64,
         text: text
       });
@@ -918,8 +912,9 @@ class AppController {
     this.attachments.forEach((att, idx) => {
       const pill = document.createElement('span');
       pill.className = 'attachment-pill';
+      const iconClass = att.isImage ? 'fa-regular fa-image' : att.isAudio ? 'fa-solid fa-file-audio' : 'fa-solid fa-file-lines';
       pill.innerHTML = `
-        <i class="${att.isImage ? 'fa-regular fa-image' : 'fa-solid fa-file-lines'}"></i>
+        <i class="${iconClass}"></i>
         <span>${att.name}</span>
         <i class="fa-solid fa-xmark remove-att-btn" title="削除"></i>
       `;

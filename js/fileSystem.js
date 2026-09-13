@@ -77,6 +77,10 @@ class VirtualFileSystem {
           this.createFile('assets/hero.png', heroDotPng);
           this.createFile('assets/gem.webp', heroDotPng);
         }
+        if (!this.exists('assets/coin.wav')) {
+          this.createFile('assets/coin.wav', this.generateSampleWav(987, 1318, 0.22));
+          this.createFile('assets/jump.wav', this.generateSampleWav(220, 660, 0.20));
+        }
         return;
       } catch (e) {
         console.error('Failed to parse saved VFS:', e);
@@ -539,6 +543,44 @@ struct GameConfig {
     const heroDotPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAJElEQVQoU2NkYGD4z4AGGOE8mGg0FcDVkRWhqMDqB7i6QawLADmFBB2mP4h+AAAAAElFTkSuQmCC';
     this.createFile('assets/hero.png', heroDotPng);
     this.createFile('assets/gem.webp', heroDotPng);
+
+    // Sample Audio Sound Effects (WAV Data URL)
+    this.createFile('assets/coin.wav', this.generateSampleWav(987, 1318, 0.22));
+    this.createFile('assets/jump.wav', this.generateSampleWav(220, 660, 0.20));
+  }
+
+  // Generate lightweight valid PCM WAV base64 data URI
+  generateSampleWav(startFreq, endFreq, durationSec = 0.25) {
+    const sampleRate = 8000;
+    const numSamples = Math.floor(sampleRate * durationSec);
+    const buffer = new ArrayBuffer(44 + numSamples);
+    const view = new DataView(buffer);
+    const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + numSamples, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate, true);
+    view.setUint16(32, 1, true);
+    view.setUint16(34, 8, true);
+    writeStr(36, 'data');
+    view.setUint32(40, numSamples, true);
+    for (let i = 0; i < numSamples; i++) {
+      const frac = i / numSamples;
+      const currentFreq = startFreq + (endFreq - startFreq) * frac;
+      const phase = 2 * Math.PI * currentFreq * (i / sampleRate);
+      const env = 1 - frac;
+      const sample = Math.sin(phase) * env;
+      view.setUint8(44 + i, Math.floor((sample * 0.7 + 1) * 127.5));
+    }
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return 'data:audio/wav;base64,' + btoa(binary);
   }
 
   // Path normalization: "a/b/../c" => "a/c"
@@ -717,9 +759,33 @@ struct GameConfig {
     });
 
     // Inject console interceptor script to catch iframe logs
-    const consoleInterceptor = `
+    // Inject console interceptor, responsive canvas guardian, pause/mute bridge & FPS tracker
+    const runtimeHelper = `
+<style id="wiz-auto-viewport-style">
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: #000000 !important;
+    box-sizing: border-box !important;
+  }
+  canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    box-sizing: border-box !important;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+</style>
 <script>
   (function() {
+    // 1. Console Interception
     const _log = console.log, _error = console.error, _warn = console.warn, _info = console.info;
     function send(type, args) {
       try {
@@ -737,13 +803,39 @@ struct GameConfig {
     window.onerror = function(msg, url, line) {
       send('error', ['[Uncaught]', msg, 'at line', line]);
     };
+
+    // 2. Parent Message Bridge (Pause / Mute)
+    window.addEventListener('message', function(e) {
+      if (!e.data) return;
+      if (e.data.type === 'WIZ_SET_PAUSE') {
+        window.__wiz_is_paused = Boolean(e.data.paused);
+      } else if (e.data.type === 'WIZ_MUTE_AUDIO') {
+        window.__wiz_is_muted = Boolean(e.data.muted);
+      }
+    });
+
+    // 3. FPS Tracker & reporter
+    let lastTime = performance.now();
+    let frames = 0;
+    function reportFps() {
+      const now = performance.now();
+      frames++;
+      if (now >= lastTime + 1000) {
+        const fps = Math.round((frames * 1000) / (now - lastTime));
+        window.parent.postMessage({ type: 'WIZ_IFRAME_FPS', fps: fps }, '*');
+        frames = 0;
+        lastTime = now;
+      }
+      requestAnimationFrame(reportFps);
+    }
+    requestAnimationFrame(reportFps);
   })();
 </script>
 `;
     if (htmlContent.includes('<head>')) {
-      htmlContent = htmlContent.replace('<head>', '<head>' + consoleInterceptor);
+      htmlContent = htmlContent.replace('<head>', '<head>' + runtimeHelper);
     } else {
-      htmlContent = consoleInterceptor + htmlContent;
+      htmlContent = runtimeHelper + htmlContent;
     }
 
     return htmlContent;

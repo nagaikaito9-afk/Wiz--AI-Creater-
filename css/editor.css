@@ -289,8 +289,38 @@
   flex: 1;
   display: flex;
   position: relative;
-  background: #000;
+  background: #060913;
   overflow: hidden;
+}
+
+.preview-stage-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 50%, #0e1628 0%, #060913 100%);
+  overflow: hidden;
+  position: relative;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.preview-stage-viewport {
+  position: relative;
+  background: #000000;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.15);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+  transition: width 0.15s ease, height 0.15s ease;
 }
 
 #inline-preview-iframe {
@@ -298,6 +328,7 @@
   height: 100%;
   border: none;
   display: block;
+  background: transparent;
 }
 
 /* Tabs Bar */
@@ -666,3 +697,239 @@
 .log-item.error { color: var(--danger); }
 .log-item.warn { color: var(--warning); }
 .log-item.info { color: var(--wiz-cyan); }
+
+/* ==========================================================================
+   Rich Preview Toolbar & Aspect Ratio Controls
+   ========================================================================== */
+.preview-toolbar-rich {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.85rem;
+}
+
+.fps-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  letter-spacing: 0.04em;
+}
+
+.ratio-select-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.ratio-select-wrapper:hover {
+  border-color: var(--wiz-cyan);
+}
+
+.mini-select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  outline: none;
+}
+.mini-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Audio Player Overlay (for mp3, wav, ogg, m4a, etc.)
+   ========================================================================== */
+.audio-viewer-container {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-editor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 1.5rem;
+}
+
+.audio-viewer-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 242, 254, 0.12);
+  padding: 2.2rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fadeIn 0.25s ease;
+}
+
+.audio-visual-header {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.4rem;
+}
+
+.audio-disc-glow {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.25) 0%, rgba(157, 78, 221, 0.3) 100%);
+  border: 2px solid var(--wiz-cyan);
+  box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--wiz-cyan);
+  margin-bottom: 1rem;
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 242, 254, 0.35); }
+  50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(0, 242, 254, 0.6); }
+}
+
+.audio-bars-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 24px;
+}
+.audio-bars-wave .bar {
+  width: 5px;
+  background: linear-gradient(to top, var(--wiz-cyan), var(--wiz-purple));
+  border-radius: 3px;
+  height: 8px;
+  animation: wavePulse 1.2s infinite ease-in-out;
+}
+.audio-bars-wave .bar-1 { animation-delay: 0.1s; height: 12px; }
+.audio-bars-wave .bar-2 { animation-delay: 0.25s; height: 20px; }
+.audio-bars-wave .bar-3 { animation-delay: 0.4s; height: 16px; }
+.audio-bars-wave .bar-4 { animation-delay: 0.2s; height: 24px; }
+.audio-bars-wave .bar-5 { animation-delay: 0.35s; height: 14px; }
+.audio-bars-wave .bar-6 { animation-delay: 0.15s; height: 10px; }
+
+@keyframes wavePulse {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.audio-meta-area {
+  width: 100%;
+  margin-bottom: 1.4rem;
+}
+.audio-file-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  word-break: break-all;
+  margin-bottom: 0.3rem;
+}
+.audio-file-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.audio-controls-area {
+  width: 100%;
+  margin-bottom: 1.2rem;
+}
+.audio-controls-area audio {
+  width: 100%;
+  height: 42px;
+  border-radius: var(--radius-md);
+  outline: none;
+}
+
+.audio-actions-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Sound FX Generator Modal Styling
+   ========================================================================== */
+.modal-card-lg {
+  max-width: 620px;
+}
+
+.soundfx-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.soundfx-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  transition: all var(--transition-fast);
+}
+.soundfx-card:hover {
+  border-color: var(--wiz-cyan);
+  background: rgba(0, 242, 254, 0.05);
+}
+
+.soundfx-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.soundfx-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.soundfx-desc {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.btn-play-sfx {
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.btn-play-sfx:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 242, 254, 0.4);
+}
+.btn-play-sfx:active {
+  transform: translateY(1px);
+}
