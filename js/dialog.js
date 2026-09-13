@@ -27,8 +27,21 @@ class DialogManager {
     this.cancelBtn?.addEventListener('click', handleCancel);
     this.closeBtn?.addEventListener('click', handleCancel);
 
+    // Backdrop click cancels
+    this.modal?.addEventListener('click', (e) => {
+      if (e.target === this.modal) {
+        handleCancel();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.modal && this.modal.style.display !== 'none') {
+        handleCancel();
+      }
+    });
+
     this.okBtn?.addEventListener('click', () => {
-      if (this.inputWrap.style.display !== 'none') {
+      if (this.inputWrap && this.inputWrap.style.display !== 'none') {
         this.closeModal(this.inputEl.value);
       } else {
         this.closeModal(true);

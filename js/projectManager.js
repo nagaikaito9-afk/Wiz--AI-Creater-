@@ -44,22 +44,60 @@ class ProjectManager {
     this.closeRulesModalBtn = document.getElementById('close-rules-modal-btn');
 
     // "New Project" button
-    document.getElementById('new-project-btn')?.addEventListener('click', () => {
-      this.promptCreateNewRoom();
+    const newProjBtn = document.getElementById('new-project-btn');
+    if (newProjBtn) {
+      newProjBtn.onclick = (e) => {
+        e.preventDefault();
+        this.promptCreateNewRoom();
+      };
+    }
+
+    // Header Project Rename button
+    const headerRenameBtn = document.getElementById('header-rename-project-btn');
+    if (headerRenameBtn) {
+      headerRenameBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.promptRenameRoom(this.activeRoomId, e);
+      };
+    }
+
+    // Project Rules Button
+    if (this.activeProjectRulesBtn) {
+      this.activeProjectRulesBtn.onclick = (e) => {
+        e.preventDefault();
+        this.openRulesModal();
+      };
+    }
+
+    // Close rules modal
+    if (this.closeRulesModalBtn) {
+      this.closeRulesModalBtn.onclick = (e) => {
+        e.preventDefault();
+        if (this.rulesModal) this.rulesModal.style.display = 'none';
+      };
+    }
+
+    // Backdrop click closes rules modal
+    this.rulesModal?.addEventListener('click', (e) => {
+      if (e.target === this.rulesModal) {
+        this.rulesModal.style.display = 'none';
+      }
     });
 
-    // Project Rules Modal
-    this.activeProjectRulesBtn?.addEventListener('click', () => {
-      this.openRulesModal();
+    // Escape closes rules modal
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.rulesModal && this.rulesModal.style.display !== 'none') {
+        this.rulesModal.style.display = 'none';
+      }
     });
 
-    this.closeRulesModalBtn?.addEventListener('click', () => {
-      if (this.rulesModal) this.rulesModal.style.display = 'none';
-    });
-
-    this.saveRulesBtn?.addEventListener('click', () => {
-      this.saveCurrentRules();
-    });
+    if (this.saveRulesBtn) {
+      this.saveRulesBtn.onclick = (e) => {
+        e.preventDefault();
+        this.saveCurrentRules();
+      };
+    }
 
     this.renderRoomsList();
     this.updateActiveRoomHeader();
@@ -223,8 +261,12 @@ class ProjectManager {
 
   // Rename Room
   async promptRenameRoom(roomId, e) {
-    if (e) e.stopPropagation();
-    const room = this.rooms.find(r => r.id === roomId);
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const targetId = roomId || this.activeRoomId;
+    const room = this.rooms.find(r => r.id === targetId);
     if (!room) return;
 
     const newName = await window.showPrompt('新しいプロジェクト名を入力してください:', room.name, 'プロジェクト名変更');
@@ -234,7 +276,7 @@ class ProjectManager {
       this.saveRooms();
       this.renderRoomsList();
       this.updateActiveRoomHeader();
-      if (window.showToast) window.showToast('プロジェクト名を変更しました', 'success');
+      if (window.showToast) window.showToast(`プロジェクト名を「${room.name}」に変更しました`, 'success');
 
       if (window.supabaseAuth) {
         window.supabaseAuth.saveRoomToCloud(room);
@@ -244,19 +286,40 @@ class ProjectManager {
 
   // Delete Room
   async promptDeleteRoom(roomId, e) {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const targetId = roomId || this.activeRoomId;
+    const room = this.rooms.find(r => r.id === targetId);
+    if (!room) return;
+
     if (this.rooms.length <= 1) {
-      if (window.showToast) window.showToast('最後のプロジェクトは削除できません。', 'warning');
+      const ok = await window.showConfirm(
+        `「${room.name}」はスタジオにある唯一のプロジェクトです。\nプロジェクトを初期状態（ネオン・ブロック崩し）にリセットしますか？`,
+        'プロジェクトの初期化'
+      );
+      if (ok) {
+        if (window.vfs) window.vfs.resetToDefault();
+        room.name = 'ネオン・ブロック崩し';
+        room.rules = '';
+        room.chatHistory = [];
+        this.saveRooms();
+        if (window.app) {
+          window.app.clearChatMessages(false);
+          window.app.sendGreeting();
+        }
+        this.renderRoomsList();
+        this.updateActiveRoomHeader();
+        if (window.showToast) window.showToast('プロジェクトを初期状態にリセットしました', 'info');
+      }
       return;
     }
 
-    const room = this.rooms.find(r => r.id === roomId);
-    if (!room) return;
-
     const ok = await window.showConfirm(`プロジェクト「${room.name}」を削除しますか？\n（コードやチャット履歴は失われます）`, 'プロジェクト削除');
     if (ok) {
-      this.rooms = this.rooms.filter(r => r.id !== roomId);
-      if (this.activeRoomId === roomId) {
+      this.rooms = this.rooms.filter(r => r.id !== targetId);
+      if (this.activeRoomId === targetId) {
         this.activeRoomId = this.rooms[0].id;
         // switch to remaining room
         const remaining = this.rooms[0];
@@ -351,14 +414,33 @@ class ProjectManager {
           ${hasRules ? `<span class="room-rule-tag" title="${room.rules}"><i class="fa-solid fa-scroll"></i> ルールあり</span>` : ''}
         </div>
         <div class="room-actions">
-          <button class="btn-room-action rename" title="名前変更"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn-room-action delete" title="削除"><i class="fa-regular fa-trash-can"></i></button>
+          <button type="button" class="btn-room-action rename" title="名前変更"><i class="fa-solid fa-pen"></i></button>
+          <button type="button" class="btn-room-action delete" title="削除"><i class="fa-regular fa-trash-can"></i></button>
         </div>
       `;
 
-      item.onclick = () => this.switchRoom(room.id);
-      item.querySelector('.rename').onclick = (e) => this.promptRenameRoom(room.id, e);
-      item.querySelector('.delete').onclick = (e) => this.promptDeleteRoom(room.id, e);
+      item.onclick = (e) => {
+        if (e.target.closest('.room-actions')) return;
+        this.switchRoom(room.id);
+      };
+
+      const renameBtn = item.querySelector('.rename');
+      if (renameBtn) {
+        renameBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.promptRenameRoom(room.id, e);
+        };
+      }
+
+      const deleteBtn = item.querySelector('.delete');
+      if (deleteBtn) {
+        deleteBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.promptDeleteRoom(room.id, e);
+        };
+      }
 
       this.roomsListContainer.appendChild(item);
     });

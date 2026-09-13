@@ -90,9 +90,34 @@ class SupabaseAuthManager {
 
   // Bind Auth Gate Modal Events
   bindGateEvents() {
+    // GitHub Login from gate
+    document.getElementById('gate-github-login-btn')?.addEventListener('click', () => {
+      this.signInWithGithub();
+    });
+
     // Google Login from gate
     document.getElementById('gate-google-login-btn')?.addEventListener('click', () => {
       this.signInWithGoogle();
+    });
+
+    // Close button (Guest play)
+    document.getElementById('close-auth-gate-btn')?.addEventListener('click', () => {
+      this.loginAsGuest();
+    });
+
+    // Backdrop click (Guest play)
+    const gateModal = document.getElementById('auth-gate-modal');
+    gateModal?.addEventListener('click', (e) => {
+      if (e.target === gateModal) {
+        this.loginAsGuest();
+      }
+    });
+
+    // Escape key closes auth gate
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && gateModal && gateModal.style.display !== 'none') {
+        this.loginAsGuest();
+      }
     });
 
     // Mock/Demo user login from gate
@@ -281,6 +306,43 @@ class SupabaseAuthManager {
     }
   }
 
+  // GitHub OAuth Login
+  async signInWithGithub() {
+    const client = await this.ensureSupabaseClient();
+    if (!client) {
+      if (window.showToast) window.showToast('Supabaseの読み込みに失敗しました。接続環境をご確認ください。', 'error');
+      return;
+    }
+
+    try {
+      const redirectUri = window.location.origin + window.location.pathname;
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: redirectUri
+        }
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.warn('GitHub login error:', err);
+      const errMsg = String(err.message || err);
+
+      if (errMsg.includes('provider is not enabled') || errMsg.includes('Unsupported provider') || errMsg.includes('validation_failed')) {
+        const ok = await window.showConfirm(
+          `Supabase ダッシュボードで「GitHub Provider」がまだ有効化されていないようです。\n\n【設定方法】:\n1. Supabaseダッシュボード > Authentication > Providers > GitHub をONにする\n2. GitHub の Client ID と Secret を入力\n3. URL Configuration に ${window.location.origin} を追加\n\n今すぐテスト用アカウントですぐに始めますか？`,
+          'GitHubログインの設定について'
+        );
+        if (ok) {
+          this.loginAsMockUser();
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(`GitHub ログインエラー: ${errMsg}`, 'error');
+        }
+      }
+    }
+  }
+
   // Google OAuth Login
   async signInWithGoogle() {
     const client = await this.ensureSupabaseClient();
@@ -323,6 +385,10 @@ class SupabaseAuthManager {
     }
   }
 
+  loginAsGuest() {
+    this.loginAsMockUser();
+  }
+
   // Fallback demo/mock user login for testing
   loginAsMockUser() {
     const mockUser = {
@@ -337,7 +403,7 @@ class SupabaseAuthManager {
     localStorage.setItem('wiz_mock_user', JSON.stringify(mockUser));
     this.updateUserUI(mockUser);
     if (window.showToast) {
-      window.showToast('テストアカウントでログインしました！クラウド保存が有効です。', 'success');
+      window.showToast('ログインしました！クラウド保存が有効です。', 'success');
     }
     if (window.projectManager) {
       window.projectManager.syncWithCloud();
@@ -378,7 +444,7 @@ class SupabaseAuthManager {
           </div>
           <div class="user-meta">
             <span class="user-name" title="${name}">${name}</span>
-            <span class="user-email" title="${user.email}">${user.email || 'Googleログイン中'}</span>
+            <span class="user-email" title="${user.email}">${user.email || 'ログイン中'}</span>
           </div>
           <button id="auth-logout-btn" class="btn-logout" title="ログアウト">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -392,17 +458,26 @@ class SupabaseAuthManager {
       });
     } else {
       userContainer.innerHTML = `
-        <button id="auth-google-login-btn" class="btn-google-login">
-          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Googleでログイン</span>
-        </button>
+        <div class="sidebar-auth-btns" style="display:flex; flex-direction:column; gap:0.4rem; width:100%;">
+          <button id="auth-github-login-btn" class="btn-sidebar-oauth btn-gate-github" style="padding:0.45rem; border-radius:6px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:0.5rem; cursor:pointer; color:#fff; background:#24292f; border:1px solid #30363d;">
+            <i class="fa-brands fa-github"></i>
+            <span>GitHubでログイン</span>
+          </button>
+          <button id="auth-google-login-btn" class="btn-sidebar-oauth btn-google-login" style="padding:0.45rem; border-radius:6px; font-size:0.78rem;">
+            <svg class="google-icon" viewBox="0 0 24 24" width="15" height="15">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Googleでログイン</span>
+          </button>
+        </div>
       `;
 
+      document.getElementById('auth-github-login-btn')?.addEventListener('click', () => {
+        this.signInWithGithub();
+      });
       document.getElementById('auth-google-login-btn')?.addEventListener('click', () => {
         this.signInWithGoogle();
       });

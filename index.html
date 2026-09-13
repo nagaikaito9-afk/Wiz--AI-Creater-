@@ -88,11 +88,11 @@
     <!-- LEFTMOST PANEL: ChatGPT-like Project / Rooms Sidebar -->
     <aside class="project-sidebar" id="project-sidebar">
       <div class="sidebar-header">
-        <button id="new-project-btn" class="btn-new-chat">
+        <button id="new-project-btn" class="btn-new-chat" type="button" title="新しいプロジェクト作成">
           <i class="fa-solid fa-plus"></i>
           <span>新しいプロジェクト</span>
         </button>
-        <button id="collapse-rooms-btn" class="btn-icon-subtle" title="プロジェクト一覧を閉じる">
+        <button id="collapse-rooms-btn" class="btn-icon-subtle" title="プロジェクト一覧を閉じる" type="button">
           <i class="fa-solid fa-angles-left"></i>
         </button>
       </div>
@@ -113,12 +113,15 @@
       <!-- Chat Header Info -->
       <div class="chat-header-bar">
         <div class="chat-header-left">
-          <button id="open-rooms-btn" class="btn-icon-subtle open-rooms-btn" title="プロジェクト一覧を開く">
+          <button id="open-rooms-btn" class="btn-icon-subtle open-rooms-btn" title="プロジェクト一覧を開く" type="button">
             <i class="fa-solid fa-bars"></i>
           </button>
           <div class="active-project-badge" id="active-project-badge">
             <i class="fa-solid fa-folder-closed"></i>
             <span id="active-project-name-display">ネオン・ブロック崩し</span>
+            <button id="header-rename-project-btn" class="btn-icon-mini" title="現在のプロジェクト名を変更" type="button">
+              <i class="fa-solid fa-pen"></i>
+            </button>
           </div>
           <div class="wiz-status">
             <span class="avatar-mini"><i class="fa-solid fa-hat-wizard"></i></span>
@@ -131,7 +134,7 @@
 
         <div class="chat-actions">
           <!-- Project Rules Button -->
-          <button id="project-rules-btn" class="btn-rules" title="この部屋のプロジェクトルールを設定">
+          <button id="project-rules-btn" class="btn-rules" title="この部屋のプロジェクトルールを設定" type="button">
             <i class="fa-solid fa-scroll"></i>
             <span>プロジェクトルール</span>
           </button>
@@ -488,8 +491,9 @@
   </div>
 
   <!-- AUTH GATE MODAL (ログイン必須ゲート: ログインしないとWizは使えません) -->
-  <div class="modal-backdrop auth-gate-backdrop" id="auth-gate-modal">
+  <div class="modal-backdrop auth-gate-backdrop" id="auth-gate-modal" style="display: none;">
     <div class="auth-gate-card">
+      <button id="close-auth-gate-btn" class="btn-close gate-close-btn" title="閉じる (ゲスト利用)"><i class="fa-solid fa-xmark"></i></button>
       <div class="auth-gate-brand">
         <div class="auth-avatar-glow">
           <i class="fa-solid fa-hat-wizard"></i>
@@ -498,10 +502,14 @@
         <p class="auth-gate-subtitle">賢者Wizとゲームを制作するには、ログインが必要です。</p>
       </div>
 
-      <!-- Google Login Button (Supabase OAuth) -->
-      <div class="auth-gate-section">
-        <button id="gate-google-login-btn" class="btn-gate-google">
-          <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
+      <!-- OAuth Login Buttons (GitHub & Google) -->
+      <div class="auth-gate-section auth-oauth-grid">
+        <button id="gate-github-login-btn" class="btn-gate-oauth btn-gate-github" type="button">
+          <i class="fa-brands fa-github"></i>
+          <span>GitHub でログイン</span>
+        </button>
+        <button id="gate-google-login-btn" class="btn-gate-oauth btn-gate-google" type="button">
+          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>

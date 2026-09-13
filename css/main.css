@@ -360,18 +360,29 @@ body {
 }
 
 .chat-header-bar {
-  padding: 0.75rem 1.25rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.6rem;
   background: var(--bg-secondary);
+  flex-wrap: wrap;
+  min-height: 52px;
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .wiz-status {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  flex-shrink: 0;
 }
 
 .avatar-mini {
@@ -385,19 +396,23 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .wiz-info {
   display: flex;
   flex-direction: column;
+  white-space: nowrap;
 }
 .wiz-info strong {
   font-size: 0.88rem;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 .wiz-info .status-desc {
   font-size: 0.75rem;
   color: var(--wiz-cyan);
+  white-space: nowrap;
 }
 
 .btn-mini {
@@ -1225,32 +1240,46 @@ input:checked + .slider:before {
 }
 
 .room-actions {
-  display: none;
-  gap: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  opacity: 0.85;
+  transition: opacity var(--transition-fast);
 }
 .room-item:hover .room-actions {
-  display: flex;
+  opacity: 1;
 }
 
 .btn-room-action {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  width: 20px;
-  height: 20px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: all var(--transition-fast);
+}
+.btn-room-action i {
+  pointer-events: none;
 }
 .btn-room-action:hover {
+  background: var(--border-medium);
   color: var(--text-primary);
+  transform: scale(1.12);
+}
+.btn-room-action.rename:hover {
+  border-color: var(--wiz-cyan);
+  color: var(--wiz-cyan);
 }
 .btn-room-action.delete:hover {
-  color: var(--danger);
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ff6b6b;
 }
 
 /* Sidebar User / Auth Area */
@@ -1389,9 +1418,29 @@ input:checked + .slider:before {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .active-project-badge i {
   color: var(--wiz-cyan);
+}
+
+.btn-icon-mini {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.72rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.btn-icon-mini:hover {
+  color: var(--wiz-cyan);
+  background: var(--border-subtle);
 }
 
 /* Project Rules Button in Header */
@@ -1399,20 +1448,23 @@ input:checked + .slider:before {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
+  padding: 0.35rem 0.75rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 .btn-rules:hover {
   background: var(--border-medium);
   color: var(--text-primary);
   border-color: var(--wiz-purple);
+  transform: translateY(-1px);
 }
 .btn-rules.has-rules {
   background: rgba(157, 78, 221, 0.15);
@@ -1551,6 +1603,7 @@ input:checked + .slider:before {
 }
 
 .auth-gate-card {
+  position: relative;
   width: 100%;
   max-width: 440px;
   background: var(--bg-secondary);
@@ -1565,69 +1618,87 @@ input:checked + .slider:before {
   animation: zoomIn 0.35s ease;
 }
 
-@keyframes zoomIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.auth-gate-brand {
-  margin-bottom: 1.4rem;
-}
-
-.auth-avatar-glow {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--accent-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8rem;
-  color: #fff;
-  margin: 0 auto 0.8rem;
-  box-shadow: 0 0 24px rgba(0, 242, 254, 0.4);
-}
-
-.auth-gate-brand h2 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.35rem;
-}
-
-.auth-gate-subtitle {
-  font-size: 0.86rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
+.gate-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
 }
 
 .auth-gate-section {
   width: 100%;
 }
 
-.btn-gate-google {
+.auth-oauth-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.btn-gate-oauth {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
   padding: 0.75rem 1rem;
-  background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #dadce0;
   border-radius: var(--radius-md);
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+.btn-gate-oauth:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.btn-gate-github {
+  background: #24292f;
+  color: #ffffff;
+  border: 1px solid #30363d;
+}
+.btn-gate-github:hover {
+  background: #2c3238;
+}
+.btn-gate-github i {
+  font-size: 1.25rem;
+}
+
+.btn-gate-google {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #dadce0;
 }
 .btn-gate-google:hover {
   background: #f9fafb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#custom-dialog-modal {
+  z-index: 100005 !important;
+}
+
+#project-rules-modal {
+  z-index: 100002 !important;
+}
+
+#custom-dialog-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+#custom-dialog-input:focus {
+  border-color: var(--wiz-cyan);
+  box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.2);
 }
 
 .auth-divider {
