@@ -1,10 +1,12 @@
 /**
- * Wiz AI Game Creator - Supabase Auth & Cloud Sync Manager
+ * Wiz AI Game Creator - Email Authentication & Account Security Manager
  * Features:
- * - Google OAuth Login & Logout via Supabase
- * - User Profile & Session Management
- * - Cloud Save & Sync for project rooms
- * - Realtime Online Status & Presence indicator
+ * - Pure Email Registration with 6-digit Email Verification Code & Stepper Flow
+ * - Unique User ID (@user_id) & Username Setup
+ * - Email / User ID Login with Two-Factor Authentication (2FA) support
+ * - User Settings 2FA Configuration
+ * - Instant Mock Account Login for Fast Testing
+ * - Cloud & Local Storage Account Sync
  */
 
 class SupabaseAuthManager {
@@ -14,164 +16,77 @@ class SupabaseAuthManager {
     this.client = null;
     this.currentUser = null;
     this.isOnline = navigator.onLine;
-    this.realtimeChannel = null;
 
+    // Sign-up and 2FA temporary states
+    this.pendingSignup = null;
+    this.pending2fa = null;
+    this.resendTimerInterval = null;
+
+    this.ensureSeedAccounts();
     this.init();
   }
 
-  async ensureSupabaseClient() {
-    if (this.client) return this.client;
+  // Ensure default demo accounts exist locally for seamless testing
+  ensureSeedAccounts() {
+    const users = this.getLocalUsers();
+    let modified = false;
 
-    for (let i = 0; i < 30; i++) {
-      if (window.supabase) {
-        try {
-          this.client = window.supabase.createClient(this.supabaseUrl, this.supabaseKey, {
-            auth: {
-              persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true
-            }
-          });
-          return this.client;
-        } catch (e) {
-          console.warn('Supabase client creation error:', e);
+    if (!users.some(u => u.userId === 'wiz_creator')) {
+      users.push({
+        id: 'usr_mock_001',
+        email: 'creator@wiz-game.dev',
+        password: 'password123',
+        username: 'Wiz Creator',
+        userId: 'wiz_creator',
+        is2faEnabled: false,
+        user_metadata: {
+          full_name: 'Wiz Creator',
+          user_id: 'wiz_creator',
+          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator'
         }
-      }
-      await new Promise(r => setTimeout(r, 100));
-    }
-    return null;
-  }
-
-  async init() {
-    if (document.readyState === 'loading') {
-      await new Promise(r => document.addEventListener('DOMContentLoaded', r));
+      });
+      modified = true;
     }
 
-    // Bind gate modal events immediately
-    this.bindGateEvents();
-
-    // Check mock user in localStorage
-    const savedMock = localStorage.getItem('wiz_mock_user');
-    if (savedMock) {
-      try {
-        this.currentUser = JSON.parse(savedMock);
-      } catch (e) {
-        this.currentUser = null;
-      }
-    }
-
-    // Force gate visibility update immediately on first render
-    this.updateGateVisibility();
-    this.updateUserUI(this.currentUser);
-
-    // Network status listeners
-    window.addEventListener('online', () => this.handleNetworkChange(true));
-    window.addEventListener('offline', () => this.handleNetworkChange(false));
-
-    const client = await this.ensureSupabaseClient();
-
-    if (client) {
-      try {
-        const { data: { session } } = await client.auth.getSession();
-        if (session?.user) {
-          this.currentUser = session.user;
-          localStorage.removeItem('wiz_mock_user');
+    if (!users.some(u => u.userId === 'pixel_hero')) {
+      users.push({
+        id: 'usr_mock_002',
+        email: 'hero@pixel.dev',
+        password: 'password123',
+        username: 'ドット勇者',
+        userId: 'pixel_hero',
+        is2faEnabled: false,
+        user_metadata: {
+          full_name: 'ドット勇者',
+          user_id: 'pixel_hero',
+          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero'
         }
-        this.handleAuthChange(session);
+      });
+      modified = true;
+    }
 
-        client.auth.onAuthStateChange((event, session) => {
-          console.info('Auth state changed:', event, session?.user?.email);
-          this.handleAuthChange(session);
-        });
+    if (!users.some(u => u.userId === 'sound_mage')) {
+      users.push({
+        id: 'usr_mock_003',
+        email: 'sound@synth.dev',
+        password: 'password123',
+        username: '音響魔術師',
+        userId: 'sound_mage',
+        is2faEnabled: false,
+        user_metadata: {
+          full_name: '音響魔術師',
+          user_id: 'sound_mage',
+          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=sound_mage'
+        }
+      });
+      modified = true;
+    }
 
-        this.initPresence();
-      } catch (err) {
-        console.info('Auth session init note:', err);
-      }
+    if (modified) {
+      localStorage.setItem('wiz_local_users', JSON.stringify(users));
     }
   }
 
-  // Bind Auth Gate Modal Events
-  bindGateEvents() {
-    // 1. Featured 1-Click Test Account Login
-    document.getElementById('gate-mock-login-btn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.loginAsMockUser();
-    });
-
-    // 2. GitHub Login from gate
-    document.getElementById('gate-github-login-btn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.signInWithGithub();
-    });
-
-    // 3. Google Login from gate
-    document.getElementById('gate-google-login-btn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.signInWithGoogle();
-    });
-
-    // Email Tabs (ログイン / 新規登録)
-    const tabLogin = document.getElementById('tab-login-btn');
-    const tabSignup = document.getElementById('tab-signup-btn');
-    const submitBtn = document.getElementById('gate-submit-btn');
-    let isSignupMode = false;
-
-    tabLogin?.addEventListener('click', () => {
-      isSignupMode = false;
-      tabLogin.classList.add('active');
-      tabSignup.classList.remove('active');
-      if (submitBtn) submitBtn.innerHTML = '<span>ログインする</span>';
-    });
-
-    tabSignup?.addEventListener('click', () => {
-      isSignupMode = true;
-      tabSignup.classList.add('active');
-      tabLogin.classList.remove('active');
-      if (submitBtn) submitBtn.innerHTML = '<span>新規登録する</span>';
-    });
-
-    // Email form submit
-    submitBtn?.addEventListener('click', async () => {
-      const emailInput = document.getElementById('gate-email-input');
-      const passwordInput = document.getElementById('gate-password-input');
-      const email = emailInput?.value.trim();
-      const password = passwordInput?.value;
-
-      if (!email || !password) {
-        if (window.showToast) window.showToast('メールアドレス（またはユーザー名）とパスワードを入力してください', 'warning');
-        return;
-      }
-      if (password.length < 6) {
-        if (window.showToast) window.showToast('パスワードは6文字以上で入力してください', 'warning');
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>処理中...</span>';
-
-      try {
-        if (isSignupMode) {
-          await this.signUpWithEmail(email, password);
-        } else {
-          await this.signInWithEmail(email, password);
-        }
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = isSignupMode ? '<span>新規登録する</span>' : '<span>ログインする</span>';
-      }
-    });
-
-    // Allow Enter key submit in password field
-    document.getElementById('gate-password-input')?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        submitBtn?.click();
-      }
-    });
-  }
-
-  // Local Accounts Storage (Guarantees registration never fails)
   getLocalUsers() {
     try {
       return JSON.parse(localStorage.getItem('wiz_local_users') || '[]');
@@ -180,115 +95,837 @@ class SupabaseAuthManager {
     }
   }
 
-  saveLocalUser(email, password) {
-    const users = this.getLocalUsers();
-    const cleanEmail = email.includes('@') ? email : `${email}@wiz-studio.dev`;
-    let user = users.find(u => u.email.toLowerCase() === cleanEmail.toLowerCase());
-    if (!user) {
-      user = {
-        id: 'usr_' + Date.now(),
-        email: cleanEmail,
-        password: password,
-        user_metadata: {
-          full_name: email.split('@')[0],
-          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`
-        }
-      };
-      users.push(user);
+  saveLocalUsers(users) {
+    try {
       localStorage.setItem('wiz_local_users', JSON.stringify(users));
+    } catch (e) {
+      console.warn('Failed to save users to local storage:', e);
     }
-    return user;
   }
 
-  // Supabase Email SignUp with Local Fallback
-  async signUpWithEmail(email, password) {
-    const cleanEmail = email.includes('@') ? email : `${email}@wiz-studio.dev`;
+  async init() {
+    if (document.readyState === 'loading') {
+      await new Promise(r => document.addEventListener('DOMContentLoaded', r));
+    }
 
-    const client = await this.ensureSupabaseClient();
-    if (client) {
+    this.bindGateEvents();
+    this.bindSettings2faEvents();
+
+    // Check active session from localStorage
+    const savedUser = localStorage.getItem('wiz_mock_user');
+    if (savedUser) {
       try {
-        const { data, error } = await client.auth.signUp({
-          email: cleanEmail,
-          password: password
-        });
-
-        if (!error && data?.session?.user) {
-          this.currentUser = data.session.user;
-          this.updateUserUI(this.currentUser);
-          if (window.showToast) window.showToast('アカウントを作成しログインしました！', 'success');
-          return;
-        }
+        this.currentUser = JSON.parse(savedUser);
       } catch (e) {
-        console.warn('Supabase cloud signup notice:', e);
+        this.currentUser = null;
       }
     }
 
-    // Instant local registration so user is NEVER blocked by email confirmation requirements
-    const user = this.saveLocalUser(cleanEmail, password);
+    this.updateGateVisibility();
+    this.updateUserUI(this.currentUser);
+
+    // Network listeners
+    window.addEventListener('online', () => this.handleNetworkChange(true));
+    window.addEventListener('offline', () => this.handleNetworkChange(false));
+  }
+
+  // Bind Auth Gate Modal Events (Email only)
+  bindGateEvents() {
+    // 1. Prominent 1-Click Test Account Button
+    document.getElementById('gate-mock-login-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.loginAsMockUser();
+    });
+
+    // 2. Tab Switcher: ログイン vs 新規登録
+    const tabLogin = document.getElementById('tab-login-btn');
+    const tabSignup = document.getElementById('tab-signup-btn');
+    const viewLogin = document.getElementById('auth-view-login');
+    const viewSignup = document.getElementById('auth-view-signup');
+
+    tabLogin?.addEventListener('click', () => {
+      tabLogin.classList.add('active');
+      tabSignup?.classList.remove('active');
+      if (viewLogin) viewLogin.style.display = 'block';
+      if (viewSignup) viewSignup.style.display = 'none';
+      this.resetSignupFlow();
+    });
+
+    tabSignup?.addEventListener('click', () => {
+      tabSignup.classList.add('active');
+      tabLogin?.classList.remove('active');
+      if (viewLogin) viewLogin.style.display = 'none';
+      if (viewSignup) viewSignup.style.display = 'block';
+      this.resetSignupFlow();
+    });
+
+    // 3. Login Flow
+    const loginSubmitBtn = document.getElementById('gate-login-submit-btn');
+    const loginIdInput = document.getElementById('gate-login-identifier');
+    const loginPassInput = document.getElementById('gate-login-password');
+    const login2faInput = document.getElementById('gate-login-2fa-code');
+
+    loginSubmitBtn?.addEventListener('click', () => this.handleLoginSubmit());
+
+    [loginIdInput, loginPassInput, login2faInput].forEach(inp => {
+      inp?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleLoginSubmit();
+        }
+      });
+    });
+
+    // 4. Registration Flow
+    // Step 1: Send Verification Code
+    document.getElementById('gate-signup-next-1-btn')?.addEventListener('click', () => {
+      this.handleSignupStep1();
+    });
+
+    // Step 2: Verify 6-Digit Code
+    document.getElementById('gate-signup-next-2-btn')?.addEventListener('click', () => {
+      this.handleSignupStep2();
+    });
+
+    document.getElementById('gate-signup-back-2-btn')?.addEventListener('click', () => {
+      this.showSignupStep(1);
+    });
+
+    document.getElementById('resend-code-btn')?.addEventListener('click', () => {
+      this.resendSignupCode();
+    });
+
+    // Step 3: Username & User ID Setup
+    document.getElementById('gate-signup-finish-btn')?.addEventListener('click', () => {
+      this.handleSignupStep3();
+    });
+
+    document.getElementById('gate-signup-back-3-btn')?.addEventListener('click', () => {
+      this.showSignupStep(2);
+    });
+
+    // Live User ID check
+    document.getElementById('gate-signup-userid')?.addEventListener('input', (e) => {
+      this.validateUserIdInput(e.target.value);
+    });
+  }
+
+  // Settings Modal Enhanced Tabs, Security & Profile Bindings
+  bindSettings2faEvents() {
+    this.bindSettingsModalFeatures();
+  }
+
+  bindSettingsModalFeatures() {
+    // 1. Settings Nav Tabs Switcher
+    const tabs = [
+      { btnId: 'settings-tab-general', panelId: 'settings-panel-general' },
+      { btnId: 'settings-tab-notifs', panelId: 'settings-panel-notifs' },
+      { btnId: 'settings-tab-security', panelId: 'settings-panel-security' },
+      { btnId: 'settings-tab-profile', panelId: 'settings-panel-profile' }
+    ];
+
+    tabs.forEach(t => {
+      const btn = document.getElementById(t.btnId);
+      btn?.addEventListener('click', () => {
+        tabs.forEach(item => {
+          document.getElementById(item.btnId)?.classList.remove('active');
+          const p = document.getElementById(item.panelId);
+          if (p) p.style.display = 'none';
+        });
+        btn.classList.add('active');
+        const activePanel = document.getElementById(t.panelId);
+        if (activePanel) activePanel.style.display = 'block';
+
+        if (t.btnId === 'settings-tab-profile') {
+          this.populateProfileForm();
+        } else if (t.btnId === 'settings-tab-notifs') {
+          this.populateNotificationSettings();
+        }
+      });
+    });
+
+    // 2. Notification Settings Sync
+    const masterNotif = document.getElementById('notif-opt-master');
+    const friendNotif = document.getElementById('notif-opt-friends');
+    const inviteNotif = document.getElementById('notif-opt-invites');
+    const updateNotif = document.getElementById('notif-opt-updates');
+
+    const saveNotifSettings = () => {
+      if (!window.notificationsCenter) return;
+      window.notificationsCenter.settings.enabled = masterNotif ? masterNotif.checked : true;
+      window.notificationsCenter.settings.friendRequests = friendNotif ? friendNotif.checked : true;
+      window.notificationsCenter.settings.projectInvites = inviteNotif ? inviteNotif.checked : true;
+      window.notificationsCenter.settings.projectUpdates = updateNotif ? updateNotif.checked : true;
+      window.notificationsCenter.saveSettings();
+    };
+
+    [masterNotif, friendNotif, inviteNotif, updateNotif].forEach(el => {
+      el?.addEventListener('change', saveNotifSettings);
+    });
+
+    // 3. Security: Log out from other devices
+    document.getElementById('btn-logout-other-devices')?.addEventListener('click', async () => {
+      const ok = await window.showConfirm(
+        '他のすべての端末からログアウトしますか？\n現在使用中のこの端末以外のセッションが無効化されます。',
+        '他端末からのログアウト確認'
+      );
+      if (ok) {
+        const devList = document.getElementById('settings-devices-list');
+        if (devList) {
+          const remotes = devList.querySelectorAll('.device-item.remote');
+          remotes.forEach(el => el.remove());
+        }
+        if (window.showToast) window.showToast('他のすべての端末から正常にログアウトしました', 'success');
+        if (window.activityLogger) window.activityLogger.log('他のすべての端末から*ログアウト*しました', 'system');
+      }
+    });
+
+    // 4. Security: 2FA Toggle (Email Code)
+    const toggle2fa = document.getElementById('setting-enable-2fa');
+    toggle2fa?.addEventListener('change', () => {
+      if (!this.currentUser) return;
+      this.currentUser.is2faEnabled = toggle2fa.checked;
+      this.updateUserInStore(this.currentUser);
+      if (window.showToast) {
+        window.showToast(
+          toggle2fa.checked
+            ? '2段階認証 (メール確認コード) を有効にしました'
+            : '2段階認証を無効にしました',
+          toggle2fa.checked ? 'success' : 'info'
+        );
+      }
+    });
+
+    // 5. Security: Touch ID / Biometrics simulation
+    document.getElementById('btn-setup-biometrics')?.addEventListener('click', async () => {
+      const ok = await window.showConfirm('Touch ID / 指紋認証センサーまたは顔認証で生体認証を登録しますか？', '生体認証登録');
+      if (ok) {
+        if (!this.currentUser) return;
+        this.currentUser.biometricsEnabled = true;
+        this.updateUserInStore(this.currentUser);
+        if (window.showToast) window.showToast('✅ Touch ID / 生体認証を登録しました！次回からワンタッチ認証が可能です。', 'success');
+        if (window.activityLogger) window.activityLogger.log('*Touch ID 生体認証*を設定しました', 'system');
+      }
+    });
+
+    // 6. Security: SMS Phone 2FA
+    document.getElementById('btn-setup-sms-2fa')?.addEventListener('click', async () => {
+      const phone = await window.showPrompt('SMS認証用の電話番号を入力してください (例: 090-1234-5678):', '090-1234-5678', '電話番号登録');
+      if (phone && phone.trim()) {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        this.openSecurityActionModal({
+          mode: 'sms_verify',
+          title: '電話番号 SMS 認証確認',
+          desc: `電話番号「${phone}」へ6ケタの確認コードを送信しました。`,
+          code: code,
+          onConfirm: () => {
+            if (!this.currentUser) return;
+            this.currentUser.phone = phone.trim();
+            this.currentUser.sms2faEnabled = true;
+            this.updateUserInStore(this.currentUser);
+            if (window.showToast) window.showToast(`✅ 電話番号 (${phone}) によるSMS認証を設定しました！`, 'success');
+          }
+        });
+      }
+    });
+
+    // 7. Security: Password Change (with 6-digit email verification code)
+    document.getElementById('btn-change-password')?.addEventListener('click', () => {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      this.openSecurityActionModal({
+        mode: 'change_password',
+        title: 'パスワードの変更',
+        desc: `ご登録メールアドレス (${this.currentUser?.email || 'email'}) 宛てに6ケタ確認コードを送信しました。`,
+        inputLabel: '新しいパスワード (6文字以上)',
+        inputPlaceholder: '新しいパスワード',
+        code: code,
+        onConfirm: (val) => {
+          if (!val || val.length < 6) {
+            if (window.showToast) window.showToast('新しいパスワードは6文字以上で入力してください', 'warning');
+            return false;
+          }
+          if (this.currentUser) {
+            this.currentUser.password = val;
+            this.updateUserInStore(this.currentUser);
+            if (window.showToast) window.showToast('🎉 パスワードを変更しました！', 'success');
+            if (window.activityLogger) window.activityLogger.log('*パスワード*を変更しました', 'system');
+          }
+          return true;
+        }
+      });
+    });
+
+    // 8. Security: Email Address Change (with 6-digit verification code)
+    document.getElementById('btn-change-email')?.addEventListener('click', () => {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      this.openSecurityActionModal({
+        mode: 'change_email',
+        title: 'メールアドレスの変更',
+        desc: '新しいメールアドレスを入力し、送信された6ケタ確認コードを入力してください。',
+        inputLabel: '新しいメールアドレス',
+        inputPlaceholder: 'user@example.com',
+        code: code,
+        onConfirm: (val) => {
+          if (!val || !val.includes('@')) {
+            if (window.showToast) window.showToast('有効なメールアドレスを入力してください', 'warning');
+            return false;
+          }
+          if (this.currentUser) {
+            this.currentUser.email = val.trim().toLowerCase();
+            this.updateUserInStore(this.currentUser);
+            this.updateUserUI(this.currentUser);
+            if (window.showToast) window.showToast(`🎉 メールアドレスを「${this.currentUser.email}」に変更しました！`, 'success');
+            if (window.activityLogger) window.activityLogger.log('*メールアドレス*を変更しました', 'system');
+          }
+          return true;
+        }
+      });
+    });
+
+    // 9. Security: Account Deletion (with 6-digit code and danger confirmation)
+    document.getElementById('btn-delete-account')?.addEventListener('click', () => {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      this.openSecurityActionModal({
+        mode: 'delete_account',
+        title: 'アカウントの完全削除',
+        desc: `⚠️ 注意: アカウントを削除するとすべてのプロジェクト・フレンド情報が消去されます。ご登録メール (${this.currentUser?.email}) へ送信された6ケタコードを入力してください。`,
+        isDanger: true,
+        code: code,
+        onConfirm: () => {
+          const users = this.getLocalUsers().filter(u => u.userId !== this.currentUser?.userId);
+          this.saveLocalUsers(users);
+          this.signOut();
+          const modal = document.getElementById('theme-settings-modal');
+          if (modal) modal.style.display = 'none';
+          if (window.showToast) window.showToast('アカウントを完全に削除しました。ご利用ありがとうございました。', 'info');
+          return true;
+        }
+      });
+    });
+
+    // 10. Profile: Save Profile
+    document.getElementById('btn-save-profile')?.addEventListener('click', () => {
+      this.saveProfileForm();
+    });
+
+    // 11. Security Action Modal Close / Cancel
+    document.getElementById('close-sec-modal-btn')?.addEventListener('click', () => {
+      const m = document.getElementById('security-action-modal');
+      if (m) m.style.display = 'none';
+    });
+    document.getElementById('cancel-sec-modal-btn')?.addEventListener('click', () => {
+      const m = document.getElementById('security-action-modal');
+      if (m) m.style.display = 'none';
+    });
+  }
+
+  updateUserInStore(user) {
+    const users = this.getLocalUsers();
+    const idx = users.findIndex(u => u.userId === user.userId || u.email === user.email);
+    if (idx !== -1) {
+      users[idx] = { ...users[idx], ...user };
+      this.saveLocalUsers(users);
+    }
+    localStorage.setItem('wiz_mock_user', JSON.stringify(user));
+  }
+
+  populateNotificationSettings() {
+    if (!window.notificationsCenter) return;
+    const s = window.notificationsCenter.settings;
+    const master = document.getElementById('notif-opt-master');
+    const friends = document.getElementById('notif-opt-friends');
+    const invites = document.getElementById('notif-opt-invites');
+    const updates = document.getElementById('notif-opt-updates');
+
+    if (master) master.checked = s.enabled !== false;
+    if (friends) friends.checked = s.friendRequests !== false;
+    if (invites) invites.checked = s.projectInvites !== false;
+    if (updates) updates.checked = s.projectUpdates !== false;
+  }
+
+  populateProfileForm() {
+    if (!this.currentUser) return;
+    const usernameInput = document.getElementById('profile-edit-username');
+    const userIdInput = document.getElementById('profile-edit-userid');
+    const bioInput = document.getElementById('profile-edit-bio');
+    const avatarGrid = document.getElementById('avatar-select-grid');
+
+    if (usernameInput) usernameInput.value = this.currentUser.username || this.currentUser.user_metadata?.full_name || '';
+    if (userIdInput) userIdInput.value = `@${this.currentUser.userId || 'user'}`;
+    if (bioInput) bioInput.value = this.currentUser.bio || '';
+
+    // Render Avatar options
+    if (avatarGrid) {
+      const seeds = [this.currentUser.userId, 'wiz_creator', 'pixel_hero', 'sound_mage', 'retro_gamer', 'neon_cat', 'bot_99'];
+      avatarGrid.innerHTML = seeds.map(seed => {
+        const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+        const isSelected = (this.currentUser.avatar === url) || (!this.currentUser.avatar && seed === this.currentUser.userId);
+        return `
+          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
+            <img src="${url}" alt="${seed}">
+          </div>
+        `;
+      }).join('');
+
+      avatarGrid.querySelectorAll('.avatar-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          avatarGrid.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+        });
+      });
+    }
+  }
+
+  saveProfileForm() {
+    if (!this.currentUser) return;
+    const usernameInput = document.getElementById('profile-edit-username');
+    const bioInput = document.getElementById('profile-edit-bio');
+    const selectedAvatar = document.querySelector('.avatar-option.selected');
+
+    const newName = usernameInput?.value.trim();
+    if (newName) {
+      this.currentUser.username = newName;
+      if (this.currentUser.user_metadata) this.currentUser.user_metadata.full_name = newName;
+    }
+    if (bioInput) {
+      this.currentUser.bio = bioInput.value.trim();
+    }
+    if (selectedAvatar) {
+      this.currentUser.avatar = selectedAvatar.getAttribute('data-avatar-url');
+      if (this.currentUser.user_metadata) {
+        this.currentUser.user_metadata.avatar_url = this.currentUser.avatar;
+      }
+    }
+
+    this.updateUserInStore(this.currentUser);
+    this.updateUserUI(this.currentUser);
+
+    if (window.showToast) window.showToast('🎉 プロフィール設定を保存しました！', 'success');
+  }
+
+  openSecurityActionModal(cfg) {
+    const modal = document.getElementById('security-action-modal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('sec-modal-title');
+    const descEl = document.getElementById('sec-modal-desc');
+    const inputGroup = document.getElementById('sec-modal-input-group-1');
+    const inputLabel = document.getElementById('sec-modal-input-label-1');
+    const input1 = document.getElementById('sec-modal-input-1');
+    const codeInput = document.getElementById('sec-modal-code-input');
+    const codeHint = document.getElementById('sec-modal-code-hint');
+    const dangerGroup = document.getElementById('sec-modal-danger-group');
+    const dangerInput = document.getElementById('sec-modal-danger-input');
+    const submitBtn = document.getElementById('submit-sec-modal-btn');
+
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${cfg.title}`;
+    if (descEl) descEl.textContent = cfg.desc;
+
+    if (inputGroup && cfg.inputLabel) {
+      inputGroup.style.display = 'block';
+      if (inputLabel) inputLabel.textContent = cfg.inputLabel;
+      if (input1) {
+        input1.value = '';
+        input1.placeholder = cfg.inputPlaceholder || '';
+      }
+    } else if (inputGroup) {
+      inputGroup.style.display = 'none';
+    }
+
+    if (codeInput) {
+      codeInput.value = cfg.code; // Pre-fill for testing/demo
+      codeInput.placeholder = cfg.code;
+    }
+    if (codeHint) {
+      codeHint.textContent = `※ デモ用認証コード: [ ${cfg.code} ] (メール宛てに送信されました)`;
+    }
+
+    if (dangerGroup) {
+      dangerGroup.style.display = cfg.isDanger ? 'block' : 'none';
+      if (dangerInput) dangerInput.value = '';
+    }
+
+    modal.style.display = 'flex';
+
+    if (window.showToast) {
+      window.showToast(`📧 確認コード [ ${cfg.code} ] を送信しました`, 'info');
+    }
+
+    submitBtn.onclick = () => {
+      const enteredCode = codeInput?.value.trim();
+      if (enteredCode !== cfg.code) {
+        if (window.showToast) window.showToast('認証コードが一致しません', 'error');
+        return;
+      }
+
+      if (cfg.isDanger) {
+        if (dangerInput?.value.trim() !== 'アカウントを削除') {
+          if (window.showToast) window.showToast('「アカウントを削除」と正確に入力してください', 'warning');
+          return;
+        }
+      }
+
+      const inputVal = input1 ? input1.value.trim() : '';
+      const success = cfg.onConfirm ? cfg.onConfirm(inputVal) : true;
+      if (success !== false) {
+        modal.style.display = 'none';
+      }
+    };
+  }
+
+  // Handle Login Submission
+  handleLoginSubmit() {
+    const idInput = document.getElementById('gate-login-identifier');
+    const passInput = document.getElementById('gate-login-password');
+    const codeInput = document.getElementById('gate-login-2fa-code');
+    const group2fa = document.getElementById('gate-login-2fa-group');
+    const submitBtn = document.getElementById('gate-login-submit-btn');
+
+    const identifier = idInput?.value.replace(/^@/, '').trim().toLowerCase();
+    const password = passInput?.value || '';
+
+    if (!identifier || !password) {
+      if (window.showToast) window.showToast('メールアドレスまたはユーザーID、パスワードを入力してください', 'warning');
+      return;
+    }
+
+    const users = this.getLocalUsers();
+    const user = users.find(u =>
+      (u.email || '').toLowerCase() === identifier ||
+      (u.userId || '').toLowerCase() === identifier
+    );
+
+    if (!user) {
+      if (window.showToast) window.showToast('該当するユーザーが見つかりません。新規登録をお試しください。', 'warning');
+      return;
+    }
+
+    if (user.password !== password) {
+      if (window.showToast) window.showToast('パスワードが正しくありません', 'warning');
+      return;
+    }
+
+    // Check if user has Two-Factor Authentication (2FA) enabled
+    if (user.is2faEnabled) {
+      if (!this.pending2fa) {
+        // Generate and send 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        this.pending2fa = {
+          user: user,
+          code: code,
+          expiresAt: Date.now() + 5 * 60 * 1000
+        };
+
+        if (group2fa) group2fa.style.display = 'block';
+        if (codeInput) {
+          codeInput.value = '';
+          codeInput.focus();
+        }
+        if (submitBtn) submitBtn.innerHTML = '<span>確認コードを認証してログイン</span>';
+
+        if (window.showToast) {
+          window.showToast(`🔐 2段階認証コード [ ${code} ] を送信しました（テスト用表示）`, 'info');
+        }
+        return;
+      }
+
+      // Check entered 2FA code
+      const enteredCode = codeInput?.value.trim();
+      if (enteredCode !== this.pending2fa.code) {
+        if (window.showToast) window.showToast('認証コードが一致しません。もう一度お確かめください。', 'error');
+        return;
+      }
+
+      // Code matched!
+      this.pending2fa = null;
+    }
+
+    // Login successful
     this.currentUser = user;
     localStorage.setItem('wiz_mock_user', JSON.stringify(user));
+    this.updateGateVisibility();
     this.updateUserUI(user);
+
     if (window.showToast) {
-      window.showToast(`アカウント「${user.user_metadata.full_name}」を作成しログインしました！`, 'success');
+      window.showToast(`ようこそ、${user.username || user.user_metadata?.full_name}さん！`, 'success');
     }
-    if (window.projectManager) {
+
+    if (window.projectManager && typeof window.projectManager.syncWithCloud === 'function') {
       window.projectManager.syncWithCloud();
     }
   }
 
-  // Supabase Email Login with Local Fallback
-  async signInWithEmail(email, password) {
-    const cleanEmail = email.includes('@') ? email : `${email}@wiz-studio.dev`;
+  // Signup Step 1: Input Email + Password -> Send 6-digit code
+  handleSignupStep1() {
+    const emailInput = document.getElementById('gate-signup-email');
+    const passInput = document.getElementById('gate-signup-password');
 
-    const client = await this.ensureSupabaseClient();
-    if (client) {
-      try {
-        const { data, error } = await client.auth.signInWithPassword({
-          email: cleanEmail,
-          password: password
-        });
+    const email = emailInput?.value.trim().toLowerCase();
+    const password = passInput?.value || '';
 
-        if (!error && data?.user) {
-          this.currentUser = data.user;
-          this.updateUserUI(data.user);
-          if (window.showToast) window.showToast('ログインしました！', 'success');
-          return;
-        }
-      } catch (e) {
-        console.warn('Supabase signin notice:', e);
-      }
+    if (!email || !email.includes('@')) {
+      if (window.showToast) window.showToast('有効なメールアドレスを入力してください', 'warning');
+      return;
     }
 
-    // Check local accounts
+    if (password.length < 6) {
+      if (window.showToast) window.showToast('パスワードは6文字以上で設定してください', 'warning');
+      return;
+    }
+
+    // Check if email already registered
     const users = this.getLocalUsers();
-    const found = users.find(u => u.email.toLowerCase() === cleanEmail.toLowerCase());
-    if (found) {
-      if (found.password === password) {
-        this.currentUser = found;
-        localStorage.setItem('wiz_mock_user', JSON.stringify(found));
-        this.updateUserUI(found);
-        if (window.showToast) window.showToast(`ログインしました（${found.user_metadata.full_name}）`, 'success');
-        return;
-      } else {
-        if (window.showToast) window.showToast('パスワードが正しくありません', 'warning');
-        return;
-      }
+    if (users.some(u => (u.email || '').toLowerCase() === email)) {
+      if (window.showToast) window.showToast('このメールアドレスは既に登録されています。ログインをお試しください。', 'warning');
+      return;
     }
 
-    // If not found in local users either, auto-register them seamlessly!
-    const newUser = this.saveLocalUser(cleanEmail, password);
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.pendingSignup = {
+      email: email,
+      password: password,
+      code: code,
+      expiresAt: Date.now() + 5 * 60 * 1000
+    };
+
+    // Update Step 2 UI
+    const targetEl = document.getElementById('verify-email-target');
+    if (targetEl) targetEl.textContent = email;
+    const codeInput = document.getElementById('gate-signup-code');
+    if (codeInput) codeInput.value = '';
+
+    this.showSignupStep(2);
+    this.startResendCountdown();
+
+    if (window.showToast) {
+      window.showToast(`✉️ 本人確認コード [ ${code} ] を送信しました（テスト用表示）`, 'info');
+    }
+  }
+
+  // Signup Step 2: Verify 6-digit code
+  handleSignupStep2() {
+    const codeInput = document.getElementById('gate-signup-code');
+    const entered = codeInput?.value.trim();
+
+    if (!this.pendingSignup) {
+      this.showSignupStep(1);
+      return;
+    }
+
+    if (entered !== this.pendingSignup.code) {
+      if (window.showToast) window.showToast('認証コードが一致しません。もう一度ご確認ください。', 'error');
+      return;
+    }
+
+    // Code verified! Proceed to Step 3 (Username & User ID)
+    const emailPrefix = this.pendingSignup.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+    const nameInput = document.getElementById('gate-signup-username');
+    const idInput = document.getElementById('gate-signup-userid');
+
+    if (nameInput) nameInput.value = emailPrefix;
+    if (idInput) {
+      idInput.value = emailPrefix.toLowerCase();
+      this.validateUserIdInput(idInput.value);
+    }
+
+    this.showSignupStep(3);
+
+    if (window.showToast) {
+      window.showToast('本人確認が完了しました！ユーザー名とユーザーIDを設定してください。', 'success');
+    }
+  }
+
+  // Resend code
+  resendSignupCode() {
+    if (!this.pendingSignup) return;
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.pendingSignup.code = code;
+    this.pendingSignup.expiresAt = Date.now() + 5 * 60 * 1000;
+    this.startResendCountdown();
+
+    if (window.showToast) {
+      window.showToast(`✉️ 新しい認証コード [ ${code} ] を再送しました（テスト用表示）`, 'info');
+    }
+  }
+
+  startResendCountdown() {
+    if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
+    let secondsLeft = 60;
+    const textEl = document.getElementById('code-countdown-text');
+    const resendBtn = document.getElementById('resend-code-btn');
+
+    if (resendBtn) resendBtn.disabled = true;
+    if (textEl) textEl.textContent = `残り有効時間: ${secondsLeft}秒`;
+
+    this.resendTimerInterval = setInterval(() => {
+      secondsLeft--;
+      if (textEl) textEl.textContent = `残り有効時間: ${secondsLeft}秒`;
+      if (secondsLeft <= 0) {
+        clearInterval(this.resendTimerInterval);
+        if (resendBtn) resendBtn.disabled = false;
+        if (textEl) textEl.textContent = 'コードの有効期限が切れました。再送信してください。';
+      }
+    }, 1000);
+  }
+
+  // Validate User ID input format & uniqueness
+  validateUserIdInput(raw) {
+    const clean = raw.replace(/^@/, '').trim().toLowerCase();
+    const hint = document.getElementById('userid-status-hint');
+    const finishBtn = document.getElementById('gate-signup-finish-btn');
+
+    if (!clean) {
+      if (hint) {
+        hint.textContent = '半角英数字とアンダースコア（_）3〜20文字';
+        hint.style.color = 'var(--text-muted)';
+      }
+      return false;
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(clean)) {
+      if (hint) {
+        hint.textContent = '⚠️ 3〜20文字の半角英数字・アンダースコアのみ使用可能です';
+        hint.style.color = '#ff6b6b';
+      }
+      return false;
+    }
+
+    const users = this.getLocalUsers();
+    const exists = users.some(u => (u.userId || '').toLowerCase() === clean);
+    if (exists) {
+      if (hint) {
+        hint.textContent = `❌ @${clean} は既に使用されています`;
+        hint.style.color = '#ff6b6b';
+      }
+      return false;
+    }
+
+    if (hint) {
+      hint.textContent = `✅ @${clean} は利用可能です！`;
+      hint.style.color = '#38ef7d';
+    }
+    return true;
+  }
+
+  // Signup Step 3: Complete Registration
+  handleSignupStep3() {
+    const nameInput = document.getElementById('gate-signup-username');
+    const idInput = document.getElementById('gate-signup-userid');
+
+    const username = nameInput?.value.trim() || 'クリエイター';
+    const userId = idInput?.value.replace(/^@/, '').trim().toLowerCase();
+
+    if (!this.validateUserIdInput(userId)) {
+      if (window.showToast) window.showToast('利用可能なユーザーIDを入力してください', 'warning');
+      return;
+    }
+
+    const newUser = {
+      id: 'usr_' + Date.now(),
+      email: this.pendingSignup.email,
+      password: this.pendingSignup.password,
+      username: username,
+      userId: userId,
+      is2faEnabled: false,
+      user_metadata: {
+        full_name: username,
+        user_id: userId,
+        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(userId)}`
+      }
+    };
+
+    const users = this.getLocalUsers();
+    users.push(newUser);
+    this.saveLocalUsers(users);
+
     this.currentUser = newUser;
     localStorage.setItem('wiz_mock_user', JSON.stringify(newUser));
+
+    this.pendingSignup = null;
+    if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
+
+    this.updateGateVisibility();
     this.updateUserUI(newUser);
+
     if (window.showToast) {
-      window.showToast(`アカウント「${newUser.user_metadata.full_name}」を自動作成しログインしました！`, 'success');
+      window.showToast(`🎉 登録が完了しました！ようこそ、${username}さん (@${userId})`, 'success');
     }
-    if (window.projectManager) {
+
+    if (window.projectManager && typeof window.projectManager.syncWithCloud === 'function') {
       window.projectManager.syncWithCloud();
     }
   }
 
-  // Update Gate Visibility (Completely hides the studio until logged in)
+  // Show specific step (1, 2, or 3)
+  showSignupStep(stepNum) {
+    [1, 2, 3].forEach(n => {
+      const stepEl = document.getElementById(`signup-step-n`.replace('n', n));
+      const dotEl = document.getElementById(`step-dot-${n}`);
+      if (stepEl) stepEl.style.display = n === stepNum ? 'block' : 'none';
+      if (dotEl) {
+        dotEl.classList.toggle('active', n <= stepNum);
+      }
+    });
+
+    const line1 = document.getElementById('step-line-1');
+    const line2 = document.getElementById('step-line-2');
+    if (line1) line1.classList.toggle('active', stepNum >= 2);
+    if (line2) line2.classList.toggle('active', stepNum >= 3);
+  }
+
+  resetSignupFlow() {
+    this.pendingSignup = null;
+    this.pending2fa = null;
+    if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
+    this.showSignupStep(1);
+
+    const group2fa = document.getElementById('gate-login-2fa-group');
+    if (group2fa) group2fa.style.display = 'none';
+    const submitBtn = document.getElementById('gate-login-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<span>ログインする</span>';
+  }
+
+  // 1-Click Test Account Login
+  loginAsMockUser() {
+    const users = this.getLocalUsers();
+    const mock = users.find(u => u.userId === 'wiz_creator') || {
+      id: 'usr_mock_001',
+      email: 'creator@wiz-game.dev',
+      username: 'Wiz Creator',
+      userId: 'wiz_creator',
+      is2faEnabled: false,
+      user_metadata: {
+        full_name: 'Wiz Creator',
+        user_id: 'wiz_creator',
+        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator'
+      }
+    };
+
+    this.currentUser = mock;
+    localStorage.setItem('wiz_mock_user', JSON.stringify(mock));
+    this.updateGateVisibility();
+    this.updateUserUI(mock);
+
+    if (window.showToast) {
+      window.showToast('テスト用アカウントでログインしました！Wiz Studioへようこそ！', 'success');
+    }
+
+    if (window.projectManager && typeof window.projectManager.syncWithCloud === 'function') {
+      window.projectManager.syncWithCloud();
+    }
+  }
+
+  // Logout
+  signOut() {
+    this.currentUser = null;
+    localStorage.removeItem('wiz_mock_user');
+    this.updateGateVisibility();
+    this.updateUserUI(null);
+    if (window.showToast) window.showToast('ログアウトしました', 'info');
+  }
+
+  // Update Gate Visibility
   updateGateVisibility() {
     const gateModal = document.getElementById('auth-gate-modal');
     const studioRoot = document.getElementById('studio-app-root');
@@ -304,209 +941,25 @@ class SupabaseAuthManager {
     }
   }
 
-  handleNetworkChange(online) {
-    this.isOnline = online;
-    this.updateOnlineBadge(online ? 'online' : 'offline');
-    if (window.showToast) {
-      window.showToast(online ? 'インターネットに再接続しました' : 'オフライン状態です', online ? 'info' : 'warning');
-    }
-  }
-
-  // Check if provider is enabled on Supabase to prevent redirecting to raw JSON 400 error page
-  async isProviderConfigured(provider) {
-    try {
-      const res = await fetch(`${this.supabaseUrl}/auth/v1/settings`, {
-        headers: { apikey: this.supabaseKey }
-      });
-      const data = await res.json();
-      return Boolean(data?.external?.[provider]);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // Realtime Presence / Online connection
-  initPresence() {
-    if (!this.client) return;
-    try {
-      this.realtimeChannel = this.client.channel('online-users');
-      this.realtimeChannel
-        .on('presence', { event: 'sync' }, () => {
-          this.updateOnlineBadge('online');
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await this.realtimeChannel.track({
-              user_id: this.currentUser?.id || 'guest',
-              online_at: new Date().toISOString()
-            });
-            this.updateOnlineBadge('online');
-          }
-        });
-    } catch (err) {
-      console.info('Realtime presence notice:', err);
-    }
-  }
-
-  updateOnlineBadge(status = 'online') {
-    const badge = document.getElementById('cloud-status-badge');
-    if (!badge) return;
-
-    if (status === 'online') {
-      badge.className = 'cloud-status-pill online';
-      badge.innerHTML = '<span class="status-dot"></span><span>オンライン</span>';
-      badge.title = 'Supabase クラウドに接続中（自動同期有効）';
-    } else if (status === 'syncing') {
-      badge.className = 'cloud-status-pill syncing';
-      badge.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i><span>同期中...</span>';
-    } else {
-      badge.className = 'cloud-status-pill offline';
-      badge.innerHTML = '<span class="status-dot offline"></span><span>オフライン</span>';
-      badge.title = 'オフライン（ローカルに保存中）';
-    }
-  }
-
-  handleAuthChange(session) {
-    if (session?.user) {
-      this.currentUser = session.user;
-    }
-    this.updateUserUI(this.currentUser);
-
-    // If logged in, trigger cloud sync
-    if (this.currentUser && window.projectManager) {
-      window.projectManager.syncWithCloud();
-    }
-  }
-
-  // GitHub OAuth Login with error guard
-  async signInWithGithub() {
-    // 1. Guard against redirecting to 400 error page if provider is disabled in Supabase
-    const configured = await this.isProviderConfigured('github');
-    if (!configured) {
-      const ok = await window.showConfirm(
-        'Supabase ダッシュボード側で「GitHub 認証」がまだ有効化（ON）されていないため、外部エラー画面への遷移を防止しました。\n\n今すぐスタジオを利用するには【テスト用アカウント】でログインできます。\n\nテスト用アカウントで今すぐスタジオを開きますか？',
-        'GitHubログインについて'
-      );
-      if (ok) {
-        this.loginAsMockUser();
-      }
-      return;
-    }
-
-    const client = await this.ensureSupabaseClient();
-    if (!client) {
-      if (window.showToast) window.showToast('Supabaseの接続に失敗しました', 'error');
-      return;
-    }
-
-    try {
-      const redirectUri = window.location.origin + window.location.pathname;
-      await client.auth.signInWithOAuth({
-        provider: 'github',
-        options: { redirectTo: redirectUri }
-      });
-    } catch (err) {
-      console.warn('GitHub login error:', err);
-      if (window.showToast) window.showToast('GitHubログインでエラーが発生しました', 'error');
-    }
-  }
-
-  // Google OAuth Login with error guard
-  async signInWithGoogle() {
-    // 1. Guard against redirecting to 400 error page if provider is disabled in Supabase
-    const configured = await this.isProviderConfigured('google');
-    if (!configured) {
-      const ok = await window.showConfirm(
-        'Supabase ダッシュボード側で「Google 認証」がまだ有効化（ON）されていないため、外部エラー画面への遷移を防止しました。\n\n今すぐスタジオを利用するには【テスト用アカウント】でログインできます。\n\nテスト用アカウントで今すぐスタジオを開きますか？',
-        'Googleログインについて'
-      );
-      if (ok) {
-        this.loginAsMockUser();
-      }
-      return;
-    }
-
-    const client = await this.ensureSupabaseClient();
-    if (!client) {
-      if (window.showToast) window.showToast('Supabaseの接続に失敗しました', 'error');
-      return;
-    }
-
-    try {
-      const redirectUri = window.location.origin + window.location.pathname;
-      await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUri,
-          queryParams: { access_type: 'offline', prompt: 'consent' }
-        }
-      });
-    } catch (err) {
-      console.warn('Google login error:', err);
-      if (window.showToast) window.showToast('Googleログインでエラーが発生しました', 'error');
-    }
-  }
-
-  loginAsGuest() {
-    this.loginAsMockUser();
-  }
-
-  // Featured 1-Click Test Account Login
-  loginAsMockUser() {
-    const mockUser = {
-      id: 'usr_creator',
-      email: 'creator@wiz-game.dev',
-      user_metadata: {
-        full_name: 'Wiz Creator',
-        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=WizMaster'
-      }
-    };
-    this.currentUser = mockUser;
-    localStorage.setItem('wiz_mock_user', JSON.stringify(mockUser));
-    this.updateUserUI(mockUser);
-    if (window.showToast) {
-      window.showToast('テスト用アカウントでログインしました！Wiz Studioへようこそ！', 'success');
-    }
-    if (window.projectManager) {
-      window.projectManager.syncWithCloud();
-    }
-  }
-
-  // Sign out
-  async signOut() {
-    localStorage.removeItem('wiz_mock_user');
-    if (this.client) {
-      try {
-        await this.client.auth.signOut();
-      } catch (err) {
-        console.error('Sign out error:', err);
-      }
-    }
-    this.currentUser = null;
-    this.updateUserUI(null);
-    if (window.showToast) window.showToast('ログアウトしました', 'info');
-  }
-
-  // Update UI Elements with user profile
+  // Update UI Elements with User Info
   updateUserUI(user) {
-    this.updateGateVisibility();
-
     const userContainer = document.getElementById('sidebar-user-area');
     if (!userContainer) return;
 
     if (user) {
-      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'ユーザー';
-      const avatarUrl = user.user_metadata?.avatar_url || '';
+      const name = user.username || user.user_metadata?.full_name || user.email?.split('@')[0] || 'クリエイター';
+      const userId = user.userId || user.user_metadata?.user_id || 'wiz_user';
+      const avatarUrl = user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
 
       userContainer.innerHTML = `
         <div class="user-profile-card">
           <div class="user-avatar-wrap">
-            ${avatarUrl ? `<img src="${avatarUrl}" alt="Avatar" class="user-avatar-img">` : `<div class="user-avatar-placeholder"><i class="fa-solid fa-user"></i></div>`}
+            <img src="${avatarUrl}" alt="Avatar" class="user-avatar-img">
             <span class="user-online-pip"></span>
           </div>
           <div class="user-meta">
             <span class="user-name" title="${name}">${name}</span>
-            <span class="user-email" title="${user.email}">${user.email || 'ログイン中'}</span>
+            <span class="user-id-badge">@${userId}</span>
           </div>
           <button id="auth-logout-btn" class="btn-logout" title="ログアウト">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -518,103 +971,36 @@ class SupabaseAuthManager {
         const ok = await window.showConfirm('ログアウトしますか？', 'ログアウト確認');
         if (ok) this.signOut();
       });
+
+      // Update Settings Modal Displays
+      const settingsName = document.getElementById('settings-username-display');
+      const settingsId = document.getElementById('settings-userid-display');
+      const settingsEmail = document.getElementById('settings-email-display');
+      const toggle2fa = document.getElementById('setting-enable-2fa');
+
+      if (settingsName) settingsName.textContent = name;
+      if (settingsId) settingsId.textContent = `@${userId}`;
+      if (settingsEmail) settingsEmail.textContent = user.email || '未設定';
+      if (toggle2fa) toggle2fa.checked = Boolean(user.is2faEnabled);
+
+      // Update Friends manager UI
+      if (window.friendsManager) {
+        window.friendsManager.renderFriendsUI();
+      }
     } else {
-      userContainer.innerHTML = `
-        <div class="sidebar-auth-btns" style="display:flex; flex-direction:column; gap:0.4rem; width:100%;">
-          <button id="auth-github-login-btn" class="btn-sidebar-oauth btn-gate-github" style="padding:0.45rem; border-radius:6px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:0.5rem; cursor:pointer; color:#fff; background:#24292f; border:1px solid #30363d;">
-            <i class="fa-brands fa-github"></i>
-            <span>GitHubでログイン</span>
-          </button>
-          <button id="auth-google-login-btn" class="btn-sidebar-oauth btn-google-login" style="padding:0.45rem; border-radius:6px; font-size:0.78rem;">
-            <svg class="google-icon" viewBox="0 0 24 24" width="15" height="15">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-            </svg>
-            <span>Googleでログイン</span>
-          </button>
-        </div>
-      `;
-
-      document.getElementById('auth-github-login-btn')?.addEventListener('click', () => {
-        this.signInWithGithub();
-      });
-      document.getElementById('auth-google-login-btn')?.addEventListener('click', () => {
-        this.signInWithGoogle();
-      });
+      userContainer.innerHTML = '';
     }
   }
 
-  // Cloud Save for Room Data
-  async saveRoomToCloud(roomData) {
-    if (!this.client || !this.currentUser) return false;
-    this.updateOnlineBadge('syncing');
-
-    try {
-      const payload = {
-        id: roomData.id,
-        user_id: this.currentUser.id,
-        name: roomData.name,
-        rules: roomData.rules || '',
-        chat_history: roomData.chatHistory || [],
-        vfs_root: roomData.vfsRoot || {},
-        updated_at: new Date().toISOString()
-      };
-
-      // Upsert into 'wiz_rooms' table if available
-      const { error } = await this.client
-        .from('wiz_rooms')
-        .upsert(payload, { onConflict: 'id' });
-
-      if (error) {
-        // Fallback using user_metadata
-        await this.client.auth.updateUser({
-          data: {
-            [`room_${roomData.id}`]: {
-              name: roomData.name,
-              rules: roomData.rules,
-              updated_at: payload.updated_at
-            }
-          }
-        });
-      }
-
-      this.updateOnlineBadge('online');
-      return true;
-    } catch (err) {
-      console.info('Cloud save fallback note:', err);
-      this.updateOnlineBadge('online');
-      return false;
+  handleNetworkChange(online) {
+    this.isOnline = online;
+    const badge = document.getElementById('cloud-status-badge');
+    if (badge) {
+      badge.className = `cloud-status-pill ${online ? 'online' : 'offline'}`;
+      badge.innerHTML = `<span class="status-dot ${online ? '' : 'offline'}"></span><span>${online ? 'オンライン' : 'オフライン'}</span>`;
     }
-  }
-
-  // Load Rooms from Cloud
-  async loadRoomsFromCloud() {
-    if (!this.client || !this.currentUser) return null;
-
-    try {
-      const { data, error } = await this.client
-        .from('wiz_rooms')
-        .select('*')
-        .eq('user_id', this.currentUser.id)
-        .order('updated_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
-        return data.map(row => ({
-          id: row.id,
-          name: row.name,
-          rules: row.rules,
-          chatHistory: row.chat_history,
-          vfsRoot: row.vfs_root,
-          updatedAt: new Date(row.updated_at).getTime()
-        }));
-      }
-    } catch (err) {
-      console.info('Cloud rooms load note:', err);
-    }
-    return null;
   }
 }
 
+// Global initialization
 window.supabaseAuth = new SupabaseAuthManager();

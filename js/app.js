@@ -289,7 +289,14 @@ class AppController {
 
     this.userInput?.addEventListener('input', () => {
       this.userInput.style.height = 'auto';
-      this.userInput.style.height = Math.min(this.userInput.scrollHeight, 140) + 'px';
+      this.userInput.style.height = Math.min(Math.max(this.userInput.scrollHeight, 40), 240) + 'px';
+    });
+
+    this.userInput?.addEventListener('paste', () => {
+      setTimeout(() => {
+        this.userInput.style.height = 'auto';
+        this.userInput.style.height = Math.min(Math.max(this.userInput.scrollHeight, 40), 240) + 'px';
+      }, 10);
     });
 
     this.clearChatBtn?.addEventListener('click', async () => {
@@ -439,6 +446,54 @@ class AppController {
 
     if (/プログラム作成モード/.test(text) || /コード.*書いて/.test(text) || /ゲーム.*作って/.test(text)) {
       this.switchMode('code');
+    }
+
+    // 1. Direct trigger: Create new room / chat
+    // "新しい『ブロック崩し』チャットを作って" or "新しい「〇〇」チャットを作って" or "新しい部屋を作って"
+    const createRoomMatch = text.match(/(?:新しい|新規の?)[『「](.+?)[』」](?:チャット|部屋|プロジェクト).*(?:作って|作成して|立ち上げて)/i) ||
+                            text.match(/新しい(?:チャット|部屋|プロジェクト).*(?:作って|作成して)/i) ||
+                            text.match(/[『「](.+?)[』」](?:という|の)?(?:新しい)?(?:チャット|部屋|プロジェクト).*(?:作って|作成して)/i);
+    if (createRoomMatch) {
+      const roomName = (createRoomMatch[1] && createRoomMatch[1].trim()) || '新しいプロジェクト';
+      if (window.projectManager) {
+        window.projectManager.createNewRoom(roomName);
+        this.appendMessage('wiz', `🧙‍♂️✨ **新しいチャット部屋「${roomName}」を作成したよ！**\nどんなゲームや機能を作りたいか、何でも教えてね！`, false);
+        return;
+      }
+    }
+
+    // 2. Direct trigger: Switch view
+    if (/(?:実行画面|プレビュー|ゲーム画面).*(?:見せて|表示して|切り替えて|開いて|にして)/.test(text)) {
+      this.switchRightView('preview');
+      this.appendMessage('wiz', `🧙‍♂️🎮 **実行画面（プレビュー）に切り替えたよ！** 右側の画面でゲームをプレイできるよ！`, false);
+      return;
+    }
+    if (/(?:コード画面|エディタ|ソースコード).*(?:見せて|表示して|切り替えて|開いて|にして)/.test(text)) {
+      this.switchRightView('code');
+      this.appendMessage('wiz', `🧙‍♂️💻 **コード画面（エディタ）に切り替えたよ！** 直接コードを確認・編集できるよ！`, false);
+      return;
+    }
+    if (/(?:ログ画面|コンソール|エラーログ).*(?:見せて|表示して|切り替えて|開いて|にして)/.test(text)) {
+      this.switchRightView('logs');
+      this.appendMessage('wiz', `🧙‍♂️📋 **ログ画面に切り替えたよ！** 実行中のコンソール出力やエラーを確認できるよ！`, false);
+      return;
+    }
+
+    // 3. Direct trigger: Open modals
+    if (/(?:設定).*(?:開いて|表示して|見せて)/.test(text)) {
+      document.getElementById('settings-btn')?.click();
+      this.appendMessage('wiz', `🧙‍♂️⚙️ **設定画面を開いたよ！** テーマや2段階認証の設定ができるよ！`, false);
+      return;
+    }
+    if (/(?:フレンド).*(?:開いて|表示して|見せて|画面)/.test(text)) {
+      document.getElementById('sidebar-tab-friends')?.click();
+      this.appendMessage('wiz', `🧙‍♂️👥 **フレンド管理画面を開いたよ！** 左側のタブからフレンド申請や一時チャットができるよ！`, false);
+      return;
+    }
+    if (/(?:チーム|プロジェクト共有|共有).*(?:開いて|表示して|見せて|画面)/.test(text)) {
+      document.getElementById('project-team-btn')?.click();
+      this.appendMessage('wiz', `🧙‍♂️🤝 **プロジェクト共有・チーム管理画面を開いたよ！** フレンドを招待したり権限（管理者・編集者・観覧者）を設定できるよ！`, false);
+      return;
     }
 
     // Direct trigger for execution request
@@ -600,9 +655,26 @@ class AppController {
     bubble.className = 'msg-bubble';
 
     if (text) {
-      const p = document.createElement('p');
-      p.textContent = text;
-      bubble.appendChild(p);
+      bubble.innerHTML = this.formatUserMessageContent(text);
+
+      // Syntax highlighting & code copy for user pasted code
+      bubble.querySelectorAll('pre code').forEach(codeEl => {
+        if (window.Prism) Prism.highlightElement(codeEl);
+
+        const pre = codeEl.closest('pre');
+        if (pre && !pre.parentElement.classList.contains('code-block-wrapper')) {
+          const wrap = document.createElement('div');
+          wrap.className = 'code-block-wrapper';
+          pre.parentNode.insertBefore(wrap, pre);
+          wrap.appendChild(pre);
+
+          const codeCopyBtn = document.createElement('button');
+          codeCopyBtn.className = 'code-copy-btn';
+          codeCopyBtn.innerHTML = '<i class="fa-regular fa-copy"></i> コードコピー';
+          codeCopyBtn.onclick = () => this.copyToClipboard(codeEl.textContent, 'コードをコピーしました！');
+          wrap.appendChild(codeCopyBtn);
+        }
+      });
     }
 
     if (attachments.length > 0) {
@@ -637,6 +709,49 @@ class AppController {
 
     this.messagesContainer.appendChild(row);
     this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  formatUserMessageContent(rawText) {
+    if (!rawText) return '';
+
+    // If text already contains markdown code blocks ```...```
+    if (/```[\s\S]*?```/.test(rawText)) {
+      return this.simpleMarkdown(rawText);
+    }
+
+    // Check if user pasted raw source code (multi-line, indentation, or typical code markers)
+    const lines = rawText.split('\n');
+    const isMultiLine = lines.length > 2;
+    const looksLikeCode = isMultiLine && (
+      /^\s*(?:<(!DOCTYPE|html|div|canvas|script|style|link)|import |from |def |class |function |const |let |var |#include)/m.test(rawText) ||
+      lines.filter(l => /^\s{2,}|\t/.test(l)).length >= 2 ||
+      /[{};]\s*$/.test(lines[lines.length - 1]) ||
+      (rawText.includes('{') && rawText.includes('}'))
+    );
+
+    if (looksLikeCode) {
+      let lang = 'javascript';
+      if (/^\s*<(?:!DOCTYPE|html|div)/i.test(rawText)) lang = 'html';
+      else if (/^\s*(?:import |def |class )/m.test(rawText) && !rawText.includes('function')) lang = 'python';
+      else if (/#include/m.test(rawText)) lang = 'cpp';
+      else if (/^\s*[*#.]|\{[\s\S]*?:[\s\S]*?\}/m.test(rawText) && !rawText.includes('function')) lang = 'css';
+
+      const escaped = this.escapeHtml(rawText);
+      return `<pre><code class="language-${lang}">${escaped}</code></pre>`;
+    }
+
+    // Regular conversation text: preserve formatting with white-space: pre-wrap
+    const escaped = this.escapeHtml(rawText);
+    return `<div class="user-text-content">${escaped}</div>`;
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   appendMessage(sender, content, isHtml = false) {

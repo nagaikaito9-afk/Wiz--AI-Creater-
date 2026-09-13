@@ -101,20 +101,36 @@ class AgentActionsExecutor {
     switch (action.type) {
       case 'write_file': {
         const path = window.vfs.normalizePath(action.path);
+        const existed = window.vfs.exists ? window.vfs.exists(path) : false;
         window.vfs.createFile(path, action.content);
         window.editor.openFile(path);
+        if (window.activityLogger) {
+          window.activityLogger.log(existed ? `Wizが*${path}*を編集しました` : `Wizが*${path}*を作成しました`, 'file', { path });
+        }
+        if (window.projectManager) {
+          window.projectManager.broadcastUpdate({ summary: `${path} を更新` });
+        }
         break;
       }
 
       case 'create_dir': {
         const path = window.vfs.normalizePath(action.path);
         window.vfs.createDir(path);
+        if (window.activityLogger) {
+          window.activityLogger.log(`Wizがフォルダ*${path}*を作成しました`, 'file', { path });
+        }
         break;
       }
 
       case 'delete_file': {
         const path = window.vfs.normalizePath(action.path);
         window.vfs.delete(path);
+        if (window.activityLogger) {
+          window.activityLogger.log(`Wizが*${path}*を削除しました`, 'file', { path });
+        }
+        if (window.projectManager) {
+          window.projectManager.broadcastUpdate({ summary: `${path} を削除` });
+        }
         break;
       }
 
@@ -168,6 +184,96 @@ class AgentActionsExecutor {
 
       case 'show_options': {
         this.appendOptionsCard(messageContainer, action.question, action.options);
+        break;
+      }
+
+      // Studio Control Actions
+      case 'create_room':
+      case 'new_project': {
+        const name = action.name || action.title || '新しいプロジェクト';
+        if (window.projectManager) {
+          window.projectManager.createNewRoom(name);
+        }
+        if (window.activityLogger) {
+          window.activityLogger.log(`Wizが*${name}*チャットを作成しました`, 'room', { name });
+        }
+        break;
+      }
+
+      case 'switch_room': {
+        const target = action.name || action.id;
+        if (window.projectManager) {
+          window.projectManager.switchRoomByNameOrId(target);
+        }
+        if (window.activityLogger) {
+          window.activityLogger.log(`Wizが*${target}*チャットに切り替えました`, 'room', { target });
+        }
+        break;
+      }
+
+      case 'rename_room': {
+        if (action.name && window.projectManager) {
+          window.projectManager.renameCurrentRoom(action.name);
+        }
+        if (window.activityLogger) {
+          window.activityLogger.log(`Wizがチャット名を*${action.name}*に変更しました`, 'room', { name: action.name });
+        }
+        break;
+      }
+
+      case 'delete_room': {
+        if (window.projectManager) {
+          window.projectManager.deleteCurrentRoom();
+        }
+        break;
+      }
+
+      case 'switch_view': {
+        const mode = action.mode || 'preview';
+        if (window.app) {
+          window.app.switchRightView(mode);
+        }
+        if (window.activityLogger) {
+          window.activityLogger.log(`Wizが画面を*${mode}*に切り替えました`, 'system', { mode });
+        }
+        break;
+      }
+
+      case 'open_file': {
+        if (action.path && window.editor) {
+          window.editor.openFile(action.path);
+        }
+        break;
+      }
+
+      case 'open_modal': {
+        const target = (action.target || action.name || '').toLowerCase();
+        if (target.includes('set') || target.includes('設定')) {
+          document.getElementById('settings-btn')?.click();
+        } else if (target.includes('rule') || target.includes('ルール')) {
+          document.getElementById('project-rules-btn')?.click();
+        } else if (target.includes('friend') || target.includes('フレンド')) {
+          document.getElementById('sidebar-tab-friends')?.click();
+        } else if (target.includes('team') || target.includes('チーム') || target.includes('共有')) {
+          document.getElementById('project-team-btn')?.click();
+        } else if (target.includes('sound') || target.includes('効果音')) {
+          document.getElementById('header-soundfx-btn')?.click();
+        } else if (target.includes('market') || target.includes('マーケット')) {
+          document.getElementById('open-marketplace-btn')?.click();
+        } else if (target.includes('hist') || target.includes('履歴')) {
+          document.getElementById('open-activity-btn')?.click();
+        }
+        break;
+      }
+
+      case 'download_zip': {
+        document.getElementById('download-zip-btn')?.click();
+        break;
+      }
+
+      case 'undo':
+      case 'undo_change': {
+        window.editor?.undoAiChanges();
         break;
       }
 

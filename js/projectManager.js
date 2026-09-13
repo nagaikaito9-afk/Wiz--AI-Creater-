@@ -1,30 +1,44 @@
 /**
- * Wiz AI Game Creator - Project & Multi-Room Manager (ChatGPT-like Studio)
+ * Wiz AI Game Creator - Project & Multi-Room Manager (Enhanced Edition)
  * Features:
  * - Multi-project rooms management (Create, Switch, Rename, Delete)
- * - Per-room project rules (Custom instructions like "All pixel art, RPG game")
- * - Cross-room memory aggregator (When "これまでの会話を維持する" is enabled)
+ * - Programmatic Wiz Agent Actions (createNewRoom, switchRoomByNameOrId, renameCurrentRoom)
+ * - Shared Projects & Team Permissions (管理者 Admin, 編集者 Editor, 観覧者 Viewer)
+ * - Project Invites & Join Requests
+ * - Per-room project rules & Cross-room memory aggregator
  * - Automatic syncing with LocalStorage and Supabase Cloud
  */
 
 class ProjectManager {
   constructor() {
-    this.storageKey = 'wiz_game_studio_rooms';
-    this.activeRoomIdKey = 'wiz_active_room_id';
+    this.storageKey = 'wiz_game_studio_rooms_v2';
+    this.activeRoomIdKey = 'wiz_active_room_id_v2';
     this.crossMemoryKey = 'wiz_cross_room_memory';
 
     this.rooms = [];
     this.activeRoomId = null;
     this.crossRoomMemoryEnabled = localStorage.getItem(this.crossMemoryKey) === 'true';
+    this.searchQuery = '';
+
+    // Realtime Database & Co-dev Channel
+    try {
+      this.realtimeChannel = new BroadcastChannel('wiz_realtime_db_channel');
+      this.realtimeChannel.onmessage = (e) => this.handleRealtimeEvent(e.data);
+    } catch (err) {
+      console.warn('BroadcastChannel not supported:', err);
+    }
 
     // DOM Elements
     this.roomsListContainer = null;
     this.activeProjectTitleEl = null;
     this.activeProjectRulesBtn = null;
+    this.projectTeamBtn = null;
     this.rulesModal = null;
     this.rulesTextarea = null;
     this.saveRulesBtn = null;
     this.closeRulesModalBtn = null;
+    this.teamModal = null;
+    this.searchInput = null;
 
     this.init();
   }
@@ -38,10 +52,21 @@ class ProjectManager {
     this.roomsListContainer = document.getElementById('project-rooms-list');
     this.activeProjectTitleEl = document.getElementById('active-project-name-display');
     this.activeProjectRulesBtn = document.getElementById('project-rules-btn');
+    this.projectTeamBtn = document.getElementById('project-team-btn');
     this.rulesModal = document.getElementById('project-rules-modal');
     this.rulesTextarea = document.getElementById('project-rules-textarea');
     this.saveRulesBtn = document.getElementById('save-project-rules-btn');
     this.closeRulesModalBtn = document.getElementById('close-rules-modal-btn');
+    this.teamModal = document.getElementById('project-team-modal');
+
+    // Search input
+    this.searchInput = document.getElementById('project-search-input');
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value.trim();
+        this.renderRoomsList();
+      });
+    }
 
     // "New Project" button
     const newProjBtn = document.getElementById('new-project-btn');
@@ -70,6 +95,14 @@ class ProjectManager {
       };
     }
 
+    // Project Team / Sharing Button
+    if (this.projectTeamBtn) {
+      this.projectTeamBtn.onclick = (e) => {
+        e.preventDefault();
+        this.openTeamModal();
+      };
+    }
+
     // Close rules modal
     if (this.closeRulesModalBtn) {
       this.closeRulesModalBtn.onclick = (e) => {
@@ -85,19 +118,15 @@ class ProjectManager {
       }
     });
 
-    // Escape closes rules modal
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.rulesModal && this.rulesModal.style.display !== 'none') {
-        this.rulesModal.style.display = 'none';
-      }
-    });
-
     if (this.saveRulesBtn) {
       this.saveRulesBtn.onclick = (e) => {
         e.preventDefault();
         this.saveCurrentRules();
       };
     }
+
+    // Team Modal events
+    this.bindTeamModalEvents();
 
     this.renderRoomsList();
     this.updateActiveRoomHeader();
@@ -115,8 +144,11 @@ class ProjectManager {
       }
     }
 
+    // Upgrade existing rooms to have team structure if missing
+    const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
+    const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
+
     if (!this.rooms || this.rooms.length === 0) {
-      // Create initial default room
       const initialRoom = {
         id: 'room_default',
         name: 'ネオン・ブロック崩し',
@@ -124,12 +156,31 @@ class ProjectManager {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         chatHistory: [],
-        vfsRoot: null // will be populated from VFS
+        ownerId: myId,
+        ownerUsername: myName,
+        team: [
+          { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
+        ],
+        pendingInvites: [],
+        joinRequests: [],
+        vfsRoot: null
       };
       this.rooms = [initialRoom];
       this.activeRoomId = initialRoom.id;
       this.saveRooms();
     } else {
+      this.rooms.forEach(r => {
+        if (!r.team) {
+          r.ownerId = r.ownerId || myId;
+          r.ownerUsername = r.ownerUsername || myName;
+          r.team = [
+            { userId: r.ownerId, username: r.ownerUsername, role: 'admin', joinedAt: new Date().toISOString() }
+          ];
+          r.pendingInvites = r.pendingInvites || [];
+          r.joinRequests = r.joinRequests || [];
+        }
+      });
+
       const lastActive = localStorage.getItem(this.activeRoomIdKey);
       if (lastActive && this.rooms.some(r => r.id === lastActive)) {
         this.activeRoomId = lastActive;
@@ -154,15 +205,42 @@ class ProjectManager {
     return this.rooms.find(r => r.id === this.activeRoomId) || this.rooms[0];
   }
 
-  // Create New Project Room
-  async promptCreateNewRoom() {
-    const name = await window.showPrompt('新しいゲームプロジェクトの名前を入力してください:', '新しいゲーム', '新規プロジェクト作成');
-    if (!name) return;
+  getCurrentUserId() {
+    return window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
+  }
 
-    // Snapshot current active room before switching
+  // Get current user's role in active room: 'admin' | 'editor' | 'viewer'
+  getCurrentUserRole(room = null) {
+    const r = room || this.getActiveRoom();
+    if (!r) return 'viewer';
+    const myId = (window.supabaseAuth?.currentUser?.userId || 'wiz_creator').toLowerCase();
+    if ((r.ownerId || '').toLowerCase() === myId) return 'admin';
+    const member = (r.team || []).find(m => (m.userId || '').toLowerCase() === myId);
+    if (member) return member.role || 'editor';
+    return 'admin';
+  }
+
+  isCurrentUserAdmin() {
+    return this.getCurrentUserRole() === 'admin';
+  }
+
+  isCurrentUserEditor() {
+    const role = this.getCurrentUserRole();
+    return role === 'admin' || role === 'editor';
+  }
+
+  isCurrentUserViewer() {
+    return this.getCurrentUserRole() === 'viewer';
+  }
+
+  // Programmatic Room Creation (Called by User Prompt or Wiz Agent Action)
+  createNewRoom(name = '新しいプロジェクト') {
     this.snapshotCurrentRoom();
 
     const newId = 'room_' + Date.now();
+    const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
+    const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
+
     const newRoom = {
       id: newId,
       name: name.trim(),
@@ -170,14 +248,21 @@ class ProjectManager {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       chatHistory: [],
-      vfsRoot: null // Will initialize default fresh template
+      ownerId: myId,
+      ownerUsername: myName,
+      team: [
+        { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
+      ],
+      pendingInvites: [],
+      joinRequests: [],
+      vfsRoot: null
     };
 
     this.rooms.unshift(newRoom);
     this.activeRoomId = newId;
     this.saveRooms();
 
-    // Reset VFS to fresh template for the new room
+    // Reset VFS to fresh template for new room
     if (window.vfs) {
       window.vfs.resetToDefault();
       newRoom.vfsRoot = JSON.parse(JSON.stringify(window.vfs.root));
@@ -193,20 +278,27 @@ class ProjectManager {
     this.updateActiveRoomHeader();
 
     if (window.showToast) {
-      window.showToast(`プロジェクト「${name}」を作成しました！`, 'success');
+      window.showToast(`新しいチャット部屋「${name}」を作成しました！`, 'success');
     }
 
-    // Cloud sync
     if (window.supabaseAuth) {
-      window.supabaseAuth.saveRoomToCloud(newRoom);
+      window.supabaseAuth.saveRoomToCloud?.(newRoom);
     }
+
+    return newRoom;
+  }
+
+  // Interactive prompt
+  async promptCreateNewRoom() {
+    const name = await window.showPrompt('新しいゲームプロジェクトの名前を入力してください:', '新しいゲーム', '新規プロジェクト作成');
+    if (!name) return;
+    this.createNewRoom(name);
   }
 
   // Switch Room
   switchRoom(roomId) {
     if (roomId === this.activeRoomId) return;
 
-    // Snapshot current state
     this.snapshotCurrentRoom();
 
     const target = this.rooms.find(r => r.id === roomId);
@@ -239,6 +331,18 @@ class ProjectManager {
     }
   }
 
+  // Programmatic Room Switch (by Name or ID)
+  switchRoomByNameOrId(nameOrId) {
+    if (!nameOrId) return false;
+    const lower = nameOrId.toLowerCase().trim();
+    const found = this.rooms.find(r => r.id === nameOrId || r.name.toLowerCase().includes(lower));
+    if (found) {
+      this.switchRoom(found.id);
+      return true;
+    }
+    return false;
+  }
+
   // Snapshot current active room data
   snapshotCurrentRoom() {
     const curr = this.getActiveRoom();
@@ -253,9 +357,8 @@ class ProjectManager {
     curr.updatedAt = Date.now();
     this.saveRooms();
 
-    // Cloud sync
     if (window.supabaseAuth) {
-      window.supabaseAuth.saveRoomToCloud(curr);
+      window.supabaseAuth.saveRoomToCloud?.(curr);
     }
   }
 
@@ -269,19 +372,30 @@ class ProjectManager {
     const room = this.rooms.find(r => r.id === targetId);
     if (!room) return;
 
+    if (!this.isCurrentUserAdmin()) {
+      if (window.showToast) window.showToast('プロジェクト名の変更は管理者のみ可能です', 'warning');
+      return;
+    }
+
     const newName = await window.showPrompt('新しいプロジェクト名を入力してください:', room.name, 'プロジェクト名変更');
     if (newName && newName.trim() && newName.trim() !== room.name) {
-      room.name = newName.trim();
-      room.updatedAt = Date.now();
-      this.saveRooms();
-      this.renderRoomsList();
-      this.updateActiveRoomHeader();
-      if (window.showToast) window.showToast(`プロジェクト名を「${room.name}」に変更しました`, 'success');
-
-      if (window.supabaseAuth) {
-        window.supabaseAuth.saveRoomToCloud(room);
-      }
+      this.renameRoom(targetId, newName.trim());
     }
+  }
+
+  renameRoom(roomId, newName) {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room || !newName) return;
+    room.name = newName.trim();
+    room.updatedAt = Date.now();
+    this.saveRooms();
+    this.renderRoomsList();
+    this.updateActiveRoomHeader();
+    if (window.showToast) window.showToast(`プロジェクト名を「${room.name}」に変更しました`, 'success');
+  }
+
+  renameCurrentRoom(newName) {
+    this.renameRoom(this.activeRoomId, newName);
   }
 
   // Delete Room
@@ -293,6 +407,11 @@ class ProjectManager {
     const targetId = roomId || this.activeRoomId;
     const room = this.rooms.find(r => r.id === targetId);
     if (!room) return;
+
+    if (!this.isCurrentUserAdmin()) {
+      if (window.showToast) window.showToast('プロジェクトの削除は管理者のみ可能です', 'warning');
+      return;
+    }
 
     if (this.rooms.length <= 1) {
       const ok = await window.showConfirm(
@@ -321,7 +440,6 @@ class ProjectManager {
       this.rooms = this.rooms.filter(r => r.id !== targetId);
       if (this.activeRoomId === targetId) {
         this.activeRoomId = this.rooms[0].id;
-        // switch to remaining room
         const remaining = this.rooms[0];
         if (remaining.vfsRoot && window.vfs) {
           window.vfs.root = JSON.parse(JSON.stringify(remaining.vfsRoot));
@@ -338,6 +456,10 @@ class ProjectManager {
       this.updateActiveRoomHeader();
       if (window.showToast) window.showToast('プロジェクトを削除しました', 'info');
     }
+  }
+
+  deleteCurrentRoom() {
+    this.promptDeleteRoom(this.activeRoomId);
   }
 
   // Project Rules Modal
@@ -370,10 +492,6 @@ class ProjectManager {
     if (window.showToast) {
       window.showToast('プロジェクトルールを保存しました！Wizがこの方針に従います。', 'success');
     }
-
-    if (window.supabaseAuth) {
-      window.supabaseAuth.saveRoomToCloud(room);
-    }
   }
 
   updateActiveRoomHeader() {
@@ -384,135 +502,577 @@ class ProjectManager {
       this.activeProjectTitleEl.textContent = room.name;
     }
 
-    // Rules button state
-    const rulesBtn = document.getElementById('project-rules-btn');
-    if (rulesBtn) {
-      const hasRules = Boolean(room.rules && room.rules.trim());
-      rulesBtn.classList.toggle('has-rules', hasRules);
-      rulesBtn.title = hasRules ? `プロジェクトルール設定中:\n${room.rules.substring(0, 80)}...` : 'プロジェクトルールを設定 (AIに制作方針を指示)';
+    if (this.activeProjectRulesBtn) {
+      if (room.rules && room.rules.trim()) {
+        this.activeProjectRulesBtn.classList.add('has-rules');
+        this.activeProjectRulesBtn.title = `ルール設定中: ${room.rules.substring(0, 30)}...`;
+      } else {
+        this.activeProjectRulesBtn.classList.remove('has-rules');
+        this.activeProjectRulesBtn.title = 'この部屋のプロジェクトルールを設定';
+      }
     }
   }
 
-  renderRoomsList() {
-    if (!this.roomsListContainer) {
-      this.roomsListContainer = document.getElementById('project-rooms-list');
-      if (!this.roomsListContainer) return;
+  togglePin(roomId, e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    room.isPinned = !room.isPinned;
+    this.saveRooms();
+    this.renderRoomsList();
+
+    if (window.showToast) {
+      window.showToast(room.isPinned ? `📌「${room.name}」をピン留めしました` : `「${room.name}」のピン留めを解除しました`, 'info');
+    }
+  }
+
+  // Real-time Database Broadcast & Sync
+  broadcastUpdate(changes = {}) {
+    const active = this.getActiveRoom();
+    if (!active || !this.realtimeChannel) return;
+
+    const payload = {
+      type: 'PROJECT_UPDATED',
+      roomId: active.id,
+      roomName: active.name,
+      updatedBy: this.getCurrentUserId(),
+      changes: changes,
+      vfsRoot: window.vfs ? JSON.parse(JSON.stringify(window.vfs.root)) : null,
+      timestamp: Date.now()
+    };
+
+    try {
+      this.realtimeChannel.postMessage(payload);
+    } catch (err) {
+      console.warn('Realtime broadcast failed:', err);
+    }
+  }
+
+  handleRealtimeEvent(data) {
+    if (!data || data.type !== 'PROJECT_UPDATED') return;
+    const { roomId, roomName, updatedBy, changes, vfsRoot } = data;
+    if (updatedBy === this.getCurrentUserId()) return; // Ignore self updates
+
+    const room = this.rooms.find(r => r.id === roomId);
+    if (room) {
+      if (vfsRoot) room.vfsRoot = vfsRoot;
+      room.updatedAt = Date.now();
+      this.saveRooms();
+
+      if (this.activeRoomId === roomId) {
+        if (vfsRoot && window.vfs) {
+          window.vfs.root = JSON.parse(JSON.stringify(vfsRoot));
+          window.vfs.save();
+          window.vfs.notify();
+          window.editor?.renderTree();
+        }
+        if (window.showToast) {
+          window.showToast(`⚡ 共同開発者 @${updatedBy} が「${roomName}」を更新しました！`, 'info');
+        }
+      }
     }
 
+    // In-app Notification Center
+    if (window.notificationsCenter) {
+      window.notificationsCenter.notify({
+        type: 'project_update',
+        title: '共同プロジェクト更新',
+        message: `「${roomName || '共同プロジェクト'}」が @${updatedBy} により更新されました`,
+        meta: { roomId }
+      });
+    }
+
+    // Activity Logger
+    if (window.activityLogger) {
+      window.activityLogger.log(`共同プロジェクト*${roomName}*が@${updatedBy}により更新されました`, 'sync');
+    }
+  }
+
+  // Render Rooms in Left Sidebar
+  renderRoomsList() {
+    if (!this.roomsListContainer) return;
     this.roomsListContainer.innerHTML = '';
 
-    this.rooms.forEach(room => {
-      const item = document.createElement('div');
-      item.className = `room-item ${room.id === this.activeRoomId ? 'active' : ''}`;
+    // 1. Filter by search query
+    let filteredRooms = this.rooms;
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase();
+      filteredRooms = filteredRooms.filter(r => r.name.toLowerCase().includes(q));
+    }
 
-      const hasRules = Boolean(room.rules && room.rules.trim());
+    // 2. Sort pinned rooms to the top
+    const sortedRooms = [...filteredRooms].sort((a, b) => {
+      const pinA = a.isPinned ? 1 : 0;
+      const pinB = b.isPinned ? 1 : 0;
+      if (pinB !== pinA) return pinB - pinA;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
 
-      item.innerHTML = `
-        <div class="room-icon"><i class="fa-solid fa-gamepad"></i></div>
+    if (sortedRooms.length === 0) {
+      this.roomsListContainer.innerHTML = `
+        <div class="rooms-search-empty">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <p>一致するプロジェクトがありません</p>
+        </div>
+      `;
+      return;
+    }
+
+    sortedRooms.forEach(room => {
+      const isActive = room.id === this.activeRoomId;
+      const isPinned = Boolean(room.isPinned);
+      const card = document.createElement('div');
+      card.className = `room-item-card ${isActive ? 'active' : ''} ${isPinned ? 'is-pinned' : ''}`;
+      card.setAttribute('data-room-id', room.id);
+
+      const hasRules = room.rules && room.rules.trim().length > 0;
+      const role = this.getCurrentUserRole(room);
+
+      card.innerHTML = `
+        <div class="room-icon">
+          <i class="fa-solid fa-gamepad"></i>
+        </div>
         <div class="room-details">
-          <span class="room-title">${room.name}</span>
-          ${hasRules ? `<span class="room-rule-tag" title="${room.rules}"><i class="fa-solid fa-scroll"></i> ルールあり</span>` : ''}
+          <div class="room-title-line">
+            ${isPinned ? '<span class="pinned-indicator-icon" title="ピン留め中"><i class="fa-solid fa-thumbtack"></i></span>' : ''}
+            <span class="room-name" title="${this.escapeHtml(room.name)}">${this.escapeHtml(room.name)}</span>
+          </div>
+          <div class="room-meta-tags">
+            <span class="room-role-pill role-${role}">${role === 'admin' ? '管理者' : role === 'editor' ? '編集者' : '観覧者'}</span>
+            ${hasRules ? '<span class="room-rule-indicator"><i class="fa-solid fa-scroll"></i> ルールあり</span>' : ''}
+          </div>
         </div>
         <div class="room-actions">
-          <button type="button" class="btn-room-action rename" title="名前変更"><i class="fa-solid fa-pen"></i></button>
-          <button type="button" class="btn-room-action delete" title="削除"><i class="fa-regular fa-trash-can"></i></button>
+          <button class="btn-room-action btn-room-pin ${isPinned ? 'active' : ''}" title="${isPinned ? 'ピン留め解除' : 'ピン留め'}" type="button">
+            <i class="fa-solid fa-thumbtack"></i>
+          </button>
+          <button class="btn-room-action btn-room-rename" title="名前を変更" type="button">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="btn-room-action btn-room-delete" title="プロジェクトを削除" type="button">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
         </div>
       `;
 
-      item.onclick = (e) => {
+      card.onclick = (e) => {
         if (e.target.closest('.room-actions')) return;
         this.switchRoom(room.id);
       };
 
-      const renameBtn = item.querySelector('.rename');
+      const pinBtn = card.querySelector('.btn-room-pin');
+      if (pinBtn) {
+        pinBtn.onclick = (e) => this.togglePin(room.id, e);
+      }
+
+      const renameBtn = card.querySelector('.btn-room-rename');
       if (renameBtn) {
-        renameBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.promptRenameRoom(room.id, e);
-        };
+        renameBtn.onclick = (e) => this.promptRenameRoom(room.id, e);
       }
 
-      const deleteBtn = item.querySelector('.delete');
+      const deleteBtn = card.querySelector('.btn-room-delete');
       if (deleteBtn) {
-        deleteBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.promptDeleteRoom(room.id, e);
-        };
+        deleteBtn.onclick = (e) => this.promptDeleteRoom(room.id, e);
       }
 
-      this.roomsListContainer.appendChild(item);
+      this.roomsListContainer.appendChild(card);
     });
   }
 
-  // Cross-Room Memory (これまでの会話を維持する)
-  setCrossRoomMemory(enabled) {
-    this.crossRoomMemoryEnabled = enabled;
-    localStorage.setItem(this.crossMemoryKey, enabled ? 'true' : 'false');
-  }
+  // ==========================================
+  // SHARED PROJECTS & TEAM MANAGEMENT
+  // ==========================================
+  bindTeamModalEvents() {
+    const modal = document.getElementById('project-team-modal');
+    const closeBtn = document.getElementById('close-team-modal-btn');
+    const closeFooterBtn = document.getElementById('close-team-modal-footer-btn');
 
-  // Collect summaries/topics from other rooms for AI prompt injection
-  getCrossRoomMemoryPrompt() {
-    if (!this.crossRoomMemoryEnabled) return '';
+    const closeModal = () => {
+      if (modal) modal.style.display = 'none';
+    };
 
-    const otherRooms = this.rooms.filter(r => r.id !== this.activeRoomId);
-    if (otherRooms.length === 0) return '';
-
-    let memoryText = '【他の部屋・過去プロジェクトでユーザーと話した内容の記憶】\n';
-    otherRooms.forEach(room => {
-      memoryText += `- プロジェクト「${room.name}」`;
-      if (room.rules) {
-        memoryText += ` (ルール: ${room.rules.replace(/\n/g, ' / ')})`;
-      }
-      if (room.chatHistory && room.chatHistory.length > 0) {
-        // Pick last user messages as context
-        const recentUserMsgs = room.chatHistory
-          .filter(m => m.sender === 'user' && m.text)
-          .slice(-3)
-          .map(m => m.text.substring(0, 60))
-          .join('、');
-        if (recentUserMsgs) {
-          memoryText += ` [最近の会話話題: ${recentUserMsgs}]`;
-        }
-      }
-      memoryText += '\n';
+    closeBtn?.addEventListener('click', closeModal);
+    closeFooterBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
     });
 
-    memoryText += 'ユーザーが過去の会話や他のプロジェクトのことに言及した場合は、上記の内容を記憶として自然に参照してください。\n';
-    return memoryText;
+    // Tabs: Members vs Invite vs Requests
+    const tabMembers = document.getElementById('team-tab-members-btn');
+    const tabInvite = document.getElementById('team-tab-invite-btn');
+    const tabRequests = document.getElementById('team-tab-requests-btn');
+
+    const panelMembers = document.getElementById('team-panel-members');
+    const panelInvite = document.getElementById('team-panel-invite');
+    const panelRequests = document.getElementById('team-panel-requests');
+
+    tabMembers?.addEventListener('click', () => {
+      tabMembers.classList.add('active');
+      tabInvite?.classList.remove('active');
+      tabRequests?.classList.remove('active');
+      if (panelMembers) panelMembers.style.display = 'block';
+      if (panelInvite) panelInvite.style.display = 'none';
+      if (panelRequests) panelRequests.style.display = 'none';
+    });
+
+    tabInvite?.addEventListener('click', () => {
+      tabInvite.classList.add('active');
+      tabMembers?.classList.remove('active');
+      tabRequests?.classList.remove('active');
+      if (panelMembers) panelMembers.style.display = 'none';
+      if (panelInvite) panelInvite.style.display = 'block';
+      if (panelRequests) panelRequests.style.display = 'none';
+      // Populate friends dropdown
+      window.friendsManager?.renderFriendsUI();
+    });
+
+    tabRequests?.addEventListener('click', () => {
+      tabRequests.classList.add('active');
+      tabMembers?.classList.remove('active');
+      tabInvite?.classList.remove('active');
+      if (panelMembers) panelMembers.style.display = 'none';
+      if (panelInvite) panelInvite.style.display = 'none';
+      if (panelRequests) panelRequests.style.display = 'block';
+    });
+
+    // Send Project Invite button
+    document.getElementById('send-project-invite-btn')?.addEventListener('click', () => {
+      const selectFriend = document.getElementById('invite-friend-select');
+      const selectRole = document.getElementById('invite-role-select');
+      const friendId = selectFriend?.value;
+      const role = selectRole?.value || 'editor';
+
+      if (!friendId) {
+        if (window.showToast) window.showToast('招待するフレンドを選択してください', 'warning');
+        return;
+      }
+
+      this.inviteMember(friendId, role);
+      // Switch back to members list tab
+      tabMembers?.click();
+    });
   }
 
-  // Sync with Cloud when logged in
-  async syncWithCloud() {
-    if (!window.supabaseAuth || !window.supabaseAuth.currentUser) return;
+  openTeamModal() {
+    if (!this.teamModal) return;
+    this.renderTeamModal();
+    this.teamModal.style.display = 'flex';
+  }
 
-    const cloudRooms = await window.supabaseAuth.loadRoomsFromCloud();
-    if (cloudRooms && cloudRooms.length > 0) {
-      // Merge cloud rooms with local rooms
-      cloudRooms.forEach(cr => {
-        const existingIdx = this.rooms.findIndex(r => r.id === cr.id);
-        if (existingIdx >= 0) {
-          if ((cr.updatedAt || 0) > (this.rooms[existingIdx].updatedAt || 0)) {
-            this.rooms[existingIdx] = cr;
-          }
-        } else {
-          this.rooms.push(cr);
+  renderTeamModal() {
+    const room = this.getActiveRoom();
+    if (!room) return;
+
+    const myRole = this.getCurrentUserRole(room);
+    const isAdmin = myRole === 'admin';
+
+    // Header labels
+    const nameEl = document.getElementById('team-modal-project-name');
+    const ownerEl = document.getElementById('team-modal-owner-label');
+    const myRoleBadge = document.getElementById('team-modal-my-role-badge');
+    const countEl = document.getElementById('team-members-count');
+    const reqCountEl = document.getElementById('team-requests-count');
+
+    if (nameEl) nameEl.textContent = room.name;
+    if (ownerEl) ownerEl.textContent = `プロジェクト管理者: @${room.ownerId || 'wiz_creator'}`;
+    if (myRoleBadge) {
+      const roleName = myRole === 'admin' ? '管理者' : myRole === 'editor' ? '編集者' : '観覧者';
+      myRoleBadge.className = `role-badge role-${myRole}`;
+      myRoleBadge.textContent = `あなたの権限: ${roleName}`;
+    }
+    if (countEl) countEl.textContent = (room.team || []).length;
+    if (reqCountEl) reqCountEl.textContent = (room.joinRequests || []).length;
+
+    // 1. Members List
+    const listEl = document.getElementById('team-members-list');
+    if (listEl) {
+      listEl.innerHTML = '';
+      (room.team || []).forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'team-member-card';
+        const isOwner = (m.userId || '').toLowerCase() === (room.ownerId || '').toLowerCase();
+        const roleName = m.role === 'admin' ? '管理者' : m.role === 'editor' ? '編集者' : '観覧者';
+
+        item.innerHTML = `
+          <div class="member-avatar-wrap">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="member-meta">
+            <div class="member-name-row">
+              <strong>${this.escapeHtml(m.username)}</strong>
+              <span class="member-id">@${this.escapeHtml(m.userId)}</span>
+              ${isOwner ? '<span class="owner-pill"><i class="fa-solid fa-crown"></i> オーナー</span>' : ''}
+            </div>
+            <div class="member-role-desc">権限: ${roleName}</div>
+          </div>
+          <div class="member-actions">
+            ${isAdmin && !isOwner ? `
+              <select class="member-role-select form-select">
+                <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>観覧者</option>
+                <option value="editor" ${m.role === 'editor' ? 'selected' : ''}>編集者</option>
+                <option value="admin" ${m.role === 'admin' ? 'selected' : ''}>管理者</option>
+              </select>
+              <button class="btn-transfer-owner btn-icon-mini" title="このメンバーに管理者権限を譲渡" type="button"><i class="fa-solid fa-crown"></i></button>
+              <button class="btn-remove-member btn-icon-mini" title="メンバーから削除" type="button"><i class="fa-solid fa-user-minus"></i></button>
+            ` : `
+              <span class="role-badge role-${m.role}">${roleName}</span>
+            `}
+          </div>
+        `;
+
+        if (isAdmin && !isOwner) {
+          item.querySelector('.member-role-select')?.addEventListener('change', (e) => {
+            this.changeMemberRole(room.id, m.userId, e.target.value);
+          });
+          item.querySelector('.btn-transfer-owner')?.addEventListener('click', () => {
+            this.transferOwnership(room.id, m.userId);
+          });
+          item.querySelector('.btn-remove-member')?.addEventListener('click', () => {
+            this.removeMember(room.id, m.userId);
+          });
         }
+
+        listEl.appendChild(item);
       });
-      this.saveRooms();
-      this.renderRoomsList();
-      this.updateActiveRoomHeader();
-      if (window.showToast) {
-        window.showToast('クラウドからプロジェクトを同期しました！', 'success');
-      }
-    } else {
-      // Upload current local rooms to cloud
-      for (const r of this.rooms) {
-        await window.supabaseAuth.saveRoomToCloud(r);
+    }
+
+    // 2. Join Requests List
+    const reqListEl = document.getElementById('team-join-requests-list');
+    if (reqListEl) {
+      reqListEl.innerHTML = '';
+      if (!room.joinRequests || room.joinRequests.length === 0) {
+        reqListEl.innerHTML = `
+          <div class="team-empty-hint">
+            <i class="fa-regular fa-bell-slash"></i>
+            <p>現在、未処理の参加申請はありません。</p>
+          </div>
+        `;
+      } else {
+        room.joinRequests.forEach(r => {
+          const row = document.createElement('div');
+          row.className = 'join-request-row';
+          row.innerHTML = `
+            <div class="req-user-info">
+              <strong>${this.escapeHtml(r.username || r.userId)}</strong>
+              <span>@${this.escapeHtml(r.userId)} からの参加申請</span>
+            </div>
+            ${isAdmin ? `
+              <div class="req-action-group">
+                <button class="btn-accept-editor btn btn-primary"><i class="fa-solid fa-user-pen"></i> 編集者として承認</button>
+                <button class="btn-accept-viewer btn btn-ghost"><i class="fa-solid fa-eye"></i> 観覧者として承認</button>
+                <button class="btn-reject-req btn btn-ghost"><i class="fa-solid fa-xmark"></i> 拒否</button>
+              </div>
+            ` : `
+              <span class="badge-subtle">管理者のみ承認可能</span>
+            `}
+          `;
+
+          if (isAdmin) {
+            row.querySelector('.btn-accept-editor')?.addEventListener('click', () => {
+              this.approveJoinRequest(room.id, r.userId, 'editor');
+            });
+            row.querySelector('.btn-accept-viewer')?.addEventListener('click', () => {
+              this.approveJoinRequest(room.id, r.userId, 'viewer');
+            });
+            row.querySelector('.btn-reject-req')?.addEventListener('click', () => {
+              this.rejectJoinRequest(room.id, r.userId);
+            });
+          }
+
+          reqListEl.appendChild(row);
+        });
       }
     }
   }
+
+  // Invite member
+  inviteMember(userId, role = 'editor') {
+    const room = this.getActiveRoom();
+    if (!room) return;
+
+    if (!this.isCurrentUserAdmin()) {
+      if (window.showToast) window.showToast('メンバー招待はプロジェクト管理者のみ可能です', 'warning');
+      return;
+    }
+
+    room.pendingInvites = room.pendingInvites || [];
+    room.team = room.team || [];
+
+    if (room.team.some(m => m.userId.toLowerCase() === userId.toLowerCase())) {
+      if (window.showToast) window.showToast(`@${userId} さんは既にチームメンバーです`, 'info');
+      return;
+    }
+
+    if (room.pendingInvites.some(i => i.userId.toLowerCase() === userId.toLowerCase())) {
+      if (window.showToast) window.showToast(`@${userId} さんへは既に招待送信済みです`, 'warning');
+      return;
+    }
+
+    const friend = window.friendsManager?.data?.friends?.find(f => f.userId.toLowerCase() === userId.toLowerCase());
+    const username = friend ? friend.username : userId;
+
+    room.pendingInvites.push({
+      userId: userId,
+      username: username,
+      role: role,
+      invitedAt: new Date().toISOString()
+    });
+
+    this.saveRooms();
+    this.renderTeamModal();
+
+    const roleName = role === 'editor' ? '編集者' : role === 'viewer' ? '観覧者' : '管理者';
+    if (window.showToast) {
+      window.showToast(`@${userId} さんを「${roleName}」として招待しました！`, 'success');
+    }
+
+    // Auto-accept simulated demo friend invites after 2.5s
+    if (['pixel_hero', 'sound_mage'].includes(userId)) {
+      setTimeout(() => {
+        this.acceptInvitation(room.id, userId, username, role);
+      }, 2500);
+    }
+  }
+
+  acceptInvitation(roomId, userId, username, role) {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    room.pendingInvites = (room.pendingInvites || []).filter(i => i.userId !== userId);
+    room.team = room.team || [];
+
+    if (!room.team.some(m => m.userId === userId)) {
+      room.team.push({
+        userId: userId,
+        username: username,
+        role: role,
+        joinedAt: new Date().toISOString()
+      });
+      this.saveRooms();
+      this.renderTeamModal();
+      this.renderRoomsList();
+      if (window.showToast) {
+        window.showToast(`🤝 @${userId} さんがプロジェクト「${room.name}」に参加しました！`, 'success');
+      }
+    }
+  }
+
+  changeMemberRole(roomId, userId, newRole) {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room || !this.isCurrentUserAdmin()) return;
+
+    const member = (room.team || []).find(m => m.userId === userId);
+    if (member) {
+      member.role = newRole;
+      this.saveRooms();
+      this.renderTeamModal();
+      this.renderRoomsList();
+      const roleName = newRole === 'editor' ? '編集者' : newRole === 'viewer' ? '観覧者' : '管理者';
+      if (window.showToast) {
+        window.showToast(`@${userId} さんの権限を「${roleName}」に変更しました`, 'success');
+      }
+    }
+  }
+
+  async transferOwnership(roomId, newOwnerId) {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room || !this.isCurrentUserAdmin()) return;
+
+    const ok = await window.showConfirm(
+      `プロジェクト「${room.name}」の管理者権限を @${newOwnerId} さんに譲渡しますか？\n（あなた自身は編集者権限になります）`,
+      '管理者権限の譲渡'
+    );
+    if (!ok) return;
+
+    const member = (room.team || []).find(m => m.userId === newOwnerId);
+    if (!member) return;
+
+    const oldOwnerMember = (room.team || []).find(m => m.userId === room.ownerId);
+    if (oldOwnerMember) oldOwnerMember.role = 'editor';
+
+    member.role = 'admin';
+    room.ownerId = newOwnerId;
+    room.ownerUsername = member.username;
+
+    this.saveRooms();
+    this.renderTeamModal();
+    this.renderRoomsList();
+    if (window.showToast) {
+      window.showToast(`プロジェクトの管理者権限を @${newOwnerId} さんに譲渡しました！`, 'success');
+    }
+  }
+
+  async removeMember(roomId, userId) {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room || !this.isCurrentUserAdmin()) return;
+
+    const ok = await window.showConfirm(`@${userId} さんをチームから除外しますか？`, 'メンバー削除');
+    if (!ok) return;
+
+    room.team = (room.team || []).filter(m => m.userId !== userId);
+    this.saveRooms();
+    this.renderTeamModal();
+    this.renderRoomsList();
+    if (window.showToast) window.showToast(`@${userId} さんをチームから削除しました`, 'info');
+  }
+
+  approveJoinRequest(roomId, userId, role = 'editor') {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room || !this.isCurrentUserAdmin()) return;
+
+    const req = (room.joinRequests || []).find(r => r.userId === userId);
+    room.joinRequests = (room.joinRequests || []).filter(r => r.userId !== userId);
+    room.team = room.team || [];
+
+    room.team.push({
+      userId: userId,
+      username: req ? req.username : userId,
+      role: role,
+      joinedAt: new Date().toISOString()
+    });
+
+    this.saveRooms();
+    this.renderTeamModal();
+    this.renderRoomsList();
+    const roleName = role === 'editor' ? '編集者' : '観覧者';
+    if (window.showToast) {
+      window.showToast(`@${userId} さんの参加申請を「${roleName}」として承認しました！`, 'success');
+    }
+  }
+
+  rejectJoinRequest(roomId, userId) {
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room || !this.isCurrentUserAdmin()) return;
+
+    room.joinRequests = (room.joinRequests || []).filter(r => r.userId !== userId);
+    this.saveRooms();
+    this.renderTeamModal();
+    if (window.showToast) window.showToast(`@${userId} さんの参加申請を却下しました`, 'info');
+  }
+
+  setCrossRoomMemory(enabled) {
+    this.crossRoomMemoryEnabled = Boolean(enabled);
+    localStorage.setItem(this.crossMemoryKey, this.crossRoomMemoryEnabled);
+  }
+
+  syncWithCloud() {
+    this.saveRooms();
+    this.renderRoomsList();
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 }
 
+// Global initialization
 window.projectManager = new ProjectManager();

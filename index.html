@@ -63,6 +63,16 @@
     </div>
 
     <div class="header-right">
+      <button id="open-marketplace-btn" class="btn btn-ghost" title="Wiz Marketplace (コミュニティゲーム共有)">
+        <i class="fa-solid fa-store" style="color:var(--wiz-accent);"></i> <span>マーケット</span>
+      </button>
+      <button id="open-activity-btn" class="btn btn-ghost" title="Wizの操作履歴 (タイムライン)">
+        <i class="fa-solid fa-clock-rotate-left" style="color:var(--wiz-purple);"></i> <span>Wiz履歴</span>
+      </button>
+      <button id="notification-center-btn" class="btn btn-icon notif-bell-btn" title="通知センター">
+        <i class="fa-solid fa-bell"></i>
+        <span id="notification-badge" class="nav-badge" style="display:none;">0</span>
+      </button>
       <button id="open-soundfx-btn" class="btn btn-ghost" title="8-bit レトロ効果音ジェネレーター">
         <i class="fa-solid fa-volume-high"></i> <span>効果音作成</span>
       </button>
@@ -75,7 +85,7 @@
       <button id="export-zip-btn" class="btn btn-ghost" title="プロジェクトをZIPでダウンロード">
         <i class="fa-solid fa-download"></i> <span>ZIP保存</span>
       </button>
-      <button id="theme-settings-btn" class="btn btn-icon" title="設定 (テーマ / 自動デバッグ / 実行画面表示)">
+      <button id="theme-settings-btn" class="btn btn-icon" title="設定 (一般 / 通知 / アカウント・セキュリティ / プロフィール)">
         <i class="fa-solid fa-sliders"></i>
       </button>
       <button id="reset-project-header-btn" class="btn btn-icon" title="初期サンプルゲームにリセット">
@@ -90,24 +100,94 @@
   <!-- Main Workspace Layout -->
   <div class="workspace-container" id="workspace-container">
     
-    <!-- LEFTMOST PANEL: ChatGPT-like Project / Rooms Sidebar -->
+    <!-- LEFTMOST PANEL: Project / Rooms & Friends Sidebar -->
     <aside class="project-sidebar" id="project-sidebar">
-      <div class="sidebar-header">
-        <button id="new-project-btn" class="btn-new-chat" type="button" title="新しいプロジェクト作成">
-          <i class="fa-solid fa-plus"></i>
-          <span>新しいプロジェクト</span>
+      <!-- Top Tab Switcher: Projects vs Friends -->
+      <div class="sidebar-tab-switcher">
+        <button id="sidebar-tab-projects" class="sidebar-nav-tab active" type="button">
+          <i class="fa-solid fa-folder-closed"></i> <span>プロジェクト</span>
         </button>
-        <button id="collapse-rooms-btn" class="btn-icon-subtle" title="プロジェクト一覧を閉じる" type="button">
-          <i class="fa-solid fa-angles-left"></i>
+        <button id="sidebar-tab-friends" class="sidebar-nav-tab" type="button">
+          <i class="fa-solid fa-user-group"></i> <span>フレンド管理</span>
+          <span id="friend-requests-badge" class="nav-badge" style="display:none;">0</span>
         </button>
       </div>
 
-      <!-- Projects / Rooms List -->
-      <div class="project-rooms-list" id="project-rooms-list">
-        <!-- Dynamically rendered rooms -->
+      <!-- PANEL 1: Projects / Rooms List -->
+      <div class="sidebar-panel-content" id="project-rooms-panel">
+        <div class="sidebar-header">
+          <button id="new-project-btn" class="btn-new-chat" type="button" title="新しいプロジェクト作成">
+            <i class="fa-solid fa-plus"></i>
+            <span>新しいプロジェクト</span>
+          </button>
+          <button id="collapse-rooms-btn" class="btn-icon-subtle" title="プロジェクト一覧を閉じる" type="button">
+            <i class="fa-solid fa-angles-left"></i>
+          </button>
+        </div>
+
+        <!-- Project Search Input -->
+        <div class="project-search-container">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="project-search-input" placeholder="プロジェクトを検索..." autocomplete="off">
+        </div>
+
+        <div class="project-rooms-list" id="project-rooms-list">
+          <!-- Dynamically rendered rooms -->
+        </div>
       </div>
 
-      <!-- Bottom: Supabase User Profile & Google Login -->
+      <!-- PANEL 2: Friends Management Panel -->
+      <div class="sidebar-panel-content" id="friends-panel" style="display: none;">
+        <div class="friends-header">
+          <div class="my-profile-mini-card" id="my-profile-mini-card">
+            <div class="profile-info">
+              <span class="my-display-name" id="my-profile-name">Wiz Creator</span>
+              <span class="my-user-id" id="my-profile-id">@wiz_creator</span>
+            </div>
+            <button id="copy-my-id-btn" class="btn-icon-mini" title="自分のユーザーIDをコピー" type="button">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+          <button id="open-add-friend-btn" class="btn-add-friend" type="button">
+            <i class="fa-solid fa-user-plus"></i> <span>フレンドを追加</span>
+          </button>
+        </div>
+
+        <div class="friends-scroll-area">
+          <!-- Incoming Requests Section -->
+          <div class="friends-section" id="incoming-requests-section" style="display:none;">
+            <div class="friends-section-title">
+              <span><i class="fa-solid fa-bell"></i> 届いた申請</span>
+              <span class="badge-count" id="incoming-count-badge">0</span>
+            </div>
+            <div class="friends-list" id="incoming-requests-list"></div>
+          </div>
+
+          <!-- Active Friends List -->
+          <div class="friends-section">
+            <div class="friends-section-title">
+              <span><i class="fa-solid fa-users"></i> フレンド一覧</span>
+              <span class="badge-count" id="friends-count-badge">0</span>
+            </div>
+            <div class="friends-list" id="friends-items-list">
+              <div class="friends-empty-placeholder">
+                <i class="fa-regular fa-face-smile"></i>
+                <p>フレンドがいません<br>「フレンドを追加」からIDを入力して申請してみよう！</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Outgoing Pending Requests -->
+          <div class="friends-section" id="outgoing-requests-section" style="display:none;">
+            <div class="friends-section-title">
+              <span><i class="fa-solid fa-paper-plane"></i> 送信中の申請</span>
+            </div>
+            <div class="friends-list" id="outgoing-requests-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom: User Profile -->
       <div class="sidebar-user-area" id="sidebar-user-area">
         <!-- Rendered by auth.js -->
       </div>
@@ -142,6 +222,11 @@
           <button id="project-rules-btn" class="btn-rules" title="この部屋のプロジェクトルールを設定" type="button">
             <i class="fa-solid fa-scroll"></i>
             <span>プロジェクトルール</span>
+          </button>
+          <!-- Project Team & Sharing Button -->
+          <button id="project-team-btn" class="btn-team-sharing" title="プロジェクトのチームメンバーと共有設定" type="button">
+            <i class="fa-solid fa-users"></i>
+            <span>チーム・共有</span>
           </button>
           <!-- Supabase Online / Sync Status Badge -->
           <div id="cloud-status-badge" class="cloud-status-pill online" title="Supabase クラウドオンライン">
@@ -476,76 +561,298 @@
     </button>
   </div>
 
-  <!-- SETTINGS MODAL (Theme, Auto-Debug, Run Target View - No API settings!) -->
+  <!-- SETTINGS MODAL (General, Notifications, Security & Profile) -->
   <div class="modal-backdrop" id="theme-settings-modal" style="display: none;">
-    <div class="modal-card">
+    <div class="modal-card modal-card-lg">
       <div class="modal-header">
         <h3><i class="fa-solid fa-sliders"></i> スタジオ設定</h3>
         <button id="close-theme-modal-btn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="modal-body">
-        <!-- 1. Theme Selection -->
-        <div class="setting-block">
-          <label class="setting-label"><i class="fa-solid fa-palette"></i> テーマカラー</label>
-          <div class="theme-options-grid">
-            <div class="theme-card active" data-theme="theme-dark" id="theme-card-dark">
-              <div class="theme-preview-circle theme-dark-circle"></div>
-              <span>ダーク</span>
+
+      <!-- Settings Tabs Switcher -->
+      <div class="settings-nav-tabs">
+        <button id="settings-tab-general" class="settings-tab-btn active" type="button">
+          <i class="fa-solid fa-gear"></i> <span>一般・環境</span>
+        </button>
+        <button id="settings-tab-notifs" class="settings-tab-btn" type="button">
+          <i class="fa-solid fa-bell"></i> <span>通知設定</span>
+        </button>
+        <button id="settings-tab-security" class="settings-tab-btn" type="button">
+          <i class="fa-solid fa-shield-halved"></i> <span>アカウント・セキュリティ</span>
+        </button>
+        <button id="settings-tab-profile" class="settings-tab-btn" type="button">
+          <i class="fa-solid fa-user-astronaut"></i> <span>プロフィール</span>
+        </button>
+      </div>
+
+      <div class="modal-body settings-modal-body">
+        <!-- PANEL 1: GENERAL SETTINGS -->
+        <div class="settings-panel-tab" id="settings-panel-general">
+          <!-- 1. Theme Selection -->
+          <div class="setting-block">
+            <label class="setting-label"><i class="fa-solid fa-palette"></i> テーマカラー</label>
+            <div class="theme-options-grid">
+              <div class="theme-card active" data-theme="theme-dark" id="theme-card-dark">
+                <div class="theme-preview-circle theme-dark-circle"></div>
+                <span>ダーク</span>
+              </div>
+              <div class="theme-card" data-theme="theme-white" id="theme-card-white">
+                <div class="theme-preview-circle theme-white-circle"></div>
+                <span>ホワイト</span>
+              </div>
+              <div class="theme-card" data-theme="theme-gray" id="theme-card-gray">
+                <div class="theme-preview-circle theme-gray-circle"></div>
+                <span>グレー</span>
+              </div>
             </div>
-            <div class="theme-card" data-theme="theme-white" id="theme-card-white">
-              <div class="theme-preview-circle theme-white-circle"></div>
-              <span>ホワイト</span>
+          </div>
+
+          <!-- 2. Auto Debug Mode -->
+          <div class="setting-block">
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong><i class="fa-solid fa-bug-slash"></i> 自動デバッグモード</strong>
+                <p>プログラム実行中にエラーが発生した場合、Wizが自動でエラーログを解析しコードを修正します。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setting-auto-debug-checkbox">
+                <span class="slider"></span>
+              </label>
             </div>
-            <div class="theme-card" data-theme="theme-gray" id="theme-card-gray">
-              <div class="theme-preview-circle theme-gray-circle"></div>
-              <span>グレー</span>
+          </div>
+
+          <!-- 3. Preview Display Mode -->
+          <div class="setting-block">
+            <label class="setting-label"><i class="fa-solid fa-gamepad"></i> 実行画面の表示先</label>
+            <div class="radio-options-row">
+              <label class="radio-card">
+                <input type="radio" name="preview-target-view" value="panel" checked>
+                <span>右側パネル内で実行 (推奨)</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="preview-target-view" value="modal">
+                <span>全画面モーダルで実行</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 4. Cross-Room Memory -->
+          <div class="setting-block">
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong><i class="fa-solid fa-brain"></i> これまでの会話を維持する</strong>
+                <p>チェックを入れると、別の部屋で話した内容や企画アイデアをWizが引き継いで記憶します。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setting-cross-room-memory-checkbox">
+                <span class="slider"></span>
+              </label>
             </div>
           </div>
         </div>
 
-        <!-- 2. Auto Debug Mode -->
-        <div class="setting-block">
-          <div class="setting-toggle-row">
-            <div class="toggle-info">
-              <strong><i class="fa-solid fa-bug-slash"></i> 自動デバッグモード</strong>
-              <p>プログラム実行中にエラーが発生した場合、Wizが自動でエラーログを解析しコードを修正します。</p>
+        <!-- PANEL 2: NOTIFICATIONS SETTINGS -->
+        <div class="settings-panel-tab" id="settings-panel-notifs" style="display:none;">
+          <div class="setting-block">
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong><i class="fa-solid fa-bell"></i> 全体の通知</strong>
+                <p>Wiz Studioからのすべてのポップアップ通知・バッジ表示を有効にします。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notif-opt-master" checked>
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-auto-debug-checkbox">
-              <span class="slider"></span>
-            </label>
+          </div>
+
+          <div class="setting-block">
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong><i class="fa-solid fa-user-group"></i> フレンド関連の通知</strong>
+                <p>新しいフレンド申請が届いた時や、申請が承認された時の通知を受け取ります。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notif-opt-friends" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-block">
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong><i class="fa-solid fa-share-nodes"></i> 共同プロジェクト招待の通知</strong>
+                <p>他のクリエイターから共同開発プロジェクトへの招待が届いた時の通知を受け取ります。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notif-opt-invites" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-block">
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong><i class="fa-solid fa-bolt"></i> 共同プロジェクト更新の通知</strong>
+                <p>共同プロジェクトのコードやファイルがチームメンバーによって更新された時の通知を受け取ります（更新通知のみOFFにすることも可能です）。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notif-opt-updates" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <!-- 3. Preview Display Mode -->
-        <div class="setting-block">
-          <label class="setting-label"><i class="fa-solid fa-gamepad"></i> 実行画面の表示先</label>
-          <div class="radio-options-row">
-            <label class="radio-card">
-              <input type="radio" name="preview-target-view" value="panel" checked>
-              <span>右側パネル内で実行 (推奨)</span>
-            </label>
-            <label class="radio-card">
-              <input type="radio" name="preview-target-view" value="modal">
-              <span>全画面モーダルで実行</span>
-            </label>
+        <!-- PANEL 3: ACCOUNT & SECURITY SETTINGS (6 ITEMS) -->
+        <div class="settings-panel-tab" id="settings-panel-security" style="display:none;">
+          <!-- 1. Logged-in Devices List -->
+          <div class="setting-block">
+            <div class="sec-header-row">
+              <label class="setting-label"><i class="fa-solid fa-laptop-code"></i> 1. ログイン中の端末一覧</label>
+              <button id="btn-logout-other-devices" class="btn btn-sm btn-ghost" type="button" title="他のすべての端末からログアウト">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> 他の端末からログアウト
+              </button>
+            </div>
+            <div class="devices-list" id="settings-devices-list">
+              <div class="device-item current">
+                <div class="device-icon"><i class="fa-brands fa-windows"></i></div>
+                <div class="device-meta">
+                  <div class="device-name">Windows 11 (Microsoft Edge) <span class="current-badge">現在の端末</span></div>
+                  <div class="device-sub">IP: 192.168.1.10 • 東京, 日本 • アクティブ</div>
+                </div>
+              </div>
+              <div class="device-item remote">
+                <div class="device-icon"><i class="fa-brands fa-apple"></i></div>
+                <div class="device-meta">
+                  <div class="device-name">MacBook Pro (Chrome)</div>
+                  <div class="device-sub">IP: 210.140.82.12 • 大阪, 日本 • 2時間前</div>
+                </div>
+              </div>
+              <div class="device-item remote">
+                <div class="device-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+                <div class="device-meta">
+                  <div class="device-name">iPhone 15 Pro (Safari)</div>
+                  <div class="device-sub">IP: 133.200.45.6 • 神奈川, 日本 • 昨日 21:14</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Multi-Factor Authentication (2FA) -->
+          <div class="setting-block">
+            <label class="setting-label"><i class="fa-solid fa-shield-halved"></i> 3. 2段階認証 (2FA) の設定</label>
+            <div class="setting-toggle-row" style="margin-bottom:0.8rem;">
+              <div class="toggle-info">
+                <strong>メール認証コード (6桁)</strong>
+                <p>ログイン時に登録メール宛に6ケタコードを送信して本人確認します。</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="setting-enable-2fa">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="setting-toggle-row" style="margin-bottom:0.8rem;">
+              <div class="toggle-info">
+                <strong>Touch ID / 生体認証 (WebAuthn)</strong>
+                <p>指紋認証や顔認証でワンタッチログインできるようにします。</p>
+              </div>
+              <button id="btn-setup-biometrics" class="btn btn-sm btn-ghost" type="button">
+                <i class="fa-solid fa-fingerprint"></i> Touch ID設定
+              </button>
+            </div>
+            <div class="setting-toggle-row">
+              <div class="toggle-info">
+                <strong>電話番号 SMS 認証</strong>
+                <p>SMSへ送られたコードでアカウントをより強固に保護します。</p>
+              </div>
+              <button id="btn-setup-sms-2fa" class="btn btn-sm btn-ghost" type="button">
+                <i class="fa-solid fa-comment-sms"></i> 電話番号登録
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 & 5. Password & Email Change -->
+          <div class="setting-block">
+            <label class="setting-label"><i class="fa-solid fa-key"></i> 4 & 5. アカウント資格情報の変更</label>
+            <div class="sec-actions-grid">
+              <div class="sec-action-card">
+                <div class="sec-card-desc">
+                  <strong><i class="fa-solid fa-lock"></i> パスワード変更</strong>
+                  <p>登録メールに6ケタ確認コードを送信して安全にパスワードを変更します。</p>
+                </div>
+                <button id="btn-change-password" class="btn btn-ghost" type="button">パスワード変更</button>
+              </div>
+              <div class="sec-action-card">
+                <div class="sec-card-desc">
+                  <strong><i class="fa-solid fa-envelope"></i> メールアドレス変更</strong>
+                  <p>新しいメールアドレスに6ケタ確認コードを送信して更新します。</p>
+                </div>
+                <button id="btn-change-email" class="btn btn-ghost" type="button">メールアドレス変更</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. Account Deletion (Danger Zone) -->
+          <div class="setting-block danger-zone-block">
+            <label class="setting-label text-danger"><i class="fa-solid fa-triangle-exclamation"></i> 6. 危険な操作 (アカウント削除)</label>
+            <div class="danger-box">
+              <div class="danger-info">
+                <strong>アカウントを完全に削除</strong>
+                <p>一度削除すると、作成したゲームプロジェクトやフレンド情報、履歴は復元できません。メールに送信される6ケタコードで認証後に削除されます。</p>
+              </div>
+              <button id="btn-delete-account" class="btn btn-danger" type="button">
+                <i class="fa-solid fa-trash-can"></i> アカウント削除
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- 4. Cross-Room Memory (これまでの会話を維持する) -->
-        <div class="setting-block">
-          <div class="setting-toggle-row">
-            <div class="toggle-info">
-              <strong><i class="fa-solid fa-brain"></i> これまでの会話を維持する</strong>
-              <p>チェックを入れると、別の部屋で話した内容や企画アイデアをWizが引き継いで記憶します。</p>
+        <!-- PANEL 4: PROFILE SETTINGS -->
+        <div class="settings-panel-tab" id="settings-panel-profile" style="display:none;">
+          <div class="profile-edit-box">
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="setting-label"><i class="fa-solid fa-id-badge"></i> 表示名 (ユーザー名)</label>
+              <input type="text" id="profile-edit-username" class="form-input" placeholder="表示名">
             </div>
-            <label class="switch">
-              <input type="checkbox" id="setting-cross-room-memory-checkbox">
-              <span class="slider"></span>
-            </label>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="setting-label"><i class="fa-solid fa-at"></i> ユーザーID (変更不可)</label>
+              <input type="text" id="profile-edit-userid" class="form-input" disabled style="opacity:0.7;">
+            </div>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="setting-label"><i class="fa-solid fa-image"></i> アバターアイコンの選択</label>
+              <div class="avatar-select-grid" id="avatar-select-grid">
+                <!-- Dynamically generated or preset avatars -->
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="setting-label"><i class="fa-solid fa-align-left"></i> 自己紹介 (Bio)</label>
+              <textarea id="profile-edit-bio" class="form-textarea" rows="3" placeholder="自己紹介や好きなゲームなどを書いてみよう！"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="setting-label"><i class="fa-solid fa-gamepad"></i> 得意なゲームジャンル</label>
+              <div class="genre-checkbox-grid">
+                <label class="genre-pill"><input type="checkbox" name="genre-pref" value="アクション" checked> アクション</label>
+                <label class="genre-pill"><input type="checkbox" name="genre-pref" value="パズル"> パズル</label>
+                <label class="genre-pill"><input type="checkbox" name="genre-pref" value="RPG"> RPG</label>
+                <label class="genre-pill"><input type="checkbox" name="genre-pref" value="シューティング"> シューティング</label>
+                <label class="genre-pill"><input type="checkbox" name="genre-pref" value="レトロ" checked> レトロ</label>
+              </div>
+            </div>
+
+            <button id="btn-save-profile" class="btn btn-primary" type="button">
+              <i class="fa-solid fa-floppy-disk"></i> プロフィールを保存
+            </button>
           </div>
         </div>
       </div>
+
       <div class="modal-footer">
         <button id="apply-theme-btn" class="btn btn-primary">保存して閉じる</button>
       </div>
@@ -575,44 +882,122 @@
         </button>
       </div>
 
-      <div class="auth-divider"><span>または メール / アカウントでログイン</span></div>
+      <div class="auth-divider"><span>または メールアカウントでログイン / 新規登録</span></div>
 
-      <!-- 2. Email / Username Login & Registration -->
+      <!-- 2. Pure Email Login & Registration Flow -->
       <div class="auth-email-section">
         <div class="auth-tabs">
           <button id="tab-login-btn" class="auth-tab-btn active" type="button">ログイン</button>
           <button id="tab-signup-btn" class="auth-tab-btn" type="button">新規登録</button>
         </div>
-        <form id="auth-email-form" onsubmit="return false;">
-          <div class="auth-field">
-            <input type="text" id="gate-email-input" placeholder="メールアドレス または ユーザー名" class="auth-input" required autocomplete="username">
-          </div>
-          <div class="auth-field">
-            <input type="password" id="gate-password-input" placeholder="パスワード (6文字以上)" class="auth-input" required autocomplete="current-password">
-          </div>
-          <button type="button" id="gate-submit-btn" class="btn btn-primary auth-submit-btn">
-            <span>ログインする</span>
-          </button>
-        </form>
-      </div>
 
-      <div class="auth-divider"><span>または 外部アカウント</span></div>
+        <!-- LOGIN VIEW -->
+        <div id="auth-view-login">
+          <form id="auth-login-form" onsubmit="return false;">
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-envelope"></i> メールアドレス または ユーザーID</label>
+              <input type="text" id="gate-login-identifier" placeholder="example@email.com または @user_id" class="auth-input" required autocomplete="username">
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-lock"></i> パスワード</label>
+              <input type="password" id="gate-login-password" placeholder="パスワードを入力" class="auth-input" required autocomplete="current-password">
+            </div>
 
-      <!-- 3. OAuth Login Buttons (GitHub & Google) -->
-      <div class="auth-gate-section auth-oauth-grid">
-        <button id="gate-github-login-btn" class="btn-gate-oauth btn-gate-github" type="button">
-          <i class="fa-brands fa-github"></i>
-          <span>GitHub でログイン</span>
-        </button>
-        <button id="gate-google-login-btn" class="btn-gate-oauth btn-gate-google" type="button">
-          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Google でログイン</span>
-        </button>
+            <!-- 2FA Code Group (Displayed only if account has 2FA enabled) -->
+            <div class="auth-field" id="gate-login-2fa-group" style="display:none;">
+              <div class="auth-2fa-alert">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div>
+                  <strong>2段階認証が有効です</strong>
+                  <p>メール宛に送信された6ケタの認証コードを入力してください。</p>
+                </div>
+              </div>
+              <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
+              <input type="text" id="gate-login-2fa-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
+            </div>
+
+            <button type="button" id="gate-login-submit-btn" class="btn btn-primary auth-submit-btn">
+              <span>ログインする</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- SIGNUP VIEW (3 Steps Flow) -->
+        <div id="auth-view-signup" style="display:none;">
+          <!-- Stepper Dots -->
+          <div class="signup-stepper">
+            <div class="step-item active" id="step-dot-1"><span>1</span><label>情報入力</label></div>
+            <div class="step-line" id="step-line-1"></div>
+            <div class="step-item" id="step-dot-2"><span>2</span><label>本人確認</label></div>
+            <div class="step-line" id="step-line-2"></div>
+            <div class="step-item" id="step-dot-3"><span>3</span><label>ID決定</label></div>
+          </div>
+
+          <!-- Step 1: Email & Password -->
+          <div id="signup-step-1" class="signup-step-container">
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-envelope"></i> メールアドレス</label>
+              <input type="email" id="gate-signup-email" placeholder="example@email.com" class="auth-input" required>
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-lock"></i> パスワード (半角英数6文字以上)</label>
+              <input type="password" id="gate-signup-password" placeholder="6文字以上のパスワード" class="auth-input" required>
+            </div>
+            <button type="button" id="gate-signup-next-1-btn" class="btn btn-primary auth-submit-btn">
+              <span>認証コードを送信する</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Step 2: 6-Digit Email Code Verification -->
+          <div id="signup-step-2" class="signup-step-container" style="display:none;">
+            <div class="code-verify-banner">
+              <i class="fa-regular fa-paper-plane"></i>
+              <div>
+                <p><strong id="verify-email-target">example@email.com</strong> 宛に</p>
+                <p>6ケタの確認コードを送信しました。</p>
+              </div>
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
+              <input type="text" id="gate-signup-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
+            </div>
+            <div class="code-timer-row">
+              <span id="code-countdown-text">残り有効時間: 60秒</span>
+              <button type="button" id="resend-code-btn" class="btn-text-subtle" disabled>コードを再送</button>
+            </div>
+            <div class="step-buttons-row">
+              <button type="button" id="gate-signup-back-2-btn" class="btn btn-ghost">戻る</button>
+              <button type="button" id="gate-signup-next-2-btn" class="btn btn-primary">
+                <span>本人確認する</span> <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Username & Unique User ID -->
+          <div id="signup-step-3" class="signup-step-container" style="display:none;">
+            <div class="auth-verified-badge">
+              <i class="fa-solid fa-circle-check"></i> メール本人確認が完了しました！
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-user"></i> ユーザー名 (表示名)</label>
+              <input type="text" id="gate-signup-username" placeholder="魔導士タロウ" class="auth-input" required>
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label"><i class="fa-solid fa-at"></i> ユーザーID (半角英数字・重複不可)</label>
+              <div class="userid-input-wrapper">
+                <span class="userid-prefix">@</span>
+                <input type="text" id="gate-signup-userid" placeholder="taro_wiz" class="auth-input userid-field" required maxlength="20">
+              </div>
+              <p class="auth-field-hint" id="userid-status-hint">半角英数字とアンダースコア（_）3〜20文字</p>
+            </div>
+            <div class="step-buttons-row">
+              <button type="button" id="gate-signup-back-3-btn" class="btn btn-ghost">戻る</button>
+              <button type="button" id="gate-signup-finish-btn" class="btn btn-primary">
+                <span>登録を完了してスタジオへ</span> <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -740,6 +1125,343 @@
     </div>
   </div>
 
+  <!-- ADD FRIEND MODAL (ユーザーIDでフレンド申請) -->
+  <div class="modal-backdrop" id="add-friend-modal" style="display: none;">
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus" style="color:var(--wiz-cyan);"></i> フレンドを追加</h3>
+        <button id="close-add-friend-modal-btn" class="btn-close" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;">
+          フレンドになりたい相手の<strong>ユーザーID</strong>（例: <code>@pixel_hero</code>）を入力して、フレンド申請を送信します。<br>
+          相手が承認するとフレンド一覧に追加され、一時チャットや共同ゲーム制作ができます。
+        </p>
+        <div class="auth-field">
+          <label class="auth-field-label"><i class="fa-solid fa-at"></i> フレンドのユーザーID</label>
+          <div class="userid-input-wrapper">
+            <span class="userid-prefix">@</span>
+            <input type="text" id="add-friend-userid-input" placeholder="pixel_hero" class="auth-input userid-field" autocomplete="off">
+          </div>
+        </div>
+        <div class="friend-search-preview" id="friend-search-preview" style="display:none;">
+          <div class="friend-preview-card">
+            <div class="friend-avatar-wrap">
+              <i class="fa-solid fa-user-ninja"></i>
+            </div>
+            <div class="friend-preview-info">
+              <strong id="friend-preview-name">-</strong>
+              <span id="friend-preview-id">@-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-add-friend-btn" class="btn btn-ghost" type="button">キャンセル</button>
+        <button id="send-friend-request-btn" class="btn btn-primary" type="button">
+          <i class="fa-solid fa-paper-plane"></i> <span>フレンド申請を送信</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECT TEAM & SHARING MODAL (共有プロジェクト・権限管理) -->
+  <div class="modal-backdrop" id="project-team-modal" style="display: none;">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-users" style="color:var(--wiz-cyan);"></i> プロジェクト共有・チーム管理</h3>
+        <button id="close-team-modal-btn" class="btn-close" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="project-team-header-bar">
+          <div>
+            <h4 id="team-modal-project-name" style="margin:0 0 0.2rem 0; font-size:1.05rem;">ネオン・ブロック崩し</h4>
+            <span class="project-owner-label" id="team-modal-owner-label">管理者: @wiz_creator</span>
+          </div>
+          <span class="role-badge role-admin" id="team-modal-my-role-badge">あなたの権限: 管理者</span>
+        </div>
+
+        <p style="font-size: 0.83rem; color: var(--text-muted); margin: 0.8rem 0; line-height: 1.5;">
+          プロジェクト管理者はチームメンバーの権限（<strong>観覧者</strong>・<strong>編集者</strong>・<strong>管理者</strong>）を設定したり、権限を渡す（譲渡する）ことができます。
+        </p>
+
+        <!-- Tabs: Members / Invite / Join Requests -->
+        <div class="team-modal-tabs">
+          <button id="team-tab-members-btn" class="team-tab-btn active" type="button">メンバー一覧 (<span id="team-members-count">1</span>)</button>
+          <button id="team-tab-invite-btn" class="team-tab-btn" type="button">フレンドを招待</button>
+          <button id="team-tab-requests-btn" class="team-tab-btn" type="button">参加申請 (<span id="team-requests-count">0</span>)</button>
+        </div>
+
+        <!-- Section 1: Members List -->
+        <div id="team-panel-members" class="team-panel-section">
+          <div class="team-members-list" id="team-members-list">
+            <!-- Rendered by projectManager.js -->
+          </div>
+        </div>
+
+        <!-- Section 2: Invite Friends -->
+        <div id="team-panel-invite" class="team-panel-section" style="display:none;">
+          <div class="invite-form-box">
+            <div class="form-group" style="margin-bottom:0.8rem;">
+              <label class="setting-label"><i class="fa-solid fa-user-group"></i> 招待するフレンドを選択</label>
+              <select id="invite-friend-select" class="form-select">
+                <option value="">フレンドを選択してください</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="setting-label"><i class="fa-solid fa-id-badge"></i> 付与する権限</label>
+              <select id="invite-role-select" class="form-select">
+                <option value="editor" selected>編集者 (コード編集・Wiz対話・実行が可能)</option>
+                <option value="viewer">観覧者 (コード閲覧・プレビュー実行のみ)</option>
+                <option value="admin">管理者 (メンバー管理・権限設定・削除が可能)</option>
+              </select>
+            </div>
+            <button id="send-project-invite-btn" class="btn btn-primary" type="button">
+              <i class="fa-solid fa-paper-plane"></i> <span>プロジェクトへ招待を送信</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 3: Join Requests -->
+        <div id="team-panel-requests" class="team-panel-section" style="display:none;">
+          <div class="join-requests-list" id="team-join-requests-list">
+            <!-- Requests list rendered by projectManager.js -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="close-team-modal-footer-btn" class="btn btn-primary" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING FRIEND DIRECT CHAT DRAWER (一時チャット) -->
+  <div class="friend-chat-drawer" id="friend-chat-drawer" style="display: none;">
+    <div class="friend-chat-header">
+      <div class="friend-chat-title">
+        <span class="friend-chat-dot"></span>
+        <div class="friend-chat-names">
+          <strong id="friend-chat-partner-name">フレンド名</strong>
+          <span id="friend-chat-partner-id">@friend_id</span>
+        </div>
+      </div>
+      <div class="friend-chat-actions">
+        <button id="friend-chat-invite-btn" class="btn-icon-mini" title="このプロジェクトに招待" type="button">
+          <i class="fa-solid fa-user-plus"></i>
+        </button>
+        <button id="close-friend-chat-btn" class="btn-icon-mini" title="チャットを閉じる" type="button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="friend-chat-messages" id="friend-chat-messages">
+      <!-- DM Messages -->
+    </div>
+    <div class="friend-chat-input-bar">
+      <input type="text" id="friend-chat-input" placeholder="メッセージを入力..." autocomplete="off">
+      <button id="friend-chat-send-btn" class="btn-chat-send" type="button">
+        <i class="fa-solid fa-arrow-up"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION CENTER DRAWER (通知センター) -->
+  <div class="notification-center-drawer" id="notification-center-drawer" style="display: none;">
+    <div class="notif-drawer-header">
+      <div class="notif-header-title">
+        <i class="fa-solid fa-bell" style="color:var(--wiz-cyan);"></i>
+        <strong>通知センター</strong>
+      </div>
+      <div class="notif-header-actions">
+        <button id="mark-all-read-notif-btn" class="btn-icon-mini" title="すべて既読にする" type="button">
+          <i class="fa-solid fa-check-double"></i>
+        </button>
+        <button id="clear-all-notif-btn" class="btn-icon-mini" title="通知をすべて消去" type="button">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        <button id="close-notif-drawer-btn" class="btn-icon-mini" title="閉じる" type="button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="notification-items-list" id="notification-items-list">
+      <!-- Dynamically rendered by notifications.js -->
+    </div>
+  </div>
+
+  <!-- WIZ ACTIVITY HISTORY DRAWER (Wiz操作履歴) -->
+  <div class="wiz-activity-drawer" id="wiz-activity-drawer" style="display: none;">
+    <div class="activity-drawer-header">
+      <div class="activity-header-title">
+        <i class="fa-solid fa-clock-rotate-left" style="color:var(--wiz-purple);"></i>
+        <strong>Wiz操作履歴</strong>
+      </div>
+      <div class="activity-header-actions">
+        <button id="clear-activity-logs-btn" class="btn-icon-mini" title="履歴を消去" type="button">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        <button id="close-activity-drawer-btn" class="btn-icon-mini" title="閉じる" type="button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="wiz-activity-timeline" id="wiz-activity-timeline">
+      <!-- Dynamically rendered by activityLogger.js -->
+    </div>
+  </div>
+
+  <!-- WIZ MARKETPLACE MODAL (Wiz Marketplace) -->
+  <div class="modal-backdrop" id="marketplace-modal" style="display: none;">
+    <div class="modal-card modal-card-xl marketplace-modal-card">
+      <div class="modal-header">
+        <div class="market-brand">
+          <i class="fa-solid fa-store" style="color:var(--wiz-accent); font-size:1.3rem;"></i>
+          <div>
+            <h3 style="margin:0;">Wiz Marketplace</h3>
+            <span style="font-size:0.8rem; color:var(--text-muted);">世界中のクリエイターがWizで作ったゲームをプレイ・フォーク・シェア！</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <button id="open-publish-game-btn" class="btn btn-primary btn-sm" type="button">
+            <i class="fa-solid fa-cloud-arrow-up"></i> <span>このゲームを公開する</span>
+          </button>
+          <button id="close-marketplace-modal-btn" class="btn-close" type="button"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <div class="market-toolbar">
+        <div class="market-category-tabs">
+          <button class="market-category-tab active" data-cat="all" type="button">すべて</button>
+          <button class="market-category-tab" data-cat="action" type="button">アクション</button>
+          <button class="market-category-tab" data-cat="rpg" type="button">RPG</button>
+          <button class="market-category-tab" data-cat="shooting" type="button">シューティング</button>
+          <button class="market-category-tab" data-cat="puzzle" type="button">パズル</button>
+        </div>
+        <div class="market-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="market-search-input" placeholder="ゲームや作者を検索...">
+        </div>
+      </div>
+
+      <div class="modal-body marketplace-modal-body">
+        <div class="marketplace-games-grid" id="marketplace-games-grid">
+          <!-- Dynamically rendered by marketplace.js -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PUBLISH GAME MODAL -->
+  <div class="modal-backdrop" id="publish-game-modal" style="display: none; z-index: 10005;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cloud-arrow-up"></i> ゲームをMarketplaceに公開</h3>
+        <button id="cancel-publish-game-btn" class="btn-close" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="setting-label">ゲームタイトル</label>
+          <input type="text" id="publish-title-input" class="form-input" placeholder="例: スーパー・ブロック崩し">
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="setting-label">カテゴリー</label>
+          <select id="publish-category-select" class="form-select">
+            <option value="action">アクション</option>
+            <option value="rpg">RPG</option>
+            <option value="shooting">シューティング</option>
+            <option value="puzzle">パズル</option>
+            <option value="retro">レトロ</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="setting-label">ゲームの説明・遊び方</label>
+          <textarea id="publish-desc-input" class="form-textarea" rows="3" placeholder="ルールや操作方法、こだわりポイントを入力"></textarea>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">
+          ※ 公開すると、他のユーザーがプレイしたりソースコードをコピーして共同学習できるようになります。
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button id="submit-publish-game-btn" class="btn btn-primary" type="button">
+          <i class="fa-solid fa-rocket"></i> 公開する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PUBLIC USER PROFILE MODAL (作者・フレンドの公開プロフィール) -->
+  <div class="modal-backdrop" id="public-profile-modal" style="display: none; z-index: 10002;">
+    <div class="modal-card public-profile-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-address-card"></i> ユーザープロフィール</h3>
+        <button id="close-public-profile-btn" class="btn-close" type="button" onclick="document.getElementById('public-profile-modal').style.display='none';">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="pub-profile-header">
+          <img id="pub-profile-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero" class="pub-profile-avatar" alt="Avatar">
+          <div class="pub-profile-titles">
+            <h3 id="pub-profile-name" style="margin:0 0 0.2rem 0;">ピクセル勇者</h3>
+            <span id="pub-profile-id" class="pub-profile-id">@pixel_hero</span>
+          </div>
+        </div>
+
+        <div class="pub-profile-section">
+          <label class="pub-section-label"><i class="fa-solid fa-comment-dots"></i> 自己紹介</label>
+          <p id="pub-profile-bio" class="pub-profile-bio-text">ゲーム制作に熱中しています！</p>
+        </div>
+
+        <div class="pub-profile-section">
+          <label class="pub-section-label"><i class="fa-solid fa-gamepad"></i> 得意なジャンル</label>
+          <div id="pub-profile-genres" class="pub-genres-container"></div>
+        </div>
+
+        <div class="pub-profile-actions" id="pub-profile-action-container">
+          <!-- Dynamically populated (DM, Friend Request, Unfriend) -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECURITY ACTION VERIFICATION MODAL (6-digit code verification for PW/Email/Deletion) -->
+  <div class="modal-backdrop" id="security-action-modal" style="display: none; z-index: 10010;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="sec-modal-title"><i class="fa-solid fa-shield-halved"></i> 本人確認 (6ケタ認証コード)</h3>
+        <button id="close-sec-modal-btn" class="btn-close" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="sec-modal-desc" style="font-size:0.88rem; color:var(--text-secondary); line-height:1.5;">
+          セキュリティ保護のため、メールアドレスへ6ケタの確認コードを送信しました。
+        </p>
+
+        <!-- Dynamic Field 1 (e.g., new password, new email) -->
+        <div class="form-group" id="sec-modal-input-group-1" style="display:none; margin-bottom:0.8rem;">
+          <label class="setting-label" id="sec-modal-input-label-1">新しい値</label>
+          <input type="text" id="sec-modal-input-1" class="form-input">
+        </div>
+
+        <!-- 6-digit Code Field -->
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="setting-label"><i class="fa-solid fa-key"></i> 6ケタの確認コード</label>
+          <input type="text" id="sec-modal-code-input" class="form-input code-input" maxlength="6" placeholder="123456" autocomplete="off">
+          <span id="sec-modal-code-hint" class="field-hint" style="color:var(--wiz-cyan); margin-top:4px; display:block;"></span>
+        </div>
+
+        <!-- Danger Confirmation Field (Account deletion only) -->
+        <div class="form-group" id="sec-modal-danger-group" style="display:none; margin-bottom:1rem;">
+          <label class="setting-label text-danger">確認のため「アカウントを削除」と入力してください</label>
+          <input type="text" id="sec-modal-danger-input" class="form-input" placeholder="アカウントを削除">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-sec-modal-btn" class="btn btn-ghost" type="button">キャンセル</button>
+        <button id="submit-sec-modal-btn" class="btn btn-primary" type="button">認証して実行</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/dialog.js"></script>
@@ -748,8 +1470,12 @@
   <script src="js/soundFx.js"></script>
   <script src="js/runner.js"></script>
   <script src="js/editor.js"></script>
+  <script src="js/activityLogger.js"></script>
+  <script src="js/notifications.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/friendsManager.js"></script>
   <script src="js/projectManager.js"></script>
+  <script src="js/marketplace.js"></script>
   <script src="js/wiz.js"></script>
   <script src="js/agentActions.js"></script>
   <script src="js/app.js"></script>
