@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIゲーム作成 - Wiz AI Game Creator</title>
+  <meta name="description" content="賢者Wizと一緒にWebゲームやPythonゲームを作成・編集・リアルタイム実行できる次世代AIゲーム開発スタジオ">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&family=Noto+Sans+JP:wght@300;400;500;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Icons (FontAwesome) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Syntax Highlight (Prism) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/editor.css">
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+</head>
+<body class="theme-dark">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand">
+        <div class="brand-avatar">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span class="online-indicator"></span>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Wiz <span class="badge">Studio</span></span>
+          <span class="brand-subtitle">AI Game Creator</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode Selector & Controls -->
+    <div class="header-center">
+      <div class="mode-toggle-group">
+        <button id="mode-chat-btn" class="mode-btn active" title="雑談・相談・企画アイデア出し">
+          <i class="fa-regular fa-comments"></i> 通常会話モード
+        </button>
+        <button id="mode-code-btn" class="mode-btn" title="コード生成・ファイル自動作成・編集">
+          <i class="fa-solid fa-code"></i> プログラム作成モード
+        </button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button id="run-project-btn" class="btn btn-primary run-btn" title="現在のプログラムを実行 (Ctrl+Enter)">
+        <i class="fa-solid fa-play"></i> <span>実行</span>
+      </button>
+      <button id="export-zip-btn" class="btn btn-ghost" title="プロジェクトをZIPでダウンロード">
+        <i class="fa-solid fa-download"></i> <span>ZIP保存</span>
+      </button>
+      <button id="theme-settings-btn" class="btn btn-icon" title="テーマカラー変更 (ダーク / ホワイト / グレー)">
+        <i class="fa-solid fa-palette"></i>
+      </button>
+      <button id="reset-project-header-btn" class="btn btn-icon" title="初期サンプルゲームにリセット">
+        <i class="fa-solid fa-rotate-left"></i>
+      </button>
+      <button id="toggle-sidebar-btn" class="btn btn-icon toggle-code-btn" title="コードタブの収納/展開 (Ctrl+B)">
+        <i class="fa-solid fa-table-columns"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace Layout -->
+  <div class="workspace-container" id="workspace-container">
+    
+    <!-- LEFT PANEL: Chat with Wiz -->
+    <section class="chat-section" id="chat-section">
+      <!-- Chat Header Info -->
+      <div class="chat-header-bar">
+        <div class="wiz-status">
+          <span class="avatar-mini"><i class="fa-solid fa-hat-wizard"></i></span>
+          <div class="wiz-info">
+            <strong>Wiz (ウィズ)</strong>
+            <span class="status-desc" id="wiz-mode-label">通常会話モード (何でも気軽に聞いてね！)</span>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button id="clear-chat-btn" class="btn-mini" title="チャット履歴をクリア">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Stream -->
+      <div class="messages-container" id="messages-container">
+        <!-- Messages dynamically rendered here -->
+      </div>
+
+      <!-- Attachment Staging Tray (Max 5 files) -->
+      <div class="attachment-tray" id="attachment-tray" style="display: none;">
+        <div class="tray-header">
+          <span><i class="fa-solid fa-paperclip"></i> 添付ファイル (<span id="attachment-count">0</span>/5)</span>
+          <button id="clear-attachments-btn" class="btn-text-danger">すべて削除</button>
+        </div>
+        <div class="attachment-items" id="attachment-items">
+          <!-- Attachment pills -->
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-area">
+        <div class="input-tools-bar">
+          <label for="file-upload-input" class="tool-btn" title="ファイルを添付 (最大5個)">
+            <i class="fa-solid fa-paperclip"></i> <span>ファイル添付</span>
+            <input type="file" id="file-upload-input" multiple style="display:none;">
+          </label>
+          <label for="folder-upload-input" class="tool-btn" title="フォルダを添付">
+            <i class="fa-solid fa-folder-open"></i> <span>フォルダ添付</span>
+            <input type="file" id="folder-upload-input" webkitdirectory directory multiple style="display:none;">
+          </label>
+          <div class="prompt-chips">
+            <button class="chip" data-prompt="このプログラムを実行して！">▶ 実行して！</button>
+            <button class="chip" data-prompt="ブロック崩しゲームを作って！">🎮 ブロック崩し作成</button>
+            <button class="chip" data-prompt="index.htmlを実行して「スタート」を押したら何が出るか画像を送って">📸 画面キャプチャ要求</button>
+          </div>
+        </div>
+
+        <div class="input-box-wrapper">
+          <textarea 
+            id="chat-user-input" 
+            placeholder="Wizに話しかけよう... (例: 「面白いアクションゲームのアイデア教えて！」「Pythonで動くミニゲーム作って」)" 
+            rows="2"></textarea>
+          <button id="send-message-btn" class="btn-send" title="送信 (Enter)">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+        </div>
+        <div class="input-hint">
+          <span>Enter で送信 / Shift+Enter で改行 / ファイルをドラッグ＆ドロップでも添付可能 (最大5個)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESIZE HANDLE -->
+    <div class="split-resizer" id="split-resizer"></div>
+
+    <!-- RIGHT PANEL: Code Editor & File Workspace (Collapsible) -->
+    <section class="editor-section" id="editor-section">
+      
+      <!-- Top Action Bar inside Editor -->
+      <div class="editor-top-bar">
+        <div class="active-file-indicator">
+          <i class="fa-solid fa-code file-icon" id="active-file-icon"></i>
+          <span id="active-file-name">index.html</span>
+          <span class="dirty-dot" id="file-dirty-dot" style="display:none;"></span>
+        </div>
+        <div class="editor-quick-actions">
+          <button id="download-current-file-btn" class="btn-icon-subtle" title="現在開いているファイルを個別ダウンロード">
+            <i class="fa-solid fa-download"></i>
+          </button>
+          <button id="save-file-btn" class="btn-icon-subtle" title="上書き保存 (Ctrl+S)">
+            <i class="fa-solid fa-floppy-disk"></i>
+          </button>
+          <button id="new-file-quick-btn" class="btn-icon-subtle" title="新規ファイル作成">
+            <i class="fa-solid fa-file-circle-plus"></i>
+          </button>
+          <button id="new-folder-quick-btn" class="btn-icon-subtle" title="新規フォルダ作成">
+            <i class="fa-solid fa-folder-plus"></i>
+          </button>
+          <button id="collapse-editor-btn" class="btn-icon-subtle" title="コードタブを収納">
+            <i class="fa-solid fa-angles-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor Inner Split: File Tree + Code/Tabs -->
+      <div class="editor-workspace-body">
+        
+        <!-- Left Sub-panel: File Explorer -->
+        <div class="file-explorer-panel" id="file-explorer-panel">
+          <div class="explorer-header">
+            <span><i class="fa-solid fa-folder-tree"></i> プロジェクト</span>
+            <div class="explorer-actions">
+              <button id="btn-add-file" title="ファイルを新規作成"><i class="fa-solid fa-plus"></i></button>
+              <button id="btn-add-folder" title="フォルダを新規作成"><i class="fa-solid fa-folder-plus"></i></button>
+              <button id="btn-refresh-tree" title="ファイルツリーを更新"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+          </div>
+          <div class="file-tree-container" id="file-tree-container">
+            <!-- Dynamic tree nodes -->
+          </div>
+        </div>
+
+        <!-- Right Sub-panel: Code Area & Preview Tabs -->
+        <div class="code-area-panel">
+          
+          <!-- Open File Tabs -->
+          <div class="editor-tabs-bar" id="editor-tabs-bar">
+            <!-- Dynamic tabs -->
+          </div>
+
+          <!-- Active Code Content with Context Menu -->
+          <div class="code-editor-container" id="code-editor-container">
+            <div class="line-numbers" id="editor-line-numbers">1</div>
+            <textarea id="code-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+            <pre class="highlight-layer" id="highlight-layer"><code id="highlight-code" class="language-html"></code></pre>
+          </div>
+
+          <!-- Bottom Status Bar -->
+          <div class="editor-status-bar">
+            <div class="status-left">
+              <span id="cursor-position-info">行 1, 列 1</span>
+              <span id="file-encoding-info">UTF-8</span>
+            </div>
+            <div class="status-right">
+              <span id="file-syntax-badge" class="syntax-badge">HTML</span>
+              <span id="ai-editing-indicator" class="ai-badge" style="display: none;">
+                <i class="fa-solid fa-sparkles fa-spin"></i> Wizが編集中...
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- FLOATING PREVIEW MODAL / RUNNER -->
+  <div class="preview-modal-overlay" id="preview-modal-overlay" style="display:none;">
+    <div class="preview-modal-window">
+      <div class="preview-modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-gamepad"></i>
+          <span>実行プレビュー: <strong id="preview-target-file">index.html</strong></span>
+          <span class="live-pill">LIVE</span>
+        </div>
+        <div class="modal-controls">
+          <button id="preview-restart-btn" class="btn-icon-modal" title="再読み込み">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+          <button id="preview-open-tab-btn" class="btn-icon-modal" title="別タブで開く">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </button>
+          <button id="preview-close-btn" class="btn-icon-modal" title="閉じる (Esc)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="preview-modal-body">
+        <!-- Web Game iframe -->
+        <div class="preview-iframe-wrapper" id="preview-iframe-wrapper">
+          <iframe id="preview-iframe" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock" allow="autoplay; fullscreen"></iframe>
+        </div>
+        
+        <!-- Python Runner Output Console -->
+        <div class="preview-python-wrapper" id="preview-python-wrapper" style="display:none;">
+          <div class="python-console-header">
+            <span><i class="fa-brands fa-python"></i> Pyodide Python 実行コンソール</span>
+            <span id="pyodide-status" class="py-status">初期化中...</span>
+          </div>
+          <pre class="python-output" id="python-output"></pre>
+        </div>
+      </div>
+
+      <!-- Preview Console Logs -->
+      <div class="preview-console-drawer" id="preview-console-drawer">
+        <div class="console-drawer-header">
+          <span><i class="fa-solid fa-terminal"></i> 実行ログ / コンソール</span>
+          <button id="clear-console-btn" class="btn-text-subtle">ログ消去</button>
+        </div>
+        <div class="console-drawer-logs" id="console-drawer-logs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT-CLICK CONTEXT MENU FOR CODE SELECTION -->
+  <div class="code-context-menu" id="code-context-menu">
+    <button class="context-menu-item" id="ctx-cut-btn">
+      <i class="fa-solid fa-scissors"></i> <span>カット</span>
+    </button>
+    <button class="context-menu-item" id="ctx-copy-btn">
+      <i class="fa-regular fa-copy"></i> <span>コピー</span>
+    </button>
+    <button class="context-menu-item" id="ctx-paste-btn">
+      <i class="fa-regular fa-clipboard"></i> <span>ペースト</span>
+    </button>
+    <div class="context-menu-divider"></div>
+    <button class="context-menu-item action-ask" id="ctx-ask-btn">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Wizに質問</span>
+    </button>
+  </div>
+
+  <!-- THEME SETTINGS MODAL (Dark, White, Gray - No API settings!) -->
+  <div class="modal-backdrop" id="theme-settings-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-palette"></i> テーマカラー変更</h3>
+        <button id="close-theme-modal-btn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">お好みの外観テーマを選択してください：</p>
+        <div class="theme-options-grid">
+          <div class="theme-card active" data-theme="theme-dark" id="theme-card-dark">
+            <div class="theme-preview-circle theme-dark-circle"></div>
+            <span>ダーク</span>
+          </div>
+          <div class="theme-card" data-theme="theme-white" id="theme-card-white">
+            <div class="theme-preview-circle theme-white-circle"></div>
+            <span>ホワイト</span>
+          </div>
+          <div class="theme-card" data-theme="theme-gray" id="theme-card-gray">
+            <div class="theme-preview-circle theme-gray-circle"></div>
+            <span>グレー</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="apply-theme-btn" class="btn btn-primary">適用して閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Custom Confirm / Prompt Dialog Modal -->
+  <div class="modal-backdrop" id="custom-dialog-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="custom-dialog-title"><i class="fa-solid fa-circle-question"></i> 確認</h3>
+        <button id="custom-dialog-close-btn" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="custom-dialog-message" style="line-height: 1.6;"></p>
+        <div id="custom-dialog-input-wrap" style="display: none; margin-top: 0.8rem;">
+          <input type="text" id="custom-dialog-input" class="form-group" style="width: 100%; box-sizing: border-box;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="custom-dialog-cancel-btn" class="btn btn-ghost">キャンセル</button>
+        <button id="custom-dialog-ok-btn" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/dialog.js"></script>
+  <script src="js/fileSystem.js"></script>
+  <script src="js/runner.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/wiz.js"></script>
+  <script src="js/agentActions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,535 @@
+/* ==========================================================================
+   Wiz AI Game Creator - Editor & Preview Stylesheet (Ultra Polished Edition)
+   ========================================================================== */
+
+/* RIGHT: Editor Section (Collapsible) */
+.editor-section {
+  width: 55%;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  transition: width var(--transition-smooth), transform var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.editor-section.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  transform: translateX(100%);
+  display: none;
+}
+
+/* Editor Top Action Bar */
+.editor-top-bar {
+  height: 44px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+}
+
+.active-file-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.file-icon {
+  color: var(--wiz-cyan);
+}
+.dirty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wiz-cyan);
+  display: inline-block;
+}
+
+.editor-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-icon-subtle {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  transition: all var(--transition-fast);
+}
+.btn-icon-subtle:hover {
+  background: var(--border-medium);
+  color: var(--text-primary);
+}
+
+/* Editor Workspace Body */
+.editor-workspace-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* File Explorer Panel */
+.file-explorer-panel {
+  width: 220px;
+  min-width: 170px;
+  max-width: 320px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.explorer-header {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.explorer-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+.explorer-actions button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+.explorer-actions button:hover {
+  color: var(--text-primary);
+  background: var(--border-medium);
+}
+
+.file-tree-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.4rem 0;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  padding: 0.38rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary);
+  gap: 0.45rem;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+.tree-node:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.tree-node.active {
+  background: rgba(0, 242, 254, 0.12);
+  color: var(--wiz-cyan);
+  border-left: 3px solid var(--wiz-cyan);
+  font-weight: 600;
+}
+.tree-node .node-icon {
+  font-size: 0.85rem;
+  width: 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.tree-node.active .node-icon {
+  color: var(--wiz-cyan);
+}
+.tree-node .node-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-node .node-actions {
+  display: none;
+  gap: 0.2rem;
+}
+.tree-node:hover .node-actions {
+  display: flex;
+}
+.tree-node .node-actions button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px;
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+}
+.tree-node .node-actions button:hover {
+  color: var(--text-primary);
+  background: var(--border-medium);
+}
+.tree-node .node-actions button.download-btn:hover {
+  color: var(--wiz-cyan);
+}
+.tree-node .node-actions button.delete-btn:hover {
+  color: var(--danger);
+}
+
+.tree-node.is-dir {
+  font-weight: 600;
+}
+.dir-children {
+  padding-left: 0.85rem;
+}
+
+/* Code Area Panel */
+.code-area-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-editor);
+}
+
+/* Tabs Bar */
+.editor-tabs-bar {
+  height: 38px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.editor-tab {
+  height: 100%;
+  padding: 0 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border-right: 1px solid var(--border-subtle);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+.editor-tab:hover {
+  background: var(--border-medium);
+  color: var(--text-primary);
+}
+.editor-tab.active {
+  background: var(--bg-editor);
+  color: var(--wiz-cyan);
+  border-top: 2px solid var(--wiz-cyan);
+  font-weight: 600;
+}
+.tab-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+.tab-close-btn:hover {
+  color: var(--danger);
+}
+
+/* Code Editor Container & Overlay */
+.code-editor-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  background: var(--bg-editor);
+}
+
+.line-numbers {
+  width: 48px;
+  padding: 1rem 0.5rem 1rem 0;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  background: var(--bg-editor);
+  border-right: 1px solid var(--border-subtle);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+  overflow: hidden;
+  opacity: 0.7;
+}
+
+#code-textarea, #highlight-layer {
+  position: absolute;
+  top: 0;
+  left: 48px;
+  right: 0;
+  bottom: 0;
+  padding: 1rem;
+  margin: 0;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+#code-textarea {
+  color: transparent;
+  background: transparent;
+  caret-color: var(--wiz-cyan);
+  z-index: 2;
+  resize: none;
+}
+
+#highlight-layer {
+  pointer-events: none;
+  z-index: 1;
+  background: transparent;
+}
+
+#highlight-code {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* Status Bar */
+.editor-status-bar {
+  height: 26px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.85rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.status-left, .status-right {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.syntax-badge {
+  background: var(--border-medium);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+.ai-badge {
+  color: var(--wiz-cyan);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ==========================================================================
+   Preview Modal / Game Runner
+   ========================================================================== */
+.preview-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.preview-modal-window {
+  width: 90vw;
+  max-width: 1080px;
+  height: 85vh;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-popup);
+  overflow: hidden;
+}
+
+.preview-modal-header {
+  height: 48px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+.live-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--success);
+}
+
+.modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-icon-modal {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.btn-icon-modal:hover {
+  color: var(--text-primary);
+  background: var(--border-medium);
+}
+
+.preview-modal-body {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+}
+
+.preview-iframe-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+#preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Python runner view */
+.preview-python-wrapper {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-editor);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+.python-console-header {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.py-status {
+  color: var(--wiz-cyan);
+}
+.python-output {
+  flex: 1;
+  padding: 1rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* Console Logs Drawer */
+.preview-console-drawer {
+  height: 140px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.console-drawer-header {
+  padding: 0.4rem 1rem;
+  background: var(--bg-tertiary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.btn-text-subtle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+.btn-text-subtle:hover {
+  color: var(--text-primary);
+}
+
+.console-drawer-logs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.log-item {
+  color: var(--text-secondary);
+}
+.log-item.error { color: var(--danger); }
+.log-item.warn { color: var(--warning); }
+.log-item.info { color: var(--wiz-cyan); }
