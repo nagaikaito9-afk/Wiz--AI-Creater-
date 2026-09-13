@@ -105,6 +105,8 @@
 /* Editor Workspace Body */
 .editor-workspace-body {
   flex: 1;
+  min-width: 0;
+  width: 100%;
   display: flex;
   overflow: hidden;
 }
@@ -230,6 +232,7 @@
 /* Code Area Panel */
 .code-area-panel {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -239,6 +242,7 @@
 
 .view-content-pane {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -438,8 +442,20 @@
   gap: 1.5rem;
 }
 
+.code-editor-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-editor);
+  box-sizing: border-box;
+}
+
 .line-numbers {
   width: 48px;
+  min-width: 48px;
   padding: 1rem 0.5rem 1rem 0;
   text-align: right;
   color: var(--text-muted);
@@ -451,6 +467,8 @@
   white-space: pre;
   overflow: hidden;
   opacity: 0.7;
+  flex-shrink: 0;
+  z-index: 3;
 }
 
 #code-textarea, #highlight-layer {
@@ -468,7 +486,6 @@
   line-height: 1.6;
   tab-size: 2;
   white-space: pre;
-  overflow: auto;
   box-sizing: border-box;
 }
 
@@ -478,18 +495,26 @@
   caret-color: var(--wiz-cyan);
   z-index: 2;
   resize: none;
+  overflow: auto;
+  width: calc(100% - 48px);
+  height: 100%;
 }
 
 #highlight-layer {
   pointer-events: none;
   z-index: 1;
   background: transparent;
+  overflow: hidden;
+  width: calc(100% - 48px);
+  height: 100%;
 }
 
 #highlight-code {
   font-family: var(--font-mono);
   font-size: 13.5px;
   line-height: 1.6;
+  white-space: pre;
+  display: block;
 }
 
 /* Status Bar */

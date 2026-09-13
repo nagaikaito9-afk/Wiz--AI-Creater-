@@ -111,18 +111,19 @@ class SupabaseAuthManager {
     this.bindGateEvents();
     this.bindSettings2faEvents();
 
-    // Check active session from localStorage
-    const savedUser = localStorage.getItem('wiz_mock_user');
-    if (savedUser) {
-      try {
-        this.currentUser = JSON.parse(savedUser);
-      } catch (e) {
-        this.currentUser = null;
-      }
-    }
-
+    // Always require login/registration modal on initial entry to the site as requested by user
+    this.currentUser = null;
     this.updateGateVisibility();
-    this.updateUserUI(this.currentUser);
+    this.updateUserUI(null);
+
+    // Pre-fill login email if remembered
+    try {
+      const lastEmail = localStorage.getItem('wiz_last_login_email');
+      const loginEmailInput = document.getElementById('gate-login-email');
+      if (lastEmail && loginEmailInput) {
+        loginEmailInput.value = lastEmail;
+      }
+    } catch (e) {}
 
     // Network listeners
     window.addEventListener('online', () => this.handleNetworkChange(true));
@@ -643,6 +644,9 @@ class SupabaseAuthManager {
     // Login successful
     this.currentUser = user;
     localStorage.setItem('wiz_mock_user', JSON.stringify(user));
+    if (user.email) {
+      try { localStorage.setItem('wiz_last_login_email', user.email); } catch (e) {}
+    }
     this.updateGateVisibility();
     this.updateUserUI(user);
 

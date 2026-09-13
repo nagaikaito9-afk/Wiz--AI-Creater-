@@ -163,23 +163,46 @@ body {
 /* ==========================================================================
    Header Styles
    ========================================================================== */
+/* Studio App Root Container */
+#studio-app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
 .app-header {
   height: var(--header-height);
+  min-height: var(--header-height);
+  max-height: var(--header-height);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.25rem;
+  padding: 0 1rem;
   z-index: 100;
   backdrop-filter: blur(12px);
   transition: background-color 0.25s ease, border-color 0.25s ease;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100vw;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   user-select: none;
 }
 
@@ -195,6 +218,7 @@ body {
   font-size: 1.1rem;
   box-shadow: var(--wiz-glow);
   position: relative;
+  flex-shrink: 0;
 }
 
 .online-indicator {
@@ -214,13 +238,14 @@ body {
 }
 
 .brand-title {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  white-space: nowrap;
 }
 
 .brand-title .badge {
@@ -235,34 +260,48 @@ body {
 }
 
 .brand-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
-/* Mode Switcher */
-.mode-toggle-group {
+/* Mode Switcher - Keep on single line, never distort */
+.header-center {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: 0 0.5rem;
+}
+
+.mode-toggle-group {
+  display: inline-flex;
+  align-items: center;
   background: var(--bg-tertiary);
   padding: 3px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .mode-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: var(--font-sans);
-  padding: 0.45rem 1rem;
+  padding: 0.38rem 0.85rem;
   border-radius: var(--radius-full);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .mode-btn:hover {
@@ -279,22 +318,24 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 .btn {
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.5rem 0.95rem;
+  padding: 0.42rem 0.75rem;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   transition: all var(--transition-fast);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -321,6 +362,7 @@ body {
 .btn-icon {
   width: 36px;
   height: 36px;
+  min-width: 36px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -331,10 +373,49 @@ body {
   border: 1px solid var(--border-subtle);
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 .btn-icon:hover {
   color: var(--text-primary);
   background: var(--border-medium);
+}
+
+/* Header Compact Responsive Adaptations */
+@media (max-width: 1440px) {
+  .header-right #open-marketplace-btn span,
+  .header-right #open-activity-btn span,
+  .header-right #open-soundfx-btn span,
+  .header-right #wiz-undo-btn span,
+  .header-right #export-zip-btn span {
+    display: none;
+  }
+  .header-right #open-marketplace-btn,
+  .header-right #open-activity-btn,
+  .header-right #open-soundfx-btn,
+  .header-right #wiz-undo-btn,
+  .header-right #export-zip-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 1140px) {
+  .brand-subtitle {
+    display: none;
+  }
+  .header-center .mode-btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 980px) {
+  .header-center {
+    display: none;
+  }
 }
 
 /* ==========================================================================
@@ -345,18 +426,22 @@ body {
   display: flex;
   overflow: hidden;
   position: relative;
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
 }
 
 /* LEFT: Chat Section */
 .chat-section {
   flex: 1;
-  min-width: 320px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
   border-right: 1px solid var(--border-subtle);
   position: relative;
   transition: background-color 0.25s ease;
+  overflow: hidden;
 }
 
 .chat-header-bar {
@@ -891,11 +976,20 @@ body {
 .modal-card {
   width: 90%;
   max-width: 480px;
+  max-height: 90vh;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-popup);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-card-lg {
+  max-width: min(720px, 94vw);
+  width: 720px;
+  max-height: 88vh;
 }
 
 .modal-header {
@@ -928,6 +1022,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 130px);
 }
 
 /* Theme Selector Cards */
@@ -2738,6 +2834,7 @@ input:checked + .slider:before {
 }
 #project-search-input {
   width: 100%;
+  box-sizing: border-box;
   padding: 0.4rem 0.6rem 0.4rem 1.8rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-medium);
@@ -2795,6 +2892,7 @@ input:checked + .slider:before {
   top: 52px;
   right: 1.2rem;
   width: 360px;
+  max-width: calc(100vw - 2.4rem);
   max-height: 520px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
@@ -3345,7 +3443,7 @@ input:checked + .slider:before {
 
 .sec-actions-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.8rem;
   margin-top: 0.5rem;
 }
