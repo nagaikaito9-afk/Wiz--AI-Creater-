@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       }
     };
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',

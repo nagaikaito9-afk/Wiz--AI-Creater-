@@ -171,9 +171,9 @@ class WizAIEngine {
       console.info('Vercel serverless /api/chat not available, switching to direct client call:', e.message);
     }
 
-    // 2. Fallback: Direct call to Google Gemini API using official 'x-goog-api-key' header
+    // 2. Fallback: Direct call to Google Gemini API (Browser CORS requires ?key= query parameter)
     if (!resData) {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${encodeURIComponent(this.fallbackApiKey)}`;
       const directRes = await fetch(geminiUrl, {
         method: 'POST',
         headers: {
