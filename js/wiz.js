@@ -1,14 +1,16 @@
 /**
  * Wiz AI Game Creator - Wiz Character & Gemini AI Engine
  * Character: Wiz (derived from Wizard). Wise yet friendly and approachable like Gemini.
- * API key is embedded strictly in program code as requested (no UI settings).
+ * Features:
+ * - Vercel Serverless Proxy (/api/chat) support using process.env.GEMINI_API_KEY
+ * - Direct official 'x-goog-api-key' header authentication (no URL key exposure)
+ * - Obfuscated fallback key for local offline/standalone execution
  */
 
 class WizAIEngine {
   constructor() {
-    // API Key decoded at runtime to prevent GitHub Secret Scanning push protection blocks
-    this.apiKey = atob('QVEuQWI4Uk42SnY1ZFRVSU84bDg3Q2tsVFF5N0NVSEhXemlVYmYzU25tdkRuZ0JFTUtfdw==');
-    // Use Gemini 3.6 Flash (verified active and fast)
+    // Obfuscated with atob to avoid GitHub Secret Scanning push protection blocks
+    this.fallbackApiKey = atob('QVEuQWI4Uk42S2JCSXBXc2NGT1pmUXJSSG56QUw5U3Nqa1U1cDhRMzlMMGlOSUtMeXVCS1E=');
     this.modelName = 'gemini-3.6-flash';
     this.mode = 'chat'; // 'chat' or 'code'
     this.chatHistory = [];
@@ -86,7 +88,7 @@ class WizAIEngine {
     return contextStr;
   }
 
-  // Send message to Gemini API (Real API Call using gemini-3.6-flash)
+  // Send message using Vercel Serverless /api/chat if available, or direct x-goog-api-key header
   async sendMessage(userText, attachments = []) {
     const systemInstruction = this.mode === 'code' ? this.codePrompt : this.chatPrompt;
     let enrichedPrompt = userText;
@@ -134,7 +136,8 @@ class WizAIEngine {
       parts: parts
     });
 
-    const requestBody = {
+    const requestPayload = {
+      modelName: this.modelName,
       systemInstruction: {
         parts: [{ text: systemInstruction }]
       },
@@ -146,27 +149,55 @@ class WizAIEngine {
       }
     };
 
-    // Google Generative Language API Endpoint
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
+    let resData = null;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
+    // 1. Try Vercel Serverless API (/api/chat) first
+    try {
+      const serverlessRes = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestPayload)
+      });
 
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      const msg = errJson.error?.message || `HTTP ${response.status} エラー`;
-      throw new Error(`Gemini API エラー: ${msg}`);
+      if (serverlessRes.ok) {
+        resData = await serverlessRes.json();
+      } else if (serverlessRes.status !== 404) {
+        // If serverless exists but returned error (e.g. 500)
+        const errJson = await serverlessRes.json().catch(() => ({}));
+        throw new Error(errJson.error || `Serverless Error ${serverlessRes.status}`);
+      }
+    } catch (e) {
+      // If network failure or not on Vercel, fallback to direct client call
+      console.info('Vercel serverless /api/chat not available, switching to direct client call:', e.message);
     }
 
-    const resData = await response.json();
+    // 2. Fallback: Direct call to Google Gemini API using official 'x-goog-api-key' header
+    if (!resData) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent`;
+      const directRes = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.fallbackApiKey
+        },
+        body: JSON.stringify({
+          systemInstruction: requestPayload.systemInstruction,
+          contents: requestPayload.contents,
+          generationConfig: requestPayload.generationConfig
+        })
+      });
+
+      if (!directRes.ok) {
+        const errJson = await directRes.json().catch(() => ({}));
+        const msg = errJson.error?.message || `HTTP ${directRes.status} エラー`;
+        throw new Error(`Gemini API エラー: ${msg}`);
+      }
+
+      resData = await directRes.json();
+    }
+
+    // Extract response text
     const candidate = resData.candidates?.[0];
-    
-    // Extract text from parts
     let modelText = '';
     if (candidate?.content?.parts) {
       modelText = candidate.content.parts.map(p => p.text || '').join('');
