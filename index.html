@@ -48,6 +48,9 @@
           <span class="brand-subtitle">AI Game Creator</span>
         </div>
       </div>
+      <button id="header-home-btn" class="btn btn-ghost header-home-link-btn" title="ホーム画面（ダッシュボード）を表示" type="button">
+        <i class="fa-solid fa-house"></i> <span>ホーム</span>
+      </button>
     </div>
 
     <!-- Mode Selector & Controls -->
@@ -96,6 +99,123 @@
       </button>
     </div>
   </header>
+
+  <!-- HOME DASHBOARD (ホームページ・ダッシュボード) -->
+  <div id="wiz-home-dashboard" class="home-dashboard-container" style="display: none;">
+    <div class="home-dashboard-content">
+      
+      <!-- Hero Welcome Banner -->
+      <div class="home-hero-banner">
+        <div class="hero-badge"><i class="fa-solid fa-sparkles"></i> 次世代 AI ゲームクリエイターへようこそ</div>
+        <h1 class="hero-title">ようこそ、<span id="home-welcome-username" class="gradient-text">クリエイター</span> さん！</h1>
+        <div class="hero-user-tag"><span id="home-welcome-userid">@creator</span></div>
+        <p class="hero-description">
+          Wiz AI Studio は、AI賢者Wizと会話しながらオリジナルのWebゲームやPythonゲームを作れるスタジオです。<br>
+          まずは気になるメニューからゲーム制作を始めてみましょう！
+        </p>
+        <div class="hero-actions-row">
+          <button id="home-hero-create-btn" class="btn btn-primary btn-lg" type="button">
+            <i class="fa-solid fa-plus"></i> <span>新しいゲームを作る</span>
+          </button>
+          <button id="home-hero-chat-btn" class="btn btn-secondary btn-lg" type="button">
+            <i class="fa-solid fa-comments"></i> <span>Wizとアイデアを相談する</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action Cards Grid -->
+      <div class="home-features-section">
+        <h2 class="home-section-title"><i class="fa-solid fa-compass"></i> クイックスタートガイド</h2>
+        <div class="home-cards-grid">
+          
+          <!-- Card 1: New Game -->
+          <div class="home-action-card" id="home-card-new-game">
+            <div class="card-icon-glow cyan"><i class="fa-solid fa-gamepad"></i></div>
+            <div class="card-text">
+              <h3>新しいゲームを作成</h3>
+              <p>ブロック崩し、シューティング、RPG、パズルなど、ゼロからオリジナルゲームを作成して編集を開始します。</p>
+            </div>
+            <button class="btn card-action-btn" type="button" id="home-btn-action-new-game">
+              <span>作成する</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Card 2: AI Wiz Chat -->
+          <div class="home-action-card" id="home-card-chat-wiz">
+            <div class="card-icon-glow purple"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <div class="card-text">
+              <h3>AI賢者Wizと企画相談</h3>
+              <p>「こんなゲームを作りたい」と伝えるだけで、ゲームのストーリーやルール、必要な機能をWizが一緒に考えてくれます。</p>
+            </div>
+            <button class="btn card-action-btn" type="button" id="home-btn-action-chat">
+              <span>Wizと話す</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Card 3: Marketplace -->
+          <div class="home-action-card" id="home-card-marketplace">
+            <div class="card-icon-glow gold"><i class="fa-solid fa-store"></i></div>
+            <div class="card-text">
+              <h3>Wiz マーケットプレイス</h3>
+              <p>世界中のクリエイターが公開したゲームをプレイしたり、プロジェクトを自分のスタジオにインポートできます。</p>
+            </div>
+            <button class="btn card-action-btn" type="button" id="home-btn-action-market">
+              <span>マーケットを見る</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Card 4: Friends & Co-dev -->
+          <div class="home-action-card" id="home-card-friends">
+            <div class="card-icon-glow green"><i class="fa-solid fa-user-group"></i></div>
+            <div class="card-text">
+              <h3>フレンド追加 & 共同開発</h3>
+              <p>友達のユーザーIDを検索してフレンド申請。リアルタイム同期で1つのゲームを一緒にプログラミングできます。</p>
+            </div>
+            <button class="btn card-action-btn" type="button" id="home-btn-action-friends">
+              <span>フレンドを探す</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Card 5: Sound FX Generator -->
+          <div class="home-action-card" id="home-card-soundfx">
+            <div class="card-icon-glow pink"><i class="fa-solid fa-volume-high"></i></div>
+            <div class="card-text">
+              <h3>8-bit レトロ効果音作成</h3>
+              <p>ジャンプ音やコイン取得音、爆発音など、ゲームに使えるピコピコ効果音をブラウザ上で即座に作成・試聴できます。</p>
+            </div>
+            <button class="btn card-action-btn" type="button" id="home-btn-action-soundfx">
+              <span>効果音を作成</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <!-- Card 6: Profile & Security -->
+          <div class="home-action-card" id="home-card-settings">
+            <div class="card-icon-glow blue"><i class="fa-solid fa-user-gear"></i></div>
+            <div class="card-text">
+              <h3>プロフィール & 2段階認証</h3>
+              <p>アバターや自己紹介の編集、安全なアカウント運用のための2段階認証（2FA）を設定できます。</p>
+            </div>
+            <button class="btn card-action-btn" type="button" id="home-btn-action-settings">
+              <span>設定を開く</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Studio Direct Jump Banner -->
+      <div class="home-studio-jump-banner">
+        <div class="jump-banner-text">
+          <h3>準備はできましたか？</h3>
+          <p>コードエディタと実行プレビューが揃った開発スタジオへ進みましょう。</p>
+        </div>
+        <button id="home-launch-studio-btn" class="btn btn-primary btn-lg" type="button">
+          <i class="fa-solid fa-code"></i> <span>スタジオ（エディタ）を開く</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Main Workspace Layout -->
   <div class="workspace-container" id="workspace-container">
@@ -1014,12 +1134,12 @@
               <input type="text" id="gate-signup-username" placeholder="魔導士タロウ" class="auth-input" required>
             </div>
             <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-at"></i> ユーザーID (半角英数字・重複不可)</label>
+              <label class="auth-field-label"><i class="fa-solid fa-at"></i> ユーザーID (半角英数字・変更不可)</label>
               <div class="userid-input-wrapper">
                 <span class="userid-prefix">@</span>
                 <input type="text" id="gate-signup-userid" placeholder="taro_wiz" class="auth-input userid-field" required maxlength="20">
               </div>
-              <p class="auth-field-hint" id="userid-status-hint">半角英数字とアンダースコア（_）3〜20文字</p>
+              <p class="auth-field-hint" id="userid-status-hint">半角英数字・アンダースコア3〜20文字（※登録後の変更はできません）</p>
             </div>
             <div class="step-buttons-row">
               <button type="button" id="gate-signup-back-3-btn" class="btn btn-ghost">戻る</button>

@@ -112,6 +112,7 @@ class SupabaseAuthManager {
 
     this.bindGateEvents();
     this.bindSettings2faEvents();
+    this.bindHomeEvents();
 
     // Always require login/registration modal on initial entry to the site as requested by user
     this.currentUser = null;
@@ -994,11 +995,30 @@ class SupabaseAuthManager {
     this.currentUser = newUser;
     localStorage.setItem('wiz_mock_user', JSON.stringify(newUser));
 
+    // Reset demo projects and demo friends for clean slate on new account!
+    localStorage.setItem('wiz_project_rooms', '[]');
+    localStorage.setItem('wiz_friends_data_v2', JSON.stringify({
+      friends: [],
+      incomingRequests: [],
+      outgoingRequests: [],
+      directMessages: {}
+    }));
+
+    if (window.projectManager && typeof window.projectManager.resetForUser === 'function') {
+      window.projectManager.resetForUser(userId);
+    }
+    if (window.friendsManager && typeof window.friendsManager.resetForUser === 'function') {
+      window.friendsManager.resetForUser(userId);
+    }
+
     this.pendingSignup = null;
     if (this.resendTimerInterval) clearInterval(this.resendTimerInterval);
 
     this.updateGateVisibility();
     this.updateUserUI(newUser);
+
+    // Automatically display the Homepage Dashboard right after registration
+    this.showHomeDashboard(newUser);
 
     if (window.showToast) {
       window.showToast(`🎉 登録が完了しました！ようこそ、${username}さん (@${userId})`, 'success');
@@ -1007,6 +1027,115 @@ class SupabaseAuthManager {
     if (window.projectManager && typeof window.projectManager.syncWithCloud === 'function') {
       window.projectManager.syncWithCloud();
     }
+  }
+
+  // Show / Hide Home Dashboard
+  showHomeDashboard(user = null) {
+    const u = user || this.currentUser;
+    const dashboard = document.getElementById('wiz-home-dashboard');
+    const workspace = document.getElementById('workspace-container');
+    const homeBtn = document.getElementById('header-home-btn');
+
+    if (!dashboard) return;
+
+    // Fill user info in Hero banner
+    const nameEl = document.getElementById('home-welcome-username');
+    const idEl = document.getElementById('home-welcome-userid');
+    if (nameEl) nameEl.textContent = u ? (u.username || 'クリエイター') : 'クリエイター';
+    if (idEl) idEl.textContent = u ? `@${(u.userId || 'guest').replace(/^@/, '')}` : '@guest';
+
+    dashboard.style.display = 'flex';
+    if (workspace) workspace.style.display = 'none';
+    if (homeBtn) homeBtn.classList.add('active');
+
+    // Ensure dashboard is smoothly scrolled to the top
+    dashboard.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
+
+  hideHomeDashboard() {
+    const dashboard = document.getElementById('wiz-home-dashboard');
+    const workspace = document.getElementById('workspace-container');
+    const homeBtn = document.getElementById('header-home-btn');
+
+    if (dashboard) dashboard.style.display = 'none';
+    if (workspace) workspace.style.display = 'flex';
+    if (homeBtn) homeBtn.classList.remove('active');
+  }
+
+  toggleHomeDashboard() {
+    const dashboard = document.getElementById('wiz-home-dashboard');
+    if (dashboard && dashboard.style.display !== 'none') {
+      this.hideHomeDashboard();
+    } else {
+      this.showHomeDashboard();
+    }
+  }
+
+  bindHomeEvents() {
+    // Header Home Button
+    document.getElementById('header-home-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.toggleHomeDashboard();
+    });
+
+    // Launch Studio (Editor) Button
+    document.getElementById('home-launch-studio-btn')?.addEventListener('click', () => {
+      this.hideHomeDashboard();
+    });
+
+    // Action 1: New Game / Project
+    const triggerNewProject = () => {
+      this.hideHomeDashboard();
+      document.getElementById('sidebar-tab-projects')?.click();
+      if (window.projectManager && typeof window.projectManager.promptCreateNewRoom === 'function') {
+        window.projectManager.promptCreateNewRoom();
+      }
+    };
+    document.getElementById('home-hero-create-btn')?.addEventListener('click', triggerNewProject);
+    document.getElementById('home-btn-action-new-game')?.addEventListener('click', triggerNewProject);
+
+    // Action 2: Chat with Wiz
+    const triggerChat = () => {
+      this.hideHomeDashboard();
+      document.getElementById('mode-chat-btn')?.click();
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) {
+        chatInput.focus();
+        if (!chatInput.value) {
+          chatInput.placeholder = 'Wizに作りたいゲームを相談してみよう！';
+        }
+      }
+    };
+    document.getElementById('home-hero-chat-btn')?.addEventListener('click', triggerChat);
+    document.getElementById('home-btn-action-chat')?.addEventListener('click', triggerChat);
+
+    // Action 3: Template Market
+    document.getElementById('home-btn-action-market')?.addEventListener('click', () => {
+      const marketBtn = document.getElementById('open-market-modal-btn');
+      if (marketBtn) marketBtn.click();
+    });
+
+    // Action 4: Friends & Collab
+    document.getElementById('home-btn-action-friends')?.addEventListener('click', () => {
+      this.hideHomeDashboard();
+      document.getElementById('sidebar-tab-friends')?.click();
+      document.getElementById('btn-open-add-friend-modal')?.click();
+    });
+
+    // Action 5: Sound FX Generator
+    document.getElementById('home-btn-action-soundfx')?.addEventListener('click', () => {
+      const soundBtn = document.getElementById('open-sound-modal-btn');
+      if (soundBtn) soundBtn.click();
+    });
+
+    // Action 6: Profile & Security Settings
+    document.getElementById('home-btn-action-settings')?.addEventListener('click', () => {
+      this.hideHomeDashboard();
+      const settingsBtn = document.getElementById('theme-settings-btn');
+      if (settingsBtn) settingsBtn.click();
+      document.getElementById('settings-tab-profile')?.click();
+    });
   }
 
   // Show specific step (1, 2, or 3)
@@ -1070,6 +1199,7 @@ class SupabaseAuthManager {
   signOut() {
     this.currentUser = null;
     localStorage.removeItem('wiz_mock_user');
+    this.hideHomeDashboard();
     this.updateGateVisibility();
     this.updateUserUI(null);
     if (window.showToast) window.showToast('ログアウトしました', 'info');

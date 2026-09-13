@@ -25,40 +25,61 @@ class FriendsManager {
         console.warn('Failed to parse friends data, resetting:', e);
       }
     }
-    // Default seed with preset friendly creators for instant testing
+    const currentId = this.getCurrentUserId();
+    // Default seed with preset friendly creators ONLY for instant testing on mock account
+    if (currentId === 'wiz_creator') {
+      return {
+        friends: [
+          {
+            userId: 'pixel_hero',
+            username: 'ドット勇者',
+            email: 'hero@pixel.dev',
+            avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero',
+            online: true,
+            statusText: 'ドット絵制作中 🎨'
+          },
+          {
+            userId: 'sound_mage',
+            username: '音響魔術師',
+            email: 'sound@synth.dev',
+            avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sound_mage',
+            online: false,
+            statusText: '8bit BGM作曲中 🎵'
+          }
+        ],
+        incomingRequests: [
+          {
+            fromUserId: 'retro_gamer',
+            fromUsername: 'レトロゲーマー',
+            sentAt: new Date(Date.now() - 3600000).toISOString()
+          }
+        ],
+        outgoingRequests: [],
+        directMessages: {
+          'pixel_hero': [
+            { sender: 'pixel_hero', text: 'こんにちは！Wiz Studioへようこそ！✨ 一緒に面白いゲームを作ろう！', time: '12:00' }
+          ]
+        }
+      };
+    }
+    // Clean slate for regular registered users (0 demo friends)
     return {
-      friends: [
-        {
-          userId: 'pixel_hero',
-          username: 'ドット勇者',
-          email: 'hero@pixel.dev',
-          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero',
-          online: true,
-          statusText: 'ドット絵制作中 🎨'
-        },
-        {
-          userId: 'sound_mage',
-          username: '音響魔術師',
-          email: 'sound@synth.dev',
-          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sound_mage',
-          online: false,
-          statusText: '8bit BGM作曲中 🎵'
-        }
-      ],
-      incomingRequests: [
-        {
-          fromUserId: 'retro_gamer',
-          fromUsername: 'レトロゲーマー',
-          sentAt: new Date(Date.now() - 3600000).toISOString()
-        }
-      ],
+      friends: [],
+      incomingRequests: [],
       outgoingRequests: [],
-      directMessages: {
-        'pixel_hero': [
-          { sender: 'pixel_hero', text: 'こんにちは！Wiz Studioへようこそ！✨ 一緒に面白いゲームを作ろう！', time: '12:00' }
-        ]
-      }
+      directMessages: {}
     };
+  }
+
+  resetForUser(userId) {
+    this.data = {
+      friends: [],
+      incomingRequests: [],
+      outgoingRequests: [],
+      directMessages: {}
+    };
+    this.saveData();
+    this.renderFriendsUI();
   }
 
   saveData() {

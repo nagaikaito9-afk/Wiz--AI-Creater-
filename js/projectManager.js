@@ -149,25 +149,30 @@ class ProjectManager {
     const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
 
     if (!this.rooms || this.rooms.length === 0) {
-      const initialRoom = {
-        id: 'room_default',
-        name: 'ネオン・ブロック崩し',
-        rules: 'このゲームはすべてドット絵風ネオン調で制作する。\nレトロアーケードスタイル。',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        chatHistory: [],
-        ownerId: myId,
-        ownerUsername: myName,
-        team: [
-          { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
-        ],
-        pendingInvites: [],
-        joinRequests: [],
-        vfsRoot: null
-      };
-      this.rooms = [initialRoom];
-      this.activeRoomId = initialRoom.id;
-      this.saveRooms();
+      if (myId === 'wiz_creator') {
+        const initialRoom = {
+          id: 'room_default',
+          name: 'ネオン・ブロック崩し',
+          rules: 'このゲームはすべてドット絵風ネオン調で制作する。\nレトロアーケードスタイル。',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          chatHistory: [],
+          ownerId: myId,
+          ownerUsername: myName,
+          team: [
+            { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
+          ],
+          pendingInvites: [],
+          joinRequests: [],
+          vfsRoot: null
+        };
+        this.rooms = [initialRoom];
+        this.activeRoomId = initialRoom.id;
+        this.saveRooms();
+      } else {
+        this.rooms = [];
+        this.activeRoomId = null;
+      }
     } else {
       this.rooms.forEach(r => {
         if (!r.team) {
@@ -184,8 +189,10 @@ class ProjectManager {
       const lastActive = localStorage.getItem(this.activeRoomIdKey);
       if (lastActive && this.rooms.some(r => r.id === lastActive)) {
         this.activeRoomId = lastActive;
-      } else {
+      } else if (this.rooms.length > 0) {
         this.activeRoomId = this.rooms[0].id;
+      } else {
+        this.activeRoomId = null;
       }
     }
   }
@@ -513,7 +520,16 @@ class ProjectManager {
 
   updateActiveRoomHeader() {
     const room = this.getActiveRoom();
-    if (!room) return;
+    if (!room) {
+      if (this.activeProjectTitleEl) {
+        this.activeProjectTitleEl.textContent = 'プロジェクト未選択';
+      }
+      if (this.activeProjectRulesBtn) {
+        this.activeProjectRulesBtn.classList.remove('has-rules');
+        this.activeProjectRulesBtn.title = 'プロジェクトがありません';
+      }
+      return;
+    }
 
     if (this.activeProjectTitleEl) {
       this.activeProjectTitleEl.textContent = room.name;
@@ -628,6 +644,24 @@ class ProjectManager {
       if (pinB !== pinA) return pinB - pinA;
       return (b.updatedAt || 0) - (a.updatedAt || 0);
     });
+
+    if (this.rooms.length === 0) {
+      this.roomsListContainer.innerHTML = `
+        <div class="empty-projects-state">
+          <i class="fa-solid fa-folder-open"></i>
+          <div class="empty-title">プロジェクトがありません</div>
+          <p class="empty-desc">まだ作成されたプロジェクトはありません。<br>「新しいプロジェクト」を作成して開発をはじめましょう！</p>
+          <button type="button" class="btn btn-primary btn-sm empty-create-btn" id="empty-create-room-btn">
+            <i class="fa-solid fa-plus"></i> 新規作成
+          </button>
+        </div>
+      `;
+      const createBtn = this.roomsListContainer.querySelector('#empty-create-room-btn');
+      if (createBtn) {
+        createBtn.onclick = () => this.promptCreateNewRoom();
+      }
+      return;
+    }
 
     if (sortedRooms.length === 0) {
       this.roomsListContainer.innerHTML = `
@@ -1079,6 +1113,14 @@ class ProjectManager {
   syncWithCloud() {
     this.saveRooms();
     this.renderRoomsList();
+  }
+
+  resetForUser(userId) {
+    this.rooms = [];
+    this.activeRoomId = null;
+    this.saveRooms();
+    this.renderRoomsList();
+    this.updateActiveRoomHeader();
   }
 
   escapeHtml(str) {
