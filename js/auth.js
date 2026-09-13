@@ -19,43 +19,69 @@ class SupabaseAuthManager {
     this.init();
   }
 
-  async init() {
-    if (window.supabase) {
-      try {
-        this.client = window.supabase.createClient(this.supabaseUrl, this.supabaseKey, {
-          auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true
-          }
-        });
-        console.info('Supabase client initialized successfully.');
-      } catch (err) {
-        console.warn('Failed to initialize Supabase client:', err);
+  async ensureSupabaseClient() {
+    if (this.client) return this.client;
+
+    for (let i = 0; i < 30; i++) {
+      if (window.supabase) {
+        try {
+          this.client = window.supabase.createClient(this.supabaseUrl, this.supabaseKey, {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true
+            }
+          });
+          return this.client;
+        } catch (e) {
+          console.warn('Supabase client creation error:', e);
+        }
       }
-    } else {
-      console.warn('Supabase JS SDK not loaded yet.');
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return null;
+  }
+
+  async init() {
+    if (document.readyState === 'loading') {
+      await new Promise(r => document.addEventListener('DOMContentLoaded', r));
+    }
+
+    // Check mock user in localStorage
+    const savedMock = localStorage.getItem('wiz_mock_user');
+    if (savedMock) {
+      try {
+        this.currentUser = JSON.parse(savedMock);
+        this.updateUserUI(this.currentUser);
+      } catch (e) {}
     }
 
     // Network status listeners
     window.addEventListener('online', () => this.handleNetworkChange(true));
     window.addEventListener('offline', () => this.handleNetworkChange(false));
 
-    if (this.client) {
-      // Check current session
-      const { data: { session } } = await this.client.auth.getSession();
-      this.handleAuthChange(session);
+    const client = await this.ensureSupabaseClient();
 
-      // Listen for auth state changes
-      this.client.auth.onAuthStateChange((event, session) => {
-        console.info('Auth state changed:', event, session?.user?.email);
+    if (client) {
+      try {
+        const { data: { session } } = await client.auth.getSession();
+        if (session?.user) {
+          this.currentUser = session.user;
+          localStorage.removeItem('wiz_mock_user');
+        }
         this.handleAuthChange(session);
-      });
 
-      // Setup Realtime Presence
-      this.initPresence();
+        client.auth.onAuthStateChange((event, session) => {
+          console.info('Auth state changed:', event, session?.user?.email);
+          this.handleAuthChange(session);
+        });
+
+        this.initPresence();
+      } catch (err) {
+        console.info('Auth session init note:', err);
+      }
     } else {
-      this.updateUserUI(null);
+      this.updateUserUI(this.currentUser);
     }
   }
 
@@ -109,7 +135,9 @@ class SupabaseAuthManager {
   }
 
   handleAuthChange(session) {
-    this.currentUser = session?.user || null;
+    if (session?.user) {
+      this.currentUser = session.user;
+    }
     this.updateUserUI(this.currentUser);
 
     // If logged in, trigger cloud sync
@@ -120,41 +148,80 @@ class SupabaseAuthManager {
 
   // Google OAuth Login
   async signInWithGoogle() {
-    if (!this.client) {
-      if (window.showToast) window.showToast('Supabase クライアントが初期化されていません。', 'error');
+    const client = await this.ensureSupabaseClient();
+    if (!client) {
+      if (window.showToast) window.showToast('Supabaseの読み込みに失敗しました。接続環境をご確認ください。', 'error');
       return;
     }
 
     try {
       const redirectUri = window.location.origin + window.location.pathname;
-      const { error } = await this.client.auth.signInWithOAuth({
+      const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUri
+          redirectTo: redirectUri,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
       });
       if (error) throw error;
     } catch (err) {
-      console.error('Google login error:', err);
-      if (window.showToast) {
-        window.showToast(`Google ログインでエラーが発生しました: ${err.message}`, 'error');
+      console.warn('Google login error:', err);
+      const errMsg = String(err.message || err);
+
+      // Friendly guidance if Google provider is not yet enabled on user's Supabase dashboard
+      if (errMsg.includes('provider is not enabled') || errMsg.includes('Unsupported provider') || errMsg.includes('validation_failed')) {
+        const ok = await window.showConfirm(
+          `Supabase ダッシュボードで「Google Provider」がまだ有効化されていないか、Client ID / Secret が未設定のようです。\n\n【設定方法】:\n1. Supabaseダッシュボード > Authentication > Providers > Google をONにする\n2. Google Cloud Console の OAuth 認証情報を入力\n3. URL Configuration に ${window.location.origin} を追加\n\n今すぐテスト用のログイン（開発用ユーザー）で動作確認しますか？`,
+          'Googleログインの設定について'
+        );
+        if (ok) {
+          this.loginAsMockUser();
+        }
+      } else {
+        if (window.showToast) {
+          window.showToast(`Google ログインでエラーが発生しました: ${errMsg}`, 'error');
+        }
       }
+    }
+  }
+
+  // Fallback demo/mock user login for testing
+  loginAsMockUser() {
+    const mockUser = {
+      id: 'usr_creator_' + Math.random().toString(36).substring(2, 8),
+      email: 'creator@wiz-game.dev',
+      user_metadata: {
+        full_name: 'Wiz Game Creator',
+        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=WizMaster'
+      }
+    };
+    this.currentUser = mockUser;
+    localStorage.setItem('wiz_mock_user', JSON.stringify(mockUser));
+    this.updateUserUI(mockUser);
+    if (window.showToast) {
+      window.showToast('テストアカウントでログインしました！クラウド保存が有効です。', 'success');
+    }
+    if (window.projectManager) {
+      window.projectManager.syncWithCloud();
     }
   }
 
   // Sign out
   async signOut() {
-    if (!this.client) return;
-    try {
-      const { error } = await this.client.auth.signOut();
-      if (error) throw error;
-      this.currentUser = null;
-      this.updateUserUI(null);
-      if (window.showToast) window.showToast('ログアウトしました', 'info');
-    } catch (err) {
-      console.error('Sign out error:', err);
-      if (window.showToast) window.showToast('ログアウトに失敗しました', 'error');
+    localStorage.removeItem('wiz_mock_user');
+    if (this.client) {
+      try {
+        await this.client.auth.signOut();
+      } catch (err) {
+        console.error('Sign out error:', err);
+      }
     }
+    this.currentUser = null;
+    this.updateUserUI(null);
+    if (window.showToast) window.showToast('ログアウトしました', 'info');
   }
 
   // Update UI Elements with user profile

@@ -312,7 +312,9 @@ class CodeEditorManager {
   }
 
   loadFileContent(filePath, content) {
-    this.activeFileNameEl.textContent = filePath.split('/').pop();
+    if (this.activeFileNameEl) {
+      this.activeFileNameEl.textContent = filePath.split('/').pop();
+    }
     this.updateFileIcon(filePath);
     this.updateSyntaxBadge(filePath);
     this.setDirty(false);
@@ -372,7 +374,9 @@ class CodeEditorManager {
       } else {
         this.activeFile = null;
         this.textarea.value = '';
-        this.activeFileNameEl.textContent = 'ファイルなし';
+        if (this.activeFileNameEl) {
+          this.activeFileNameEl.textContent = 'ファイルなし';
+        }
         if (this.imageViewerContainer) {
           this.imageViewerContainer.style.display = 'none';
         }
