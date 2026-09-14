@@ -674,7 +674,7 @@ struct GameConfig {
   }
 
   // Create folder
-  createDir(dirPath) {
+  createDir(dirPath, recordHistory = false) {
     const clean = this.normalizePath(dirPath);
     if (!clean) return true;
     const parts = clean.split('/');
@@ -687,11 +687,18 @@ struct GameConfig {
       curr = curr.children[p];
     }
     this.notify();
+
+    if (recordHistory && window.userHistory) {
+      window.userHistory.recordAction({
+        type: 'folder_create',
+        path: clean
+      });
+    }
     return true;
   }
 
   // Create or update file
-  createFile(filePath, content = '') {
+  createFile(filePath, content = '', recordHistory = false) {
     const clean = this.normalizePath(filePath);
     if (!clean) return false;
     const parts = clean.split('/');
@@ -704,6 +711,9 @@ struct GameConfig {
     const dirNode = this.getNode(dirPath);
     if (!dirNode || dirNode.type !== 'dir') return false;
 
+    const isNew = !dirNode.children || !dirNode.children[fileName];
+    const oldContent = !isNew ? dirNode.children[fileName].content : null;
+
     dirNode.children[fileName] = {
       name: fileName,
       type: 'file',
@@ -712,7 +722,29 @@ struct GameConfig {
     };
 
     this.notify();
+
+    if (recordHistory && window.userHistory) {
+      if (isNew) {
+        window.userHistory.recordAction({
+          type: 'file_create',
+          path: clean,
+          content: content
+        });
+      } else {
+        window.userHistory.recordAction({
+          type: 'file_edit',
+          path: clean,
+          oldContent: oldContent,
+          newContent: content
+        });
+      }
+    }
     return true;
+  }
+
+  // Alias for writing / editing file
+  writeFile(filePath, content = '', recordHistory = false) {
+    return this.createFile(filePath, content, recordHistory);
   }
 
   // Read file content
@@ -725,15 +757,63 @@ struct GameConfig {
   }
 
   // Delete file or folder
-  delete(path) {
+  delete(path, recordHistory = false) {
     const clean = this.normalizePath(path);
     if (!clean) return false;
+    const node = this.getNode(clean);
+    if (!node) return false;
+
     const parts = clean.split('/');
     const targetName = parts.pop();
     const parentPath = parts.join('/');
     const parentNode = this.getNode(parentPath);
     if (parentNode && parentNode.children && parentNode.children[targetName]) {
+      const deletedNode = JSON.parse(JSON.stringify(parentNode.children[targetName]));
       delete parentNode.children[targetName];
+      this.notify();
+
+      if (recordHistory && window.userHistory) {
+        if (deletedNode.type === 'file') {
+          window.userHistory.recordAction({
+            type: 'file_delete',
+            path: clean,
+            content: deletedNode.content || ''
+          });
+        } else {
+          window.userHistory.recordAction({
+            type: 'folder_delete',
+            path: clean,
+            snapshot: deletedNode
+          });
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  deleteFile(filePath, recordHistory = false) {
+    return this.delete(filePath, recordHistory);
+  }
+
+  deleteFolder(folderPath, recordHistory = false) {
+    return this.delete(folderPath, recordHistory);
+  }
+
+  createFolder(folderPath, recordHistory = false) {
+    return this.createDir(folderPath, recordHistory);
+  }
+
+  restoreFolderSnapshot(folderPath, snapshot) {
+    const clean = this.normalizePath(folderPath);
+    if (!clean || !snapshot) return false;
+    const parts = clean.split('/');
+    const folderName = parts.pop();
+    const parentPath = parts.join('/');
+    if (parentPath) this.createDir(parentPath);
+    const parentNode = this.getNode(parentPath);
+    if (parentNode) {
+      parentNode.children[folderName] = JSON.parse(JSON.stringify(snapshot));
       this.notify();
       return true;
     }
@@ -741,7 +821,7 @@ struct GameConfig {
   }
 
   // Rename
-  rename(oldPath, newName) {
+  rename(oldPath, newName, recordHistory = false) {
     const clean = this.normalizePath(oldPath);
     if (!clean || !newName) return false;
     const parts = clean.split('/');
@@ -754,9 +834,25 @@ struct GameConfig {
       delete parentNode.children[oldName];
       parentNode.children[newName] = target;
       this.notify();
+
+      if (recordHistory && window.userHistory) {
+        const newFullPath = parentPath ? `${parentPath}/${newName}` : newName;
+        window.userHistory.recordAction({
+          type: 'file_rename',
+          oldPath: clean,
+          newPath: newFullPath
+        });
+      }
       return true;
     }
     return false;
+  }
+
+  renameFile(oldPath, newPath) {
+    const cleanOld = this.normalizePath(oldPath);
+    const cleanNew = this.normalizePath(newPath);
+    const newName = cleanNew.split('/').pop();
+    return this.rename(cleanOld, newName, false);
   }
 
   // List all files flat: { "path/to/file": "content" }

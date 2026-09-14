@@ -70,12 +70,45 @@ class CodeEditorManager {
   }
 
   initEvents() {
+    let editSnapshot = null;
+    let editDebounceTimer = null;
+
+    this.textarea.addEventListener('focus', () => {
+      editSnapshot = this.textarea.value;
+    });
+
     // Textarea input
     this.textarea.addEventListener('input', () => {
       this.updateLineNumbers();
       this.updateHighlighting();
       this.setDirty(true);
       window.vfs.createFile(this.activeFile, this.textarea.value);
+
+      clearTimeout(editDebounceTimer);
+      editDebounceTimer = setTimeout(() => {
+        if (editSnapshot !== null && editSnapshot !== this.textarea.value && window.userHistory) {
+          window.userHistory.recordAction({
+            type: 'file_edit',
+            path: this.activeFile,
+            oldContent: editSnapshot,
+            newContent: this.textarea.value
+          });
+          editSnapshot = this.textarea.value;
+        }
+      }, 700);
+    });
+
+    this.textarea.addEventListener('blur', () => {
+      clearTimeout(editDebounceTimer);
+      if (editSnapshot !== null && editSnapshot !== this.textarea.value && window.userHistory) {
+        window.userHistory.recordAction({
+          type: 'file_edit',
+          path: this.activeFile,
+          oldContent: editSnapshot,
+          newContent: this.textarea.value
+        });
+        editSnapshot = this.textarea.value;
+      }
     });
 
     // Sync scrolling
@@ -614,6 +647,8 @@ class CodeEditorManager {
       const fullPath = currentPath ? `${currentPath}/${name}` : name;
       const nodeRow = document.createElement('div');
       nodeRow.className = `tree-node ${item.type === 'dir' ? 'is-dir' : ''} ${fullPath === this.activeFile ? 'active' : ''}`;
+      nodeRow.setAttribute('data-node-path', fullPath);
+      nodeRow.setAttribute('data-node-type', item.type);
 
       if (item.type === 'dir') {
         nodeRow.innerHTML = `
@@ -644,8 +679,8 @@ class CodeEditorManager {
           e.stopPropagation();
           const ok = await window.showConfirm(`フォルダ "${fullPath}" とその中身を削除しますか？`, 'フォルダの削除');
           if (ok) {
-            window.vfs.delete(fullPath);
-            window.showToast(`フォルダ "${fullPath}" を削除しました`, 'info');
+            window.vfs.delete(fullPath, true);
+            window.showToast(`フォルダ "${fullPath}" を削除しました (Ctrl+Zで復元可能)`, 'info');
           }
         };
 
@@ -675,8 +710,8 @@ class CodeEditorManager {
           e.stopPropagation();
           const newName = await window.showPrompt('新しいファイル名を入力してください:', name, 'ファイル名のリネーム');
           if (newName && newName !== name) {
-            window.vfs.rename(fullPath, newName);
-            window.showToast(`ファイル名を "${newName}" に変更しました`, 'success');
+            window.vfs.rename(fullPath, newName, true);
+            window.showToast(`ファイル名を "${newName}" に変更しました (Ctrl+Zで復元可能)`, 'success');
           }
         };
 
@@ -684,9 +719,9 @@ class CodeEditorManager {
           e.stopPropagation();
           const ok = await window.showConfirm(`ファイル "${fullPath}" を削除しますか？`, 'ファイルの削除');
           if (ok) {
-            window.vfs.delete(fullPath);
+            window.vfs.delete(fullPath, true);
             this.closeTab(fullPath);
-            window.showToast(`ファイル "${fullPath}" を削除しました`, 'info');
+            window.showToast(`ファイル "${fullPath}" を削除しました (Ctrl+Zで復元可能)`, 'info');
           }
         };
 
@@ -703,17 +738,17 @@ class CodeEditorManager {
       window.showToast('同名のファイルが既に存在します。', 'warning');
       return;
     }
-    window.vfs.createFile(targetPath, '');
+    window.vfs.createFile(targetPath, '', true);
     this.openFile(targetPath);
-    window.showToast(`ファイル "${targetPath}" を作成しました`, 'success');
+    window.showToast(`ファイル "${targetPath}" を作成しました (Ctrl+Zで取消可能)`, 'success');
   }
 
   async promptCreateFolder(baseDir = '') {
     const folderName = await window.showPrompt('作成するフォルダ名を入力してください (例: sounds, assets):', '', '新規フォルダ作成');
     if (!folderName) return;
     const targetPath = baseDir ? `${baseDir}/${folderName}` : folderName;
-    window.vfs.createDir(targetPath);
-    window.showToast(`フォルダ "${targetPath}" を作成しました`, 'success');
+    window.vfs.createDir(targetPath, true);
+    window.showToast(`フォルダ "${targetPath}" を作成しました (Ctrl+Zで取消可能)`, 'success');
   }
 }
 

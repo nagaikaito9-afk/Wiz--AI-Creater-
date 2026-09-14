@@ -111,20 +111,7 @@ class AppController {
     let tempSelectedTheme = this.currentTheme;
 
     this.themeSettingsBtn?.addEventListener('click', () => {
-      tempSelectedTheme = this.currentTheme;
-      this.themeCards.forEach(card => {
-        card.classList.toggle('active', card.getAttribute('data-theme') === tempSelectedTheme);
-      });
-      if (this.autoDebugCheckbox) {
-        this.autoDebugCheckbox.checked = this.autoDebugMode;
-      }
-      if (this.crossRoomMemoryCheckbox) {
-        this.crossRoomMemoryCheckbox.checked = window.projectManager?.crossRoomMemoryEnabled || false;
-      }
-      this.previewRadios.forEach(r => {
-        r.checked = (r.value === this.previewDisplayMode);
-      });
-      if (this.themeModal) this.themeModal.style.display = 'flex';
+      this.switchPageView('settings');
     });
 
     this.closeThemeModalBtn?.addEventListener('click', () => {
@@ -1052,24 +1039,25 @@ class AppController {
   initPageViewRouting() {
     this.currentView = 'home';
 
-    // Header Navigation buttons
-    const navHome = document.getElementById('nav-btn-home');
+    // Header Navigation buttons (Home & Studio buttons removed as requested)
     const navMarket = document.getElementById('nav-btn-marketplace');
     const navProjects = document.getElementById('nav-btn-projects');
     const navFriends = document.getElementById('nav-btn-friends');
     const navSettings = document.getElementById('nav-btn-settings');
     const navTutorial = document.getElementById('nav-btn-tutorial');
-    const navStudio = document.getElementById('nav-btn-studio');
-    const brandLogo = document.getElementById('header-brand-logo');
+    const logoBtn = document.getElementById('header-logo-home-btn') || document.getElementById('header-brand-logo');
 
-    navHome?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('home'); });
     navMarket?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('marketplace'); });
     navProjects?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('projects'); });
     navFriends?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('friends'); });
     navSettings?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('settings'); });
     navTutorial?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('tutorial'); });
-    navStudio?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('studio'); });
-    brandLogo?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('home'); });
+
+    // Wiz Studio Logo click => Navigate to Home
+    logoBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.switchPageView('home');
+    });
 
     // 1P: Home view interactive shortcuts
     document.getElementById('home-friends-box-btn')?.addEventListener('click', () => this.switchPageView('friends'));
@@ -1129,38 +1117,26 @@ class AppController {
     });
     this.initTutorialEvents();
 
+    // 4P: Full-page Marketplace events
+    this.initMarketplaceEvents();
+
+    // 5P: Full-page Settings events
+    this.initFullSettingsEvents();
+
     // Default to Home View on initial launch
     this.switchPageView('home');
   }
 
   switchPageView(viewName) {
-    if (viewName === 'settings') {
-      if (this.themeModal) this.themeModal.style.display = 'flex';
-      return;
-    }
-
-    if (viewName === 'marketplace') {
-      const marketModal = document.getElementById('marketplace-modal');
-      if (marketModal) {
-        marketModal.style.display = 'flex';
-        if (window.marketplace && typeof window.marketplace.renderMarketplace === 'function') {
-          window.marketplace.renderMarketplace();
-        }
-      } else if (window.showToast) {
-        window.showToast('マーケットプレイスを開きました', 'info');
-      }
-      return;
-    }
-
     this.currentView = viewName;
 
     // Nav button active class
     const navButtons = [
-      { id: 'nav-btn-home', key: 'home' },
+      { id: 'nav-btn-marketplace', key: 'marketplace' },
       { id: 'nav-btn-projects', key: 'projects' },
       { id: 'nav-btn-friends', key: 'friends' },
-      { id: 'nav-btn-tutorial', key: 'tutorial' },
-      { id: 'nav-btn-studio', key: 'studio' }
+      { id: 'nav-btn-settings', key: 'settings' },
+      { id: 'nav-btn-tutorial', key: 'tutorial' }
     ];
 
     navButtons.forEach(btnInfo => {
@@ -1174,14 +1150,24 @@ class AppController {
     const viewHome = document.getElementById('view-home');
     const viewProjects = document.getElementById('view-projects');
     const viewFriends = document.getElementById('view-friends');
+    const viewMarketplace = document.getElementById('view-marketplace');
+    const viewSettings = document.getElementById('view-settings');
     const viewTutorial = document.getElementById('view-tutorial');
     const workspaceContainer = document.getElementById('workspace-container');
 
     if (viewHome) viewHome.style.display = (viewName === 'home') ? 'block' : 'none';
     if (viewProjects) viewProjects.style.display = (viewName === 'projects') ? 'block' : 'none';
     if (viewFriends) viewFriends.style.display = (viewName === 'friends') ? 'block' : 'none';
+    if (viewMarketplace) viewMarketplace.style.display = (viewName === 'marketplace') ? 'block' : 'none';
+    if (viewSettings) viewSettings.style.display = (viewName === 'settings') ? 'block' : 'none';
     if (viewTutorial) viewTutorial.style.display = (viewName === 'tutorial') ? 'block' : 'none';
     if (workspaceContainer) workspaceContainer.style.display = (viewName === 'studio') ? 'flex' : 'none';
+
+    // REQUIREMENT: Studio Action Buttons (Run, SoundFX, Undo, Zip, etc.) visible ONLY in Studio/Editor!
+    const studioActions = document.getElementById('header-studio-actions');
+    if (studioActions) {
+      studioActions.style.display = (viewName === 'studio') ? 'flex' : 'none';
+    }
 
     // Trigger View-specific Renderers
     if (viewName === 'home') {
@@ -1194,12 +1180,337 @@ class AppController {
       if (window.friendsManager) {
         window.friendsManager.renderFriendsPageView();
       }
+    } else if (viewName === 'marketplace') {
+      this.renderMarketplacePageView();
+    } else if (viewName === 'settings') {
+      this.renderSettingsPageView();
     } else if (viewName === 'studio') {
-      // Re-layout editor if needed
       if (window.editor) {
         window.editor.renderTree();
+        window.editor.renderTabs();
       }
     }
+  }
+
+  // ==========================================
+  // 5P: Full-page Settings Logic
+  // ==========================================
+  initFullSettingsEvents() {
+    // Theme card clicks
+    const themeCards = [
+      { id: 'settings-theme-dark', theme: 'theme-dark' },
+      { id: 'settings-theme-white', theme: 'theme-white' },
+      { id: 'settings-theme-gray', theme: 'theme-gray' }
+    ];
+
+    themeCards.forEach(tc => {
+      document.getElementById(tc.id)?.addEventListener('click', () => {
+        this.applyTheme(tc.theme);
+        themeCards.forEach(o => document.getElementById(o.id)?.classList.toggle('active', o.theme === tc.theme));
+      });
+    });
+
+    // Auto Debug checkbox
+    const autoDebugCheck = document.getElementById('full-settings-auto-debug');
+    autoDebugCheck?.addEventListener('change', (e) => {
+      this.autoDebugMode = e.target.checked;
+      localStorage.setItem('wiz_auto_debug', this.autoDebugMode);
+      this.updateAutoDebugBadge();
+      if (window.showToast) window.showToast(`自動デバッグモードを ${this.autoDebugMode ? 'ON' : 'OFF'} にしました`, 'info');
+    });
+
+    // Cross-Room Memory checkbox
+    const crossMemCheck = document.getElementById('full-settings-cross-memory');
+    crossMemCheck?.addEventListener('change', (e) => {
+      if (window.projectManager) {
+        window.projectManager.setCrossRoomMemory(e.target.checked);
+        if (window.showToast) window.showToast(`プロジェクト間メモリを ${e.target.checked ? '有効' : '無効'} にしました`, 'info');
+      }
+    });
+
+    // Preview Radios
+    document.querySelectorAll('input[name="full-preview-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.previewDisplayMode = e.target.value;
+          localStorage.setItem('wiz_preview_mode', this.previewDisplayMode);
+          if (window.showToast) window.showToast(`プレビュー方式を「${e.target.value === 'panel' ? '右側パネル' : '全画面モーダル'}」に設定しました`, 'info');
+        }
+      });
+    });
+
+    // Refresh Avatar
+    document.getElementById('full-settings-refresh-avatar-btn')?.addEventListener('click', () => {
+      const randomSeed = 'user_' + Math.random().toString(36).substring(2, 8);
+      const newAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${randomSeed}`;
+      const avatarImg = document.getElementById('full-settings-avatar-img');
+      if (avatarImg) {
+        avatarImg.src = newAvatar;
+        avatarImg.setAttribute('data-avatar-url', newAvatar);
+      }
+      if (window.showToast) window.showToast('新しいアバターを生成しました。「保存」を押して確定してください。', 'info');
+    });
+
+    // Save Profile
+    document.getElementById('full-settings-save-profile-btn')?.addEventListener('click', () => {
+      const usernameInput = document.getElementById('full-settings-username');
+      const bioInput = document.getElementById('full-settings-bio');
+      const avatarImg = document.getElementById('full-settings-avatar-img');
+
+      const updatedName = usernameInput?.value.trim() || 'Wizユーザー';
+      const updatedBio = bioInput?.value.trim() || '';
+      const updatedAvatar = avatarImg?.getAttribute('data-avatar-url') || avatarImg?.src;
+
+      if (window.supabaseAuth && window.supabaseAuth.currentUser) {
+        window.supabaseAuth.currentUser.username = updatedName;
+        window.supabaseAuth.currentUser.bio = updatedBio;
+        window.supabaseAuth.currentUser.avatar = updatedAvatar;
+        if (!window.supabaseAuth.currentUser.user_metadata) window.supabaseAuth.currentUser.user_metadata = {};
+        window.supabaseAuth.currentUser.user_metadata.full_name = updatedName;
+        window.supabaseAuth.currentUser.user_metadata.bio = updatedBio;
+        window.supabaseAuth.currentUser.user_metadata.avatar_url = updatedAvatar;
+        window.supabaseAuth.saveLocalUsers();
+      }
+
+      if (window.showToast) window.showToast('プロフィールを保存しました！', 'success');
+      this.renderHomeView();
+    });
+
+    // Export all projects
+    document.getElementById('full-settings-export-all-btn')?.addEventListener('click', () => {
+      const rooms = window.projectManager?.rooms || [];
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rooms, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `wiz_studio_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      if (window.showToast) window.showToast('全プロジェクトデータをダウンロードしました', 'success');
+    });
+
+    // Logout
+    document.getElementById('full-settings-logout-btn')?.addEventListener('click', () => {
+      if (window.supabaseAuth && typeof window.supabaseAuth.signOut === 'function') {
+        window.supabaseAuth.signOut();
+      } else {
+        window.location.reload();
+      }
+    });
+  }
+
+  renderSettingsPageView() {
+    // Theme Card Active
+    ['theme-dark', 'theme-white', 'theme-gray'].forEach(themeName => {
+      const el = document.getElementById(`settings-${themeName}`);
+      if (el) el.classList.toggle('active', this.currentTheme === themeName);
+    });
+
+    // Checkboxes
+    const autoDebugCheck = document.getElementById('full-settings-auto-debug');
+    if (autoDebugCheck) autoDebugCheck.checked = this.autoDebugMode;
+
+    const crossMemCheck = document.getElementById('full-settings-cross-memory');
+    if (crossMemCheck) crossMemCheck.checked = window.projectManager?.crossRoomMemoryEnabled || false;
+
+    // Radios
+    document.querySelectorAll('input[name="full-preview-mode"]').forEach(radio => {
+      radio.checked = (radio.value === this.previewDisplayMode);
+    });
+
+    // Profile Data
+    const currentUser = window.supabaseAuth?.currentUser;
+    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || 'wiz_user';
+    const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'Wizユーザー';
+    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || 'Wizのユーザーです。AI Game Creatorでゲームを制作しています。';
+    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+
+    const avatarEl = document.getElementById('full-settings-avatar-img');
+    const nameEl = document.getElementById('full-settings-username');
+    const idEl = document.getElementById('full-settings-userid');
+    const bioEl = document.getElementById('full-settings-bio');
+
+    if (avatarEl) avatarEl.src = avatarUrl;
+    if (nameEl) nameEl.value = username;
+    if (idEl) idEl.value = `@${userId}`;
+    if (bioEl) bioEl.value = userBio;
+  }
+
+  // ==========================================
+  // 4P: Full-page Marketplace Logic
+  // ==========================================
+  initMarketplaceEvents() {
+    // Publish current game button
+    document.getElementById('marketplace-publish-current-btn')?.addEventListener('click', async () => {
+      const activeRoom = window.projectManager?.getActiveRoom();
+      if (!activeRoom) {
+        if (window.showToast) window.showToast('公開できるプロジェクトがありません', 'warning');
+        return;
+      }
+      const title = await window.showPrompt('公開するゲームタイトルを入力してください:', activeRoom.name, 'マーケットに公開');
+      if (!title) return;
+      const desc = await window.showPrompt('ゲームの簡単な説明を入力してください:', activeRoom.rules || '面白いWebゲームです！', 'ゲーム説明');
+
+      const newMarketItem = {
+        id: 'market_' + Date.now(),
+        title: title,
+        description: desc || 'Wiz Studioで作成されたゲーム',
+        author: window.supabaseAuth?.currentUser?.username || 'Wizユーザー',
+        authorId: window.supabaseAuth?.currentUser?.userId || 'wiz_user',
+        authorAvatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${window.supabaseAuth?.currentUser?.userId || 'wiz_user'}`,
+        category: 'action',
+        plays: 1,
+        rating: 5.0,
+        createdAt: Date.now(),
+        roomId: activeRoom.id,
+        vfsRoot: activeRoom.vfsRoot
+      };
+
+      const savedMarket = JSON.parse(localStorage.getItem('wiz_custom_marketplace_items') || '[]');
+      savedMarket.unshift(newMarketItem);
+      localStorage.setItem('wiz_custom_marketplace_items', JSON.stringify(savedMarket));
+
+      if (window.showToast) window.showToast(`「${title}」をマーケットに公開しました！🎉`, 'success');
+      this.renderMarketplacePageView();
+    });
+
+    // Category chips
+    document.querySelectorAll('#marketplace-category-chips .fast-chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#marketplace-category-chips .fast-chip-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.selectedMarketCategory = btn.getAttribute('data-market-cat');
+        this.renderMarketplacePageView();
+      });
+    });
+
+    // Search input
+    document.getElementById('marketplace-search-input')?.addEventListener('input', (e) => {
+      this.marketSearchQuery = e.target.value.trim().toLowerCase();
+      this.renderMarketplacePageView();
+    });
+  }
+
+  renderMarketplacePageView() {
+    const grid = document.getElementById('marketplace-page-cards-grid');
+    if (!grid) return;
+
+    // Preset Community Games + Custom Published Games
+    const defaultGames = [
+      {
+        id: 'comm_breaker',
+        title: 'ネオン・ブロック崩し DX',
+        description: '反射角度とスピードアップを極めたサイバー調ブロック崩し！',
+        author: 'ドット勇者',
+        authorId: 'pixel_hero',
+        authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero',
+        category: 'action',
+        plays: 342,
+        rating: 4.9,
+        templateKey: 'breaker'
+      },
+      {
+        id: 'comm_clicker',
+        title: 'クリッカー・タイクーン 2026',
+        description: '自動採掘機と施設を強化して億万長者を目指す放置系クリッカー。',
+        author: '音響魔術師',
+        authorId: 'sound_mage',
+        authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sound_mage',
+        category: 'clicker',
+        plays: 512,
+        rating: 4.8,
+        templateKey: 'clicker'
+      },
+      {
+        id: 'comm_shooter',
+        title: 'ギャラクシー・ストライカー',
+        description: '怒涛の弾幕を掻い潜り敵艦隊を殲滅する縦スクロールシューター！',
+        author: 'レトロゲーマー',
+        authorId: 'retro_gamer',
+        authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=retro_gamer',
+        category: 'action',
+        plays: 289,
+        rating: 4.7,
+        templateKey: 'breaker'
+      }
+    ];
+
+    const customGames = JSON.parse(localStorage.getItem('wiz_custom_marketplace_items') || '[]');
+    let allGames = [...customGames, ...defaultGames];
+
+    // Filter by Category
+    if (this.selectedMarketCategory && this.selectedMarketCategory !== 'all') {
+      allGames = allGames.filter(g => g.category === this.selectedMarketCategory);
+    }
+
+    // Filter by Search Query
+    if (this.marketSearchQuery) {
+      allGames = allGames.filter(g => 
+        (g.title || '').toLowerCase().includes(this.marketSearchQuery) ||
+        (g.description || '').toLowerCase().includes(this.marketSearchQuery) ||
+        (g.author || '').toLowerCase().includes(this.marketSearchQuery)
+      );
+    }
+
+    if (allGames.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-muted);">
+          <div style="font-size: 2.2rem; margin-bottom: 0.6rem;"><i class="fa-solid fa-store-slash"></i></div>
+          <p>該当するゲームが見つかりませんでした。</p>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = allGames.map(game => {
+      return `
+        <div class="pdf-project-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="pdf-project-card-header">
+              <div>
+                <div class="pdf-project-title">
+                  <i class="fa-solid fa-gamepad" style="color:var(--brand-primary);"></i>
+                  <span>${this.escapeHtml(game.title)}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.3rem;">
+                  <img src="${game.authorAvatar}" style="width:20px; height:20px; border-radius:50%; background:var(--bg-secondary);" />
+                  <span style="font-size:0.78rem; color:var(--text-secondary);">${this.escapeHtml(game.author)} (@${this.escapeHtml(game.authorId)})</span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:0.8rem; font-weight:700; color:var(--brand-yellow);"><i class="fa-solid fa-star"></i> ${game.rating}</span>
+                <div style="font-size:0.72rem; color:var(--text-muted);">${game.plays} プレイ</div>
+              </div>
+            </div>
+
+            <div class="pdf-project-desc" style="margin-top:0.8rem;">
+              ${this.escapeHtml(game.description)}
+            </div>
+          </div>
+
+          <div class="pdf-project-actions" style="margin-top:1.2rem;">
+            <button class="btn btn-primary btn-sm" style="flex:1;" onclick="window.app.importMarketGame('${game.id}', '${game.templateKey || 'breaker'}')">
+              <i class="fa-solid fa-download"></i> スタジオにインポート
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.app.playMarketGame('${game.id}', '${game.templateKey || 'breaker'}')" title="今すぐプレイ">
+              <i class="fa-solid fa-play"></i> プレイ
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Import Game from Marketplace directly into user's studio
+  importMarketGame(gameId, templateKey) {
+    this.createProjectFromTemplate(templateKey);
+  }
+
+  playMarketGame(gameId, templateKey) {
+    this.createProjectFromTemplate(templateKey);
+    setTimeout(() => {
+      if (window.runner) window.runner.openFullscreenModal();
+    }, 400);
   }
 
   // Render PDF 1P Home View

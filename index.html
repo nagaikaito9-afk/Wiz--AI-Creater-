@@ -48,9 +48,6 @@
 
     <!-- PDF Navigation Menu -->
     <nav class="header-pdf-nav">
-      <button id="nav-btn-home" class="pdf-nav-link active" type="button" title="ホーム画面">
-        <span>ホーム</span>
-      </button>
       <button id="nav-btn-marketplace" class="pdf-nav-link" type="button" title="マーケット (ゲーム共有広場)">
         <span>マーケット</span>
       </button>
@@ -67,42 +64,36 @@
       <button id="nav-btn-tutorial" class="pdf-nav-link" type="button" title="チュートリアル (使い方ガイド)">
         <span>チュートリアル</span>
       </button>
-      <button id="nav-btn-studio" class="pdf-nav-link nav-studio-btn" type="button" title="Wiz開発スタジオ (コードエディタ & 実行プレビュー)">
-        <i class="fa-solid fa-code"></i> <span>スタジオ (エディタ)</span>
-      </button>
     </nav>
 
+    <!-- Header Actions (Studio specific actions visible ONLY when in Studio/Editor) -->
     <div class="header-right">
-      <button id="open-marketplace-btn" class="btn btn-ghost" title="Wiz Marketplace (コミュニティゲーム共有)">
-        <i class="fa-solid fa-store" style="color:var(--wiz-accent);"></i> <span>マーケット</span>
-      </button>
-      <button id="open-activity-btn" class="btn btn-ghost" title="Wizの操作履歴 (タイムライン)">
-        <i class="fa-solid fa-clock-rotate-left" style="color:var(--wiz-purple);"></i> <span>Wiz履歴</span>
-      </button>
+      <div id="header-studio-actions" class="studio-actions-group" style="display: none;">
+        <button id="open-activity-btn" class="btn btn-ghost" title="Wizの操作履歴 (タイムライン)">
+          <i class="fa-solid fa-clock-rotate-left" style="color:var(--wiz-purple);"></i> <span>Wiz履歴</span>
+        </button>
+        <button id="open-soundfx-btn" class="btn btn-ghost" title="8-bit レトロ効果音ジェネレーター">
+          <i class="fa-solid fa-volume-high"></i> <span>効果音作成</span>
+        </button>
+        <button id="run-project-btn" class="btn btn-primary run-btn" title="現在のプログラムを実行 (Ctrl+Enter)">
+          <i class="fa-solid fa-play"></i> <span>実行</span>
+        </button>
+        <button id="wiz-undo-btn" class="btn btn-ghost" title="Wizによる変更を元に戻す (Undo)">
+          <i class="fa-solid fa-clock-rotate-left"></i> <span>Wiz変更Undo</span>
+        </button>
+        <button id="export-zip-btn" class="btn btn-ghost" title="プロジェクトをZIPでダウンロード">
+          <i class="fa-solid fa-download"></i> <span>ZIP保存</span>
+        </button>
+        <button id="reset-project-header-btn" class="btn btn-icon" title="初期サンプルゲームにリセット">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button id="toggle-sidebar-btn" class="btn btn-icon toggle-code-btn" title="コードタブの収納/展開 (Ctrl+B)">
+          <i class="fa-solid fa-table-columns"></i>
+        </button>
+      </div>
       <button id="notification-center-btn" class="btn btn-icon notif-bell-btn" title="通知センター">
         <i class="fa-solid fa-bell"></i>
         <span id="notification-badge" class="nav-badge" style="display:none;">0</span>
-      </button>
-      <button id="open-soundfx-btn" class="btn btn-ghost" title="8-bit レトロ効果音ジェネレーター">
-        <i class="fa-solid fa-volume-high"></i> <span>効果音作成</span>
-      </button>
-      <button id="run-project-btn" class="btn btn-primary run-btn" title="現在のプログラムを実行 (Ctrl+Enter)">
-        <i class="fa-solid fa-play"></i> <span>実行</span>
-      </button>
-      <button id="wiz-undo-btn" class="btn btn-ghost" title="Wizによる変更を元に戻す (Undo)">
-        <i class="fa-solid fa-clock-rotate-left"></i> <span>Wiz変更Undo</span>
-      </button>
-      <button id="export-zip-btn" class="btn btn-ghost" title="プロジェクトをZIPでダウンロード">
-        <i class="fa-solid fa-download"></i> <span>ZIP保存</span>
-      </button>
-      <button id="theme-settings-btn" class="btn btn-icon" title="設定 (一般 / 通知 / アカウント・セキュリティ / プロフィール)">
-        <i class="fa-solid fa-sliders"></i>
-      </button>
-      <button id="reset-project-header-btn" class="btn btn-icon" title="初期サンプルゲームにリセット">
-        <i class="fa-solid fa-rotate-left"></i>
-      </button>
-      <button id="toggle-sidebar-btn" class="btn btn-icon toggle-code-btn" title="コードタブの収納/展開 (Ctrl+B)">
-        <i class="fa-solid fa-table-columns"></i>
       </button>
     </div>
   </header>
@@ -353,11 +344,178 @@
     </div>
   </section>
 
+  <!-- 4P: MARKETPLACE VIEW (フルページ: ゲーム共有広場) -->
+  <section id="view-marketplace" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content">
+      <div class="block-header-row">
+        <div>
+          <h1 class="pdf-page-title"><i class="fa-solid fa-store" style="color:var(--brand-primary); margin-right:0.5rem;"></i>マーケット</h1>
+          <span class="pdf-block-desc">世界中のクリエイターが制作したWebゲームを遊んだり、スタジオへ直接インポートできます</span>
+        </div>
+        <div class="block-tools-row">
+          <button id="marketplace-publish-current-btn" class="btn btn-primary" type="button">
+            <i class="fa-solid fa-cloud-arrow-up"></i> <span>現在のゲームを公開</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Marketplace Filter & Search Bar -->
+      <div class="pdf-friend-add-bar" style="margin-bottom: 1.5rem;">
+        <div class="pdf-search-wrap flex-grow">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="marketplace-search-input" placeholder="ゲーム名、作者、タグで検索..." class="pdf-search-input">
+        </div>
+        <div class="fast-start-chips" id="marketplace-category-chips" style="margin-top:0;">
+          <button class="fast-chip-btn active" data-market-cat="all">すべて</button>
+          <button class="fast-chip-btn" data-market-cat="action">アクション</button>
+          <button class="fast-chip-btn" data-market-cat="puzzle">パズル</button>
+          <button class="fast-chip-btn" data-market-cat="retro">レトロ</button>
+          <button class="fast-chip-btn" data-market-cat="rpg">RPG</button>
+          <button class="fast-chip-btn" data-market-cat="clicker">クリッカー</button>
+        </div>
+      </div>
+
+      <!-- Marketplace Games Grid -->
+      <div id="marketplace-page-cards-grid" class="pdf-cards-grid">
+        <!-- Dynamically populated by marketplace.js / app.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 5P: SETTINGS VIEW (フルページ: 設定) -->
+  <section id="view-settings" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content" style="max-width: 960px;">
+      <div class="block-header-row">
+        <div>
+          <h1 class="pdf-page-title"><i class="fa-solid fa-sliders" style="color:var(--brand-primary); margin-right:0.5rem;"></i>設定</h1>
+          <span class="pdf-block-desc">Google統一デザインテーマ、AI動作、プロフィール、アカウントの設定</span>
+        </div>
+      </div>
+
+      <!-- Settings Block 1: Theme Settings -->
+      <div class="settings-card-group">
+        <h2 class="settings-group-title"><i class="fa-solid fa-palette"></i> 外観・テーマ設定 (Googleデザイン準拠)</h2>
+        <div class="theme-selection-grid">
+          <div class="theme-card active" data-theme="theme-dark" id="settings-theme-dark">
+            <div class="theme-color-preview preview-dark"></div>
+            <div class="theme-card-info">
+              <strong>Google ダーク</strong>
+              <span>#202124 落ち着いた開発用ダークテーマ</span>
+            </div>
+          </div>
+          <div class="theme-card" data-theme="theme-white" id="settings-theme-white">
+            <div class="theme-color-preview preview-white"></div>
+            <div class="theme-card-info">
+              <strong>Google ホワイト</strong>
+              <span>#ffffff 明るくクリアな標準ホワイトテーマ</span>
+            </div>
+          </div>
+          <div class="theme-card" data-theme="theme-gray" id="settings-theme-gray">
+            <div class="theme-color-preview preview-gray"></div>
+            <div class="theme-card-info">
+              <strong>Google グレー</strong>
+              <span>#2f3336 目に優しいニュートラルグレー</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Block 2: AI & Studio Development Settings -->
+      <div class="settings-card-group" style="margin-top: 2rem;">
+        <h2 class="settings-group-title"><i class="fa-solid fa-wand-magic-sparkles"></i> AI & 開発アシスタント設定</h2>
+        
+        <div class="settings-item-row">
+          <div class="settings-item-text">
+            <strong>自動デバッグモード</strong>
+            <span>プログラム実行時にJavaScriptエラーを検知すると、Wizが自動でコードを解析して自己修復します。</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="full-settings-auto-debug">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-item-row">
+          <div class="settings-item-text">
+            <strong>プロジェクト間メモリ (Cross-Room Memory)</strong>
+            <span>他のプロジェクト部屋で得たコードパターンやルールをWizが学習し、全部屋で知識を共有します。</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="full-settings-cross-memory">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-item-row">
+          <div class="settings-item-text">
+            <strong>プレビュー表示方式</strong>
+            <span>「実行」ボタンを押したときのゲーム表示画面を選択します。</span>
+          </div>
+          <div style="display: flex; gap: 1rem;">
+            <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
+              <input type="radio" name="full-preview-mode" value="panel" checked> 右側パネル
+            </label>
+            <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
+              <input type="radio" name="full-preview-mode" value="modal"> 全画面モーダル
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Block 3: Profile Settings -->
+      <div class="settings-card-group" style="margin-top: 2rem;">
+        <h2 class="settings-group-title"><i class="fa-solid fa-user-gear"></i> プロフィール設定</h2>
+        <div style="display: flex; gap: 1.5rem; align-items: flex-start; margin-top: 1rem;">
+          <div style="text-align: center;">
+            <img id="full-settings-avatar-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--border-color); background: var(--bg-secondary); margin-bottom: 0.5rem;" />
+            <div>
+              <button class="btn btn-secondary btn-sm" id="full-settings-refresh-avatar-btn" type="button" style="font-size:0.75rem;">
+                <i class="fa-solid fa-shuffle"></i> アバター変更
+              </button>
+            </div>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label class="setting-label">表示名 (ユーザー名)</label>
+              <input type="text" id="full-settings-username" class="form-input" placeholder="Wizユーザー">
+            </div>
+            <div>
+              <label class="setting-label">ユーザーID (@ID)</label>
+              <input type="text" id="full-settings-userid" class="form-input" placeholder="wiz_user" readonly style="opacity: 0.7; cursor: not-allowed;">
+            </div>
+            <div>
+              <label class="setting-label">自己紹介・プロフィール</label>
+              <textarea id="full-settings-bio" class="form-input" rows="3" placeholder="Wiz AI Game Creatorでゲームを制作しています。"></textarea>
+            </div>
+            <div>
+              <button class="btn btn-primary" id="full-settings-save-profile-btn" type="button">
+                <i class="fa-solid fa-floppy-disk"></i> プロフィールを保存
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Block 4: Data & Account Management -->
+      <div class="settings-card-group" style="margin-top: 2rem; margin-bottom: 3rem;">
+        <h2 class="settings-group-title"><i class="fa-solid fa-shield-halved"></i> データ & アカウント</h2>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+          <button class="btn btn-secondary" id="full-settings-export-all-btn" type="button">
+            <i class="fa-solid fa-file-export"></i> 全プロジェクトデータをエクスポート
+          </button>
+          <button class="btn btn-danger" id="full-settings-logout-btn" type="button">
+            <i class="fa-solid fa-right-from-bracket"></i> ログアウト
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Main Workspace Layout -->
   <div class="workspace-container" id="workspace-container">
     
-    <!-- LEFTMOST PANEL: Project / Rooms & Friends Sidebar -->
-    <aside class="project-sidebar" id="project-sidebar">
+    <!-- LEFTMOST PANEL: Project / Rooms & Friends Sidebar (Collapsed by default for clean 2-column layout: Left Chat, Right Code/Preview/Logs) -->
+    <aside class="project-sidebar collapsed" id="project-sidebar">
       <!-- Top Tab Switcher: Projects vs Friends -->
       <div class="sidebar-tab-switcher">
         <button id="sidebar-tab-projects" class="sidebar-nav-tab active" type="button">
@@ -1699,11 +1857,19 @@
     </div>
   </div>
 
+  <!-- Global Custom Context Menu (Google Unified Theme Style) -->
+  <div id="custom-context-menu" class="google-context-menu" style="display: none;">
+    <ul class="context-menu-list" id="context-menu-items">
+      <!-- Dynamically populated based on right-click target -->
+    </ul>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/dialog.js"></script>
   <script src="js/fileSystem.js"></script>
+  <script src="js/userHistory.js"></script>
   <script src="js/imageGenerator.js"></script>
   <script src="js/soundFx.js"></script>
   <script src="js/runner.js"></script>
@@ -1717,6 +1883,7 @@
   <script src="js/marketplace.js"></script>
   <script src="js/wiz.js"></script>
   <script src="js/agentActions.js"></script>
+  <script src="js/contextMenu.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -4873,3 +4873,250 @@ body.theme-white .pdf-nav-link.active {
   }
 }
 
+/* ==========================================================================
+   Header Studio Actions Group
+   Visible ONLY when in Studio (Editor)
+   ========================================================================== */
+.studio-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ==========================================================================
+   5P: Settings Full-Page View Styles (Google Design System)
+   ========================================================================== */
+.settings-card-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: 16px;
+  padding: 1.8rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.settings-group-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.settings-group-title i {
+  color: var(--brand-primary);
+}
+
+.theme-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+}
+
+.settings-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.settings-item-row:last-child {
+  border-bottom: none;
+}
+.settings-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 75%;
+}
+.settings-item-text strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+.settings-item-text span {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Toggle Switch (Google Material Style) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  transition: .3s;
+  border-radius: 24px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--text-secondary);
+  transition: .3s;
+  border-radius: 50%;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+  background-color: #ffffff;
+}
+
+/* ==========================================================================
+   Google Unified Theme Style Context Menu (Site-wide Right-Click)
+   ========================================================================== */
+.google-context-menu {
+  position: fixed;
+  z-index: 100000;
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 6px 0;
+  min-width: 220px;
+  max-width: 320px;
+  font-family: inherit;
+  user-select: none;
+  animation: contextMenuFadeIn 0.12s cubic-bezier(0, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+@keyframes contextMenuFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.context-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.context-menu-item i {
+  width: 16px;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  transition: color 0.12s ease;
+}
+
+.context-menu-item:hover {
+  background: var(--bg-hover);
+  color: var(--brand-primary);
+}
+.context-menu-item:hover i {
+  color: var(--brand-primary);
+}
+
+.context-menu-item.danger:hover {
+  background: rgba(234, 67, 53, 0.15);
+  color: var(--brand-red);
+}
+.context-menu-item.danger:hover i {
+  color: var(--brand-red);
+}
+
+.context-menu-shortcut {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: var(--border-medium);
+  margin: 5px 0;
+}
+
+.context-menu-header {
+  padding: 4px 16px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   2-Column Editor Layout & Sidebar Collapsing
+   Left: Wiz AI Chat / Right: Code, Preview, Logs
+   ========================================================================== */
+.project-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-medium);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 40;
+}
+
+.project-sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  display: none !important;
+  overflow: hidden;
+}
+
+.chat-section {
+  flex: 1;
+  min-width: 320px;
+}
+
+.split-resizer {
+  width: 6px;
+  background: var(--border-subtle);
+  cursor: col-resize;
+  transition: background 0.15s ease;
+  z-index: 10;
+}
+.split-resizer:hover,
+.split-resizer.resizing {
+  background: var(--brand-primary);
+  box-shadow: 0 0 8px rgba(26, 115, 232, 0.5);
+}
+
+.editor-section {
+  flex: 1.2;
+  min-width: 380px;
+}
+
+/* Polished Google Design for View Tabs (Code, Preview, Logs) */
+.view-tab-btn.active {
+  background: var(--brand-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+
+
