@@ -46,6 +46,34 @@ class ProjectManager {
   init() {
     this.loadRooms();
     this.bindDomElements();
+    this.syncActiveRoomVFS();
+  }
+
+  // Synchronize VFS with currently active room on startup
+  syncActiveRoomVFS() {
+    const active = this.getActiveRoom();
+    if (active && window.vfs) {
+      window.vfs.setCurrentRoom(active.id, active.vfsRoot, active.name);
+      active.vfsRoot = JSON.parse(JSON.stringify(window.vfs.root));
+      this.saveRooms();
+      if (window.editor) {
+        window.editor.renderTree();
+        window.editor.openFile('index.html');
+      }
+    }
+  }
+
+  // Real-time synchronization callback from VFS
+  syncVfsToActiveRoom(vfsRoot) {
+    const curr = this.getActiveRoom();
+    if (!curr || !vfsRoot) return;
+    curr.vfsRoot = JSON.parse(JSON.stringify(vfsRoot));
+    curr.updatedAt = Date.now();
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.rooms));
+    } catch (e) {
+      console.warn('LocalStorage save failed in syncVfsToActiveRoom:', e);
+    }
   }
 
   bindDomElements() {
@@ -284,13 +312,18 @@ class ProjectManager {
 
     this.rooms.unshift(newRoom);
     this.activeRoomId = newId;
-    this.saveRooms();
 
-    // Reset VFS to fresh template for new room
+    // Initialize completely independent VFS specifically for this new room
     if (window.vfs) {
-      window.vfs.resetToDefault();
+      window.vfs.setCurrentRoom(newId, null, newRoom.name);
       newRoom.vfsRoot = JSON.parse(JSON.stringify(window.vfs.root));
+      if (window.editor) {
+        window.editor.renderTree();
+        window.editor.openFile('index.html');
+      }
     }
+
+    this.saveRooms();
 
     // Reset Chat messages
     if (window.app) {
@@ -331,11 +364,11 @@ class ProjectManager {
     this.activeRoomId = roomId;
     this.saveRooms();
 
-    // Restore VFS
-    if (target.vfsRoot && window.vfs) {
-      window.vfs.root = JSON.parse(JSON.stringify(target.vfsRoot));
-      window.vfs.save();
-      window.vfs.notify();
+    // Restore isolated VFS for target room
+    if (window.vfs) {
+      window.vfs.setCurrentRoom(target.id, target.vfsRoot, target.name);
+      target.vfsRoot = JSON.parse(JSON.stringify(window.vfs.root));
+      this.saveRooms();
       if (window.editor) {
         window.editor.renderTree();
         window.editor.openFile('index.html');
@@ -374,6 +407,7 @@ class ProjectManager {
 
     if (window.vfs) {
       curr.vfsRoot = JSON.parse(JSON.stringify(window.vfs.root));
+      window.vfs.save();
     }
     if (window.app) {
       curr.chatHistory = window.app.exportChatHistory();
@@ -1068,6 +1102,7 @@ class ProjectManager {
     this.saveRooms();
     this.renderTeamModal();
     this.renderRoomsList();
+    this.renderProjectsView();
     if (window.showToast) window.showToast(`@${userId} さんをチームから削除しました`, 'info');
   }
 
@@ -1089,6 +1124,7 @@ class ProjectManager {
     this.saveRooms();
     this.renderTeamModal();
     this.renderRoomsList();
+    this.renderProjectsView();
     const roleName = role === 'editor' ? '編集者' : '観覧者';
     if (window.showToast) {
       window.showToast(`@${userId} さんの参加申請を「${roleName}」として承認しました！`, 'success');
@@ -1105,6 +1141,306 @@ class ProjectManager {
     if (window.showToast) window.showToast(`@${userId} さんの参加申請を却下しました`, 'info');
   }
 
+  // Clone a project room
+  cloneRoom(roomId) {
+    const sourceRoom = this.rooms.find(r => r.id === roomId);
+    if (!sourceRoom) return;
+
+    const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
+    const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
+    const newRoomId = 'room_' + Date.now();
+    const newRoomName = `${sourceRoom.name} (コピー)`;
+
+    // Deep clone VFS data
+    let clonedVfs = null;
+    if (sourceRoom.vfsRoot) {
+      clonedVfs = JSON.parse(JSON.stringify(sourceRoom.vfsRoot));
+    } else {
+      // Try reading room-specific vfs storage
+      const vfsRaw = localStorage.getItem(`wiz_vfs_room_${roomId}`);
+      if (vfsRaw) {
+        try {
+          clonedVfs = JSON.parse(vfsRaw);
+        } catch (e) {}
+      }
+    }
+
+    if (!clonedVfs && window.vfs) {
+      clonedVfs = JSON.parse(JSON.stringify(window.vfs.root));
+    }
+
+    // Save cloned VFS into new room key
+    if (clonedVfs) {
+      try {
+        localStorage.setItem(`wiz_vfs_room_${newRoomId}`, JSON.stringify(clonedVfs));
+      } catch (e) {
+        console.warn('Failed to persist cloned vfs:', e);
+      }
+    }
+
+    const clonedRoom = {
+      id: newRoomId,
+      name: newRoomName,
+      rules: sourceRoom.rules || '',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      chatHistory: [],
+      ownerId: myId,
+      ownerUsername: myName,
+      team: [
+        { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
+      ],
+      pendingInvites: [],
+      joinRequests: [],
+      vfsRoot: clonedVfs
+    };
+
+    this.rooms.unshift(clonedRoom);
+    this.saveRooms();
+    this.renderRoomsList();
+    this.renderProjectsView();
+
+    if (window.showToast) {
+      window.showToast(`プロジェクト「${newRoomName}」として複製しました！`, 'success');
+    }
+  }
+
+  // Render PDF 2P Style Projects View
+  renderProjectsView() {
+    const myProjectsGrid = document.getElementById('my-projects-cards-grid');
+    const sharedProjectsGrid = document.getElementById('shared-projects-cards-grid');
+    if (!myProjectsGrid) return;
+
+    const myId = (window.supabaseAuth?.currentUser?.userId || 'wiz_creator').toLowerCase();
+
+    // Separate My Projects and Shared Projects
+    const myProjects = [];
+    const sharedProjects = [];
+
+    this.rooms.forEach(room => {
+      const isOwner = (room.ownerId || 'wiz_creator').toLowerCase() === myId;
+      const isTeamMember = (room.team || []).some(m => (m.userId || '').toLowerCase() === myId);
+
+      // If owner or only member, it's my project. If owner and has other members, or not owner but in team, it's shared
+      const otherMembers = (room.team || []).filter(m => (m.userId || '').toLowerCase() !== myId);
+      if (otherMembers.length > 0 || !isOwner) {
+        sharedProjects.push(room);
+      } else {
+        myProjects.push(room);
+      }
+    });
+
+    // Render My Projects Grid
+    if (myProjects.length === 0) {
+      myProjectsGrid.innerHTML = `
+        <div style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:12px;">
+          <p style="margin-bottom:1rem;">プロジェクトがまだありません。</p>
+          <button class="btn btn-primary" onclick="window.projectManager.promptCreateNewRoom()">
+            <i class="fa-solid fa-plus"></i> 新規プロジェクトを作成
+          </button>
+        </div>
+      `;
+    } else {
+      myProjectsGrid.innerHTML = myProjects.map(room => this.buildPdfProjectCardHtml(room, false)).join('');
+    }
+
+    // Render Shared Projects Grid
+    if (sharedProjectsGrid) {
+      if (sharedProjects.length === 0) {
+        // Provide friendly prompt
+        sharedProjectsGrid.innerHTML = `
+          <div style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:12px;">
+            <p style="margin-bottom:0.8rem;">現在、共同プロジェクトはありません。</p>
+            <p style="font-size:0.85rem;">プロジェクトの「チーム」メニューからフレンドを招待して共同開発を始めましょう！</p>
+          </div>
+        `;
+      } else {
+        sharedProjectsGrid.innerHTML = sharedProjects.map(room => this.buildPdfProjectCardHtml(room, true)).join('');
+      }
+    }
+  }
+
+  buildPdfProjectCardHtml(room, isShared) {
+    const formattedDate = new Date(room.createdAt || Date.now()).toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const isActive = room.id === this.activeRoomId;
+    const desc = room.rules ? room.rules.replace(/\n/g, ' ') : 'Wiz AI Game Creator プロジェクト';
+    const truncatedDesc = desc.length > 60 ? desc.substring(0, 60) + '...' : desc;
+
+    // Team members HTML for shared projects
+    let teamHtml = '';
+    if (isShared && room.team && room.team.length > 0) {
+      const avatars = room.team.map(m => {
+        const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userId}`;
+        return `
+          <img src="${avatarUrl}" title="${this.escapeHtml(m.username)} (@${m.userId}) - ${m.role}"
+               style="width:28px; height:28px; border-radius:50%; border:2px solid var(--border-color); background:var(--bg-secondary); object-fit:cover;" />
+        `;
+      }).join('');
+
+      teamHtml = `
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; padding-top:0.6rem; border-top:1px solid var(--border-color);">
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">チーム:</span>
+          <div style="display:flex; align-items:center; gap:0.3rem;">${avatars}</div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="pdf-project-card ${isActive ? 'active' : ''}" data-room-id="${room.id}">
+        <div class="pdf-project-card-header">
+          <div>
+            <div class="pdf-project-title">
+              <i class="fa-solid fa-gamepad" style="color:var(--brand-primary); font-size:1.05rem;"></i>
+              <span>${this.escapeHtml(room.name)}</span>
+              ${isActive ? '<span style="font-size:0.7rem; background:rgba(26,115,232,0.15); color:var(--brand-primary); padding:2px 8px; border-radius:12px; font-weight:700;">現在アクティブ</span>' : ''}
+            </div>
+            <div class="pdf-project-meta">作成日時: ${formattedDate}</div>
+          </div>
+          <div style="display:flex; gap:0.4rem;">
+            <button class="btn btn-ghost btn-sm" title="複製 (クローン)" onclick="window.projectManager.cloneRoom('${room.id}')">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+            <button class="btn btn-ghost btn-sm" title="削除" onclick="window.projectManager.deleteRoom('${room.id}', event)">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="pdf-project-desc">
+          ${this.escapeHtml(truncatedDesc)}
+        </div>
+
+        <!-- PDF Specification: <実行ビュー> Preview Section -->
+        <div class="pdf-project-preview-box" id="preview-box-${room.id}">
+          <div class="pdf-project-preview-placeholder" id="placeholder-${room.id}">
+            <div style="font-size:1.6rem; margin-bottom:0.4rem; color:var(--brand-primary);"><i class="fa-solid fa-play"></i></div>
+            <div style="font-weight:700; font-size:0.95rem; margin-bottom:0.2rem;">&lt;実行ビュー&gt;</div>
+            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.6rem;">クリックしてこのカード内で即座にゲームを実行</div>
+            <button class="btn btn-secondary btn-sm" onclick="window.projectManager.runCardPreview('${room.id}', event)">
+              <i class="fa-solid fa-play"></i> プレビュー起動
+            </button>
+          </div>
+          <iframe class="pdf-project-preview-iframe" id="iframe-${room.id}" sandbox="allow-scripts allow-modals" style="display:none; width:100%; height:100%; border:none; border-radius:6px; background:#000;"></iframe>
+        </div>
+
+        ${teamHtml}
+
+        <div class="pdf-project-actions">
+          <button class="btn btn-primary btn-sm" style="flex:1;" onclick="window.projectManager.openInStudio('${room.id}')">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> スタジオで開く
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="window.projectManager.openInFullscreen('${room.id}')" title="全画面でプレイ">
+            <i class="fa-solid fa-expand"></i> 全画面プレイ
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Run mini game preview inside the card's `<実行ビュー>` box
+  runCardPreview(roomId, event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const room = this.rooms.find(r => r.id === roomId);
+    if (!room) return;
+
+    const placeholder = document.getElementById(`placeholder-${roomId}`);
+    const iframe = document.getElementById(`iframe-${roomId}`);
+    if (!iframe) return;
+
+    // Retrieve VFS bundle for this room
+    let vfsData = room.vfsRoot;
+    if (!vfsData) {
+      const raw = localStorage.getItem(`wiz_vfs_room_${roomId}`);
+      if (raw) {
+        try { vfsData = JSON.parse(raw); } catch (e) {}
+      }
+    }
+    if (!vfsData && room.id === this.activeRoomId && window.vfs) {
+      vfsData = window.vfs.root;
+    }
+
+    if (!vfsData) {
+      if (window.showToast) window.showToast('プロジェクトのコードを読み込めませんでした。', 'warning');
+      return;
+    }
+
+    // Build HTML bundle using vfs helper if available or standalone bundle
+    let htmlContent = '';
+    const findFile = (node, pathParts) => {
+      if (!node) return null;
+      if (pathParts.length === 1) {
+        return node.children ? node.children[pathParts[0]] : null;
+      }
+      const dir = node.children ? node.children[pathParts[0]] : null;
+      if (dir && dir.type === 'directory') {
+        return findFile(dir, pathParts.slice(1));
+      }
+      return null;
+    };
+
+    const indexHtmlNode = findFile(vfsData, ['index.html']);
+    if (indexHtmlNode && indexHtmlNode.content) {
+      let fullHtml = indexHtmlNode.content;
+
+      // Inline styles.css
+      const cssNode = findFile(vfsData, ['css', 'style.css']) || findFile(vfsData, ['style.css']);
+      if (cssNode && cssNode.content) {
+        fullHtml = fullHtml.replace(/<link[^>]+rel=["']stylesheet["'][^>]*>/i, `<style>${cssNode.content}</style>`);
+      }
+
+      // Inline game.js
+      const jsNode = findFile(vfsData, ['js', 'game.js']) || findFile(vfsData, ['game.js']);
+      if (jsNode && jsNode.content) {
+        fullHtml = fullHtml.replace(/<script[^>]+src=["'][^"']*game\.js["'][^>]*><\/script>/i, `<script>${jsNode.content}<\/script>`);
+      }
+
+      htmlContent = fullHtml;
+    } else {
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <body style="margin:0; background:#111; color:#fff; display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif;">
+          <div style="text-align:center;">
+            <h3>${this.escapeHtml(room.name)}</h3>
+            <p style="color:#aaa;">ゲームプログラムを読み込んでいます...</p>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+
+    if (placeholder) placeholder.style.display = 'none';
+    iframe.style.display = 'block';
+    iframe.srcdoc = htmlContent;
+
+    if (window.showToast) {
+      window.showToast(`「${room.name}」の実行プレビューを開始しました`, 'info');
+    }
+  }
+
+  // Switch to room and open Studio View
+  openInStudio(roomId) {
+    this.switchRoom(roomId);
+    if (window.app && typeof window.app.switchPageView === 'function') {
+      window.app.switchPageView('studio');
+    }
+  }
+
+  // Open game in fullscreen player modal
+  openInFullscreen(roomId) {
+    this.switchRoom(roomId);
+    if (window.runner) {
+      window.runner.openFullscreenModal();
+    }
+  }
+
   setCrossRoomMemory(enabled) {
     this.crossRoomMemoryEnabled = Boolean(enabled);
     localStorage.setItem(this.crossMemoryKey, this.crossRoomMemoryEnabled);
@@ -1113,6 +1449,7 @@ class ProjectManager {
   syncWithCloud() {
     this.saveRooms();
     this.renderRoomsList();
+    this.renderProjectsView();
   }
 
   resetForUser(userId) {
@@ -1120,6 +1457,7 @@ class ProjectManager {
     this.activeRoomId = null;
     this.saveRooms();
     this.renderRoomsList();
+    this.renderProjectsView();
     this.updateActiveRoomHeader();
   }
 
@@ -1135,3 +1473,4 @@ class ProjectManager {
 
 // Global initialization
 window.projectManager = new ProjectManager();
+

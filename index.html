@@ -38,32 +38,39 @@
     <!-- Top Navigation Header -->
     <header class="app-header">
     <div class="header-left">
-      <div class="brand">
-        <div class="brand-avatar">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span class="online-indicator"></span>
-        </div>
+      <div class="brand brand-pdf-style" id="header-logo-home-btn" style="cursor: pointer;" title="Wiz Studio ホーム画面">
         <div class="brand-text">
-          <span class="brand-title">Wiz <span class="badge">Studio</span></span>
-          <span class="brand-subtitle">AI Game Creator</span>
+          <span class="brand-sub-badge">AI Game Creater</span>
+          <span class="brand-title"><span class="brand-wiz-blue">Wiz</span> <span class="brand-studio-purple">Studio</span></span>
         </div>
       </div>
-      <button id="header-home-btn" class="btn btn-ghost header-home-link-btn" title="ホーム画面（ダッシュボード）を表示" type="button">
-        <i class="fa-solid fa-house"></i> <span>ホーム</span>
-      </button>
     </div>
 
-    <!-- Mode Selector & Controls -->
-    <div class="header-center">
-      <div class="mode-toggle-group">
-        <button id="mode-chat-btn" class="mode-btn active" title="雑談・相談・企画アイデア出し">
-          <i class="fa-regular fa-comments"></i> 通常会話モード
-        </button>
-        <button id="mode-code-btn" class="mode-btn" title="コード生成・ファイル自動作成・編集">
-          <i class="fa-solid fa-code"></i> プログラム作成モード
-        </button>
-      </div>
-    </div>
+    <!-- PDF Navigation Menu -->
+    <nav class="header-pdf-nav">
+      <button id="nav-btn-home" class="pdf-nav-link active" type="button" title="ホーム画面">
+        <span>ホーム</span>
+      </button>
+      <button id="nav-btn-marketplace" class="pdf-nav-link" type="button" title="マーケット (ゲーム共有広場)">
+        <span>マーケット</span>
+      </button>
+      <button id="nav-btn-projects" class="pdf-nav-link" type="button" title="プロジェクト (マイプロジェクト & 共同プロジェクト)">
+        <span>プロジェクト</span>
+      </button>
+      <button id="nav-btn-friends" class="pdf-nav-link" type="button" title="フレンド (フレンド一覧 & 共同プロジェクト)">
+        <span>フレンド</span>
+        <span id="nav-friends-badge" class="nav-badge" style="display:none;">0</span>
+      </button>
+      <button id="nav-btn-settings" class="pdf-nav-link" type="button" title="設定 (テーマ・通知・アカウント)">
+        <span>設定</span>
+      </button>
+      <button id="nav-btn-tutorial" class="pdf-nav-link" type="button" title="チュートリアル (使い方ガイド)">
+        <span>チュートリアル</span>
+      </button>
+      <button id="nav-btn-studio" class="pdf-nav-link nav-studio-btn" type="button" title="Wiz開発スタジオ (コードエディタ & 実行プレビュー)">
+        <i class="fa-solid fa-code"></i> <span>スタジオ (エディタ)</span>
+      </button>
+    </nav>
 
     <div class="header-right">
       <button id="open-marketplace-btn" class="btn btn-ghost" title="Wiz Marketplace (コミュニティゲーム共有)">
@@ -100,122 +107,251 @@
     </div>
   </header>
 
-  <!-- HOME DASHBOARD (ホームページ・ダッシュボード) -->
-  <div id="wiz-home-dashboard" class="home-dashboard-container" style="display: none;">
-    <div class="home-dashboard-content">
+  <!-- ==========================================================================
+       PAGE VIEWS CONTAINER (PDF-Style Unified Navigation: Home, Projects, Friends, Tutorial)
+       ========================================================================== -->
+
+  <!-- 1P: HOME VIEW (ホーム画面) -->
+  <section id="view-home" class="pdf-page-view" style="display: block;">
+    <div class="pdf-view-content">
       
-      <!-- Hero Welcome Banner -->
-      <div class="home-hero-banner">
-        <div class="hero-badge"><i class="fa-solid fa-sparkles"></i> 次世代 AI ゲームクリエイターへようこそ</div>
-        <h1 class="hero-title">ようこそ、<span id="home-welcome-username" class="gradient-text">クリエイター</span> さん！</h1>
-        <div class="hero-user-tag"><span id="home-welcome-userid">@creator</span></div>
-        <p class="hero-description">
-          Wiz AI Studio は、AI賢者Wizと会話しながらオリジナルのWebゲームやPythonゲームを作れるスタジオです。<br>
-          まずは気になるメニューからゲーム制作を始めてみましょう！
-        </p>
-        <div class="hero-actions-row">
-          <button id="home-hero-create-btn" class="btn btn-primary btn-lg" type="button">
-            <i class="fa-solid fa-plus"></i> <span>新しいゲームを作る</span>
-          </button>
-          <button id="home-hero-chat-btn" class="btn btn-secondary btn-lg" type="button">
-            <i class="fa-solid fa-comments"></i> <span>Wizとアイデアを相談する</span>
-          </button>
+      <!-- Top: User Profile Card (PDF 1P Layout: 4 Columns with vertical dividers) -->
+      <div class="pdf-user-card">
+        <!-- Col 1: Account Avatar & Info -->
+        <div class="user-card-col col-account">
+          <div class="account-avatar-wrap">
+            <img id="home-user-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator" alt="Avatar" class="account-avatar-img">
+            <span class="user-online-pip"></span>
+          </div>
+          <div class="account-details">
+            <div class="account-name-row">
+              <span id="home-user-name" class="account-name">Wizユーザー</span>
+              <span id="home-user-id" class="account-id">@wiz_user</span>
+            </div>
+            <div class="account-bio-row">
+              <span class="bio-label">プロフィール</span>
+              <p id="home-user-bio" class="account-bio">Wizのユーザーです。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-card-divider"></div>
+
+        <!-- Col 2: Friends Count -->
+        <div class="user-card-col col-friends" id="home-friends-box-btn" style="cursor: pointer;" title="フレンド画面を開く">
+          <div class="stat-header-text">フレンド</div>
+          <div class="stat-number-row">
+            <span id="home-friends-count" class="stat-number">0</span><span class="stat-unit">人</span>
+          </div>
+          <div class="stat-sub-text" id="home-friends-online-desc">オンライン: 0人</div>
+        </div>
+
+        <div class="user-card-divider"></div>
+
+        <!-- Col 3: Projects Count & Active Project Preview -->
+        <div class="user-card-col col-projects" id="home-projects-box-btn" style="cursor: pointer;" title="プロジェクト画面を開く">
+          <div class="stat-header-text">プロジェクト数</div>
+          <div class="stat-number-row">
+            <span id="home-projects-count" class="stat-number">1</span>
+          </div>
+          <div class="mini-project-card" id="home-mini-project-preview">
+            <div class="mini-proj-title" id="home-mini-proj-name">ネオン・ブロック崩し</div>
+            <div class="mini-proj-desc" id="home-mini-proj-desc">レトロフューチャー・ブロック崩し</div>
+          </div>
+        </div>
+
+        <div class="user-card-divider"></div>
+
+        <!-- Col 4: Other Info -->
+        <div class="user-card-col col-other">
+          <div class="stat-header-text">その他の情報</div>
+          <div class="other-info-rows">
+            <div class="info-row"><i class="fa-solid fa-code"></i> <span>累計コード: <strong id="home-total-lines">1,450</strong> 行</span></div>
+            <div class="info-row"><i class="fa-solid fa-wand-magic-sparkles"></i> <span>Wiz開発対話: <strong id="home-total-prompts">24</strong> 回</span></div>
+            <div class="info-row"><i class="fa-solid fa-circle-check text-success"></i> <span>ステータス: <strong>正常 (Google Cloud)</strong></span></div>
+          </div>
         </div>
       </div>
 
-      <!-- Quick Action Cards Grid -->
-      <div class="home-features-section">
-        <h2 class="home-section-title"><i class="fa-solid fa-compass"></i> クイックスタートガイド</h2>
-        <div class="home-cards-grid">
-          
-          <!-- Card 1: New Game -->
-          <div class="home-action-card" id="home-card-new-game">
-            <div class="card-icon-glow cyan"><i class="fa-solid fa-gamepad"></i></div>
-            <div class="card-text">
-              <h3>新しいゲームを作成</h3>
-              <p>ブロック崩し、シューティング、RPG、パズルなど、ゼロからオリジナルゲームを作成して編集を開始します。</p>
-            </div>
-            <button class="btn card-action-btn" type="button" id="home-btn-action-new-game">
-              <span>作成する</span> <i class="fa-solid fa-arrow-right"></i>
+      <!-- Main Area: フレンドやプロジェクト一覧＆詳細 (PDF 1P) -->
+      <div class="home-main-container">
+        <div class="home-main-header">
+          <h1 class="pdf-main-heading">フレンドやプロジェクト一覧＆詳細</h1>
+          <div class="home-header-actions">
+            <button id="home-btn-new-project" class="btn btn-primary" type="button">
+              <i class="fa-solid fa-plus"></i> <span>新しいプロジェクト</span>
+            </button>
+            <button id="home-btn-open-studio" class="btn btn-secondary" type="button">
+              <i class="fa-solid fa-code"></i> <span>スタジオ（エディタ）を開く</span>
             </button>
           </div>
+        </div>
 
-          <!-- Card 2: AI Wiz Chat -->
-          <div class="home-action-card" id="home-card-chat-wiz">
-            <div class="card-icon-glow purple"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-            <div class="card-text">
-              <h3>AI賢者Wizと企画相談</h3>
-              <p>「こんなゲームを作りたい」と伝えるだけで、ゲームのストーリーやルール、必要な機能をWizが一緒に考えてくれます。</p>
+        <!-- Template Fast-Starter (できること追加: 1クリックテンプレート) -->
+        <div class="template-fast-start-bar">
+          <span class="fast-start-title"><i class="fa-solid fa-bolt" style="color:var(--wiz-accent);"></i> テンプレートから即時作成:</span>
+          <div class="fast-start-chips">
+            <button class="fast-chip-btn" data-tmpl="breaker"><i class="fa-solid fa-cubes"></i> ネオン・ブロック崩し</button>
+            <button class="fast-chip-btn" data-tmpl="shooter"><i class="fa-solid fa-rocket"></i> スペースシューター</button>
+            <button class="fast-chip-btn" data-tmpl="clicker"><i class="fa-solid fa-hand-pointer"></i> クリッカー</button>
+            <button class="fast-chip-btn" data-tmpl="rpg"><i class="fa-solid fa-shield-halved"></i> ドット絵RPG</button>
+            <button class="fast-chip-btn" data-tmpl="puzzle"><i class="fa-solid fa-puzzle-piece"></i> 2048パズル</button>
+          </div>
+        </div>
+
+        <!-- Two Columns: Recent Projects vs Friends Overview -->
+        <div class="home-columns-grid">
+          <!-- Column 1: Projects Overview -->
+          <div class="home-column-box">
+            <div class="column-box-header">
+              <h2><i class="fa-solid fa-folder-closed"></i> 最近のプロジェクト</h2>
+              <button id="home-see-all-projects-btn" class="btn-text-link">すべてのプロジェクトを見る <i class="fa-solid fa-arrow-right"></i></button>
             </div>
-            <button class="btn card-action-btn" type="button" id="home-btn-action-chat">
-              <span>Wizと話す</span> <i class="fa-solid fa-arrow-right"></i>
-            </button>
+            <div id="home-recent-projects-container" class="home-projects-preview-grid">
+              <!-- Dynamically populated projects with execution view -->
+            </div>
           </div>
 
-          <!-- Card 3: Marketplace -->
-          <div class="home-action-card" id="home-card-marketplace">
-            <div class="card-icon-glow gold"><i class="fa-solid fa-store"></i></div>
-            <div class="card-text">
-              <h3>Wiz マーケットプレイス</h3>
-              <p>世界中のクリエイターが公開したゲームをプレイしたり、プロジェクトを自分のスタジオにインポートできます。</p>
+          <!-- Column 2: Friends Overview -->
+          <div class="home-column-box">
+            <div class="column-box-header">
+              <h2><i class="fa-solid fa-users"></i> フレンド & 共同開発メンバー</h2>
+              <button id="home-see-all-friends-btn" class="btn-text-link">フレンド管理 <i class="fa-solid fa-arrow-right"></i></button>
             </div>
-            <button class="btn card-action-btn" type="button" id="home-btn-action-market">
-              <span>マーケットを見る</span> <i class="fa-solid fa-arrow-right"></i>
+            <div id="home-recent-friends-container" class="home-friends-preview-grid">
+              <!-- Dynamically populated friends with team membership -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 2P: PROJECTS VIEW (マイプロジェクト & 共同プロジェクト) -->
+  <section id="view-projects" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content">
+      
+      <!-- Section 1: マイプロジェクト (PDF 2P) -->
+      <div class="pdf-projects-block">
+        <div class="block-header-row">
+          <h1 class="pdf-page-title">マイプロジェクト</h1>
+          <div class="block-tools-row">
+            <div class="pdf-search-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="projects-view-search" placeholder="マイプロジェクトを検索..." class="pdf-search-input">
+            </div>
+            <button id="projects-view-create-btn" class="btn btn-primary" type="button">
+              <i class="fa-solid fa-plus"></i> <span>新規プロジェクト作成</span>
             </button>
           </div>
+        </div>
 
-          <!-- Card 4: Friends & Co-dev -->
-          <div class="home-action-card" id="home-card-friends">
-            <div class="card-icon-glow green"><i class="fa-solid fa-user-group"></i></div>
-            <div class="card-text">
-              <h3>フレンド追加 & 共同開発</h3>
-              <p>友達のユーザーIDを検索してフレンド申請。リアルタイム同期で1つのゲームを一緒にプログラミングできます。</p>
-            </div>
-            <button class="btn card-action-btn" type="button" id="home-btn-action-friends">
-              <span>フレンドを探す</span> <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
-
-          <!-- Card 5: Sound FX Generator -->
-          <div class="home-action-card" id="home-card-soundfx">
-            <div class="card-icon-glow pink"><i class="fa-solid fa-volume-high"></i></div>
-            <div class="card-text">
-              <h3>8-bit レトロ効果音作成</h3>
-              <p>ジャンプ音やコイン取得音、爆発音など、ゲームに使えるピコピコ効果音をブラウザ上で即座に作成・試聴できます。</p>
-            </div>
-            <button class="btn card-action-btn" type="button" id="home-btn-action-soundfx">
-              <span>効果音を作成</span> <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
-
-          <!-- Card 6: Profile & Security -->
-          <div class="home-action-card" id="home-card-settings">
-            <div class="card-icon-glow blue"><i class="fa-solid fa-user-gear"></i></div>
-            <div class="card-text">
-              <h3>プロフィール & 2段階認証</h3>
-              <p>アバターや自己紹介の編集、安全なアカウント運用のための2段階認証（2FA）を設定できます。</p>
-            </div>
-            <button class="btn card-action-btn" type="button" id="home-btn-action-settings">
-              <span>設定を開く</span> <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
-
+        <!-- Grid of Project Cards (PDF 2P: プロジェクト名, 作成日時, 説明, <実行ビュー>) -->
+        <div id="my-projects-cards-grid" class="pdf-cards-grid">
+          <!-- Dynamically populated cards -->
         </div>
       </div>
 
-      <!-- Studio Direct Jump Banner -->
-      <div class="home-studio-jump-banner">
-        <div class="jump-banner-text">
-          <h3>準備はできましたか？</h3>
-          <p>コードエディタと実行プレビューが揃った開発スタジオへ進みましょう。</p>
+      <!-- Section 2: 共同プロジェクト (PDF 2P) -->
+      <div class="pdf-projects-block" style="margin-top: 3rem;">
+        <div class="block-header-row">
+          <h2 class="pdf-page-title">共同プロジェクト</h2>
+          <span class="pdf-block-desc">チームメンバーと一緒に共同開発しているプロジェクト</span>
         </div>
-        <button id="home-launch-studio-btn" class="btn btn-primary btn-lg" type="button">
-          <i class="fa-solid fa-code"></i> <span>スタジオ（エディタ）を開く</span>
-        </button>
+
+        <!-- Grid of Shared Project Cards (PDF 2P: プロジェクト名, 作成日時, チームメンバー, 実行ビュー) -->
+        <div id="shared-projects-cards-grid" class="pdf-cards-grid">
+          <!-- Dynamically populated shared cards -->
+        </div>
       </div>
 
     </div>
-  </div>
+  </section>
+
+  <!-- 3P: FRIENDS VIEW (フレンド一覧 & 共同プロジェクトメンバー) -->
+  <section id="view-friends" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content">
+      <div class="block-header-row">
+        <h1 class="pdf-page-title">フレンド</h1>
+        <div class="block-tools-row">
+          <div class="my-id-badge-pill" id="friends-view-copy-id-btn" title="クリックして自分のIDをコピー">
+            <i class="fa-solid fa-id-badge"></i>
+            <span>あなたのID: <strong id="friends-view-my-id">@wiz_creator</strong></span>
+            <i class="fa-regular fa-copy"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Friend Add Bar -->
+      <div class="pdf-friend-add-bar">
+        <div class="pdf-search-wrap flex-grow">
+          <i class="fa-solid fa-user-plus"></i>
+          <input type="text" id="friends-view-add-input" placeholder="ユーザーID (@username) を入力して検索・フレンド申請..." class="pdf-search-input">
+        </div>
+        <button id="friends-view-send-btn" class="btn btn-primary" type="button">
+          <i class="fa-solid fa-paper-plane"></i> <span>フレンド申請を送る</span>
+        </button>
+      </div>
+
+      <!-- Pending Requests Box (If any) -->
+      <div id="friends-view-pending-box" class="pending-requests-card" style="display: none;">
+        <h3><i class="fa-solid fa-bell"></i> 届いているフレンド申請</h3>
+        <div id="friends-view-pending-list" class="pending-list-grid"></div>
+      </div>
+
+      <!-- Friends Grid (PDF 3P: アカウント画像, ユーザー名, ID, プロフィール, 共同プロジェクト情報) -->
+      <div id="friends-view-cards-grid" class="pdf-friends-grid">
+        <!-- Dynamically populated friend cards -->
+      </div>
+    </div>
+  </section>
+
+  <!-- TUTORIAL VIEW (チュートリアル使い方ガイド) -->
+  <section id="view-tutorial" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content">
+      <div class="block-header-row">
+        <h1 class="pdf-page-title"><i class="fa-solid fa-graduation-cap"></i> Wiz Studio チュートリアル</h1>
+        <button id="tutorial-launch-sample-btn" class="btn btn-primary" type="button">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> <span>チュートリアルゲームを作ってみる</span>
+        </button>
+      </div>
+
+      <div class="tutorial-steps-grid">
+        <!-- Step 1 -->
+        <div class="tutorial-step-card">
+          <div class="step-badge">STEP 1</div>
+          <div class="step-icon"><i class="fa-solid fa-folder-plus"></i></div>
+          <h3>プロジェクトを作成</h3>
+          <p>「新しいプロジェクト」を押すか、テンプレート（ブロック崩し、シューティングなど）を選んでゲームの部屋を作成します。</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="tutorial-step-card">
+          <div class="step-badge">STEP 2</div>
+          <div class="step-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <h3>Wizに指示してゲーム開発</h3>
+          <p>「スコアを追加して！」「敵のスピードを速くして」「ドット絵で勇者を描いて」と伝えるだけで、Wizがコードを自動作成・編集します。</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="tutorial-step-card">
+          <div class="step-badge">STEP 3</div>
+          <div class="step-icon"><i class="fa-solid fa-play"></i></div>
+          <h3>リアルタイム実行 & デバッグ</h3>
+          <p>「実行」ボタンや <code>Ctrl+Enter</code> でその場で即座にプレイ！エラーが起きても自動デバッグモードでWizが自己修復します。</p>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="tutorial-step-card">
+          <div class="step-badge">STEP 4</div>
+          <div class="step-icon"><i class="fa-solid fa-users"></i></div>
+          <h3>フレンドと共同開発 & マーケット公開</h3>
+          <p>フレンドをプロジェクトに招待して一緒にコーディング！完成したゲームはマーケットプレイスにワンクリックで世界中へ共有できます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Main Workspace Layout -->
   <div class="workspace-container" id="workspace-container">
@@ -332,7 +468,7 @@
             <span class="avatar-mini"><i class="fa-solid fa-hat-wizard"></i></span>
             <div class="wiz-info">
               <strong>Wiz (ウィズ)</strong>
-              <span class="status-desc" id="wiz-mode-label">通常会話モード</span>
+              <span class="status-desc" id="wiz-mode-label"><i class="fa-solid fa-code" style="color:var(--wiz-accent); margin-right:3px;"></i> プロジェクト専属開発AI</span>
             </div>
           </div>
         </div>

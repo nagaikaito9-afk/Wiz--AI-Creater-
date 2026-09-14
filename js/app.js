@@ -31,9 +31,7 @@ class AppController {
     this.editorSection = document.getElementById('editor-section');
     this.splitResizer = document.getElementById('split-resizer');
     
-    // Mode Buttons
-    this.modeChatBtn = document.getElementById('mode-chat-btn');
-    this.modeCodeBtn = document.getElementById('mode-code-btn');
+    // Wiz Mode Label
     this.wizModeLabel = document.getElementById('wiz-mode-label');
     this.autoDebugBadge = document.getElementById('auto-debug-badge');
 
@@ -75,6 +73,7 @@ class AppController {
     this.initAttachmentEvents();
     this.initProjectReset();
     this.initSettingsModal();
+    this.initPageViewRouting();
     this.sendGreeting();
   }
 
@@ -171,11 +170,13 @@ class AppController {
 
   // Greeting
   sendGreeting() {
+    const activeRoom = window.projectManager?.getActiveRoom();
+    const roomTitle = activeRoom?.name || '現在のゲーム';
     const greetingHtml = `
       <p>こんにちは！ 賢者の <strong>Wiz (ウィズ)</strong> だよ！🧙‍♂️✨</p>
-      <p>ゲームの企画や雑談はもちろん、<strong>「プログラム作成モード」</strong>に切り替えてくれれば、僕が右側のコードエディタに直接ゲームのコードを書き込んで一緒に開発できるよ！</p>
-      <p>右側の画面は上部のタブで <strong>「コード」 「実行画面」 「ログ」</strong> をワンクリックで切り替え可能！「実行して！」と言ってくれれば設定に合わせて右側ですぐに遊べるよ。</p>
-      <p>もし僕の変更を巻き戻したくなったら、上の <strong>「Wiz変更Undo」</strong> ボタンでいつでも直前の状態に戻せるから安心してね。何から作ってみる？</p>
+      <p>プロジェクト<strong>「${roomTitle}」</strong>の開発専属AIとして、ファイルの作成・編集・削除や、プログラムの実行・機能追加・デバッグまで何でもサポートするよ！</p>
+      <p>右側の画面は上部のタブで <strong>「コード」 「実行画面」 「ログ」</strong> をワンクリックで切り替え可能！「実行して！」と言ってくれれば右側ですぐにプレイできるよ。</p>
+      <p>もし変更を巻き戻したくなったら、上の <strong>「Wiz変更Undo」</strong> ボタンで直前の状態に戻せるから安心してね。このプロジェクトにどんなファイルや機能を追加してみる？</p>
     `;
     this.appendMessage('wiz', greetingHtml, true);
   }
@@ -276,8 +277,6 @@ class AppController {
 
   // Chat & Messaging
   initChatEvents() {
-    this.modeChatBtn?.addEventListener('click', () => this.switchMode('chat'));
-    this.modeCodeBtn?.addEventListener('click', () => this.switchMode('code'));
     this.sendBtn?.addEventListener('click', () => this.handleSendMessage());
 
     this.userInput?.addEventListener('keydown', (e) => {
@@ -330,19 +329,12 @@ class AppController {
     });
   }
 
-  switchMode(mode) {
-    if (mode === 'chat') {
-      this.modeChatBtn.classList.add('active');
-      this.modeCodeBtn.classList.remove('active');
-      this.wizModeLabel.textContent = '通常会話モード (何でも気軽に聞いてね！)';
-      window.wizAI.setMode('chat');
-    } else {
-      this.modeCodeBtn.classList.add('active');
-      this.modeChatBtn.classList.remove('active');
-      this.wizModeLabel.textContent = 'プログラム作成モード (コード作成・自動ファイル編集)';
-      window.wizAI.setMode('code');
-      this.expandSidebar();
+  switchMode(mode = 'code') {
+    // Mode is locked to dedicated project code mode
+    if (this.wizModeLabel) {
+      this.wizModeLabel.innerHTML = '<i class="fa-solid fa-code" style="color:var(--wiz-accent); margin-right:3px;"></i> プロジェクト専属開発AI';
     }
+    window.wizAI.setMode('code');
   }
 
   initProjectReset() {
@@ -443,10 +435,6 @@ class AppController {
     this.userInput.style.height = 'auto';
 
     this.appendUserMessage(text, [...this.attachments]);
-
-    if (/プログラム作成モード/.test(text) || /コード.*書いて/.test(text) || /ゲーム.*作って/.test(text)) {
-      this.switchMode('code');
-    }
 
     // 1. Direct trigger: Create new room / chat
     // "新しい『ブロック崩し』チャットを作って" or "新しい「〇〇」チャットを作って" or "新しい部屋を作って"
@@ -1055,7 +1043,712 @@ class AppController {
 
   clearAttachments() {
     this.attachments = [];
-    this.renderAttachmentTray();
+    this.attachmentTray.style.display = 'none';
+  }
+
+  // ==========================================
+  // PDF Unified UI Navigation & Page Routing
+  // ==========================================
+  initPageViewRouting() {
+    this.currentView = 'home';
+
+    // Header Navigation buttons
+    const navHome = document.getElementById('nav-btn-home');
+    const navMarket = document.getElementById('nav-btn-marketplace');
+    const navProjects = document.getElementById('nav-btn-projects');
+    const navFriends = document.getElementById('nav-btn-friends');
+    const navSettings = document.getElementById('nav-btn-settings');
+    const navTutorial = document.getElementById('nav-btn-tutorial');
+    const navStudio = document.getElementById('nav-btn-studio');
+    const brandLogo = document.getElementById('header-brand-logo');
+
+    navHome?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('home'); });
+    navMarket?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('marketplace'); });
+    navProjects?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('projects'); });
+    navFriends?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('friends'); });
+    navSettings?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('settings'); });
+    navTutorial?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('tutorial'); });
+    navStudio?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('studio'); });
+    brandLogo?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('home'); });
+
+    // 1P: Home view interactive shortcuts
+    document.getElementById('home-friends-box-btn')?.addEventListener('click', () => this.switchPageView('friends'));
+    document.getElementById('home-projects-box-btn')?.addEventListener('click', () => this.switchPageView('projects'));
+    document.getElementById('home-btn-new-project')?.addEventListener('click', () => window.projectManager?.promptCreateNewRoom());
+    document.getElementById('home-btn-open-studio')?.addEventListener('click', () => this.switchPageView('studio'));
+    document.getElementById('home-see-all-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
+    document.getElementById('home-see-all-friends-btn')?.addEventListener('click', () => this.switchPageView('friends'));
+
+    // Template Fast-Starter chips in Home view
+    document.querySelectorAll('.fast-chip-btn[data-tmpl]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tmpl = chip.getAttribute('data-tmpl');
+        this.createProjectFromTemplate(tmpl);
+      });
+    });
+
+    // 2P: Projects View interactive controls
+    document.getElementById('projects-view-create-btn')?.addEventListener('click', () => {
+      window.projectManager?.promptCreateNewRoom();
+    });
+    const projSearch = document.getElementById('projects-view-search');
+    if (projSearch) {
+      projSearch.addEventListener('input', (e) => {
+        if (window.projectManager) {
+          window.projectManager.searchQuery = e.target.value.trim();
+          window.projectManager.renderProjectsView();
+        }
+      });
+    }
+
+    // 3P: Friends View interactive controls
+    document.getElementById('friends-view-copy-id-btn')?.addEventListener('click', () => {
+      const myId = '@' + (window.friendsManager?.getCurrentUserId() || 'wiz_creator');
+      navigator.clipboard.writeText(myId).then(() => {
+        if (window.showToast) window.showToast(`ユーザーID「${myId}」をコピーしました！`, 'success');
+      });
+    });
+
+    const addFriendInput = document.getElementById('friends-view-add-input');
+    const sendFriendBtn = document.getElementById('friends-view-send-btn');
+    sendFriendBtn?.addEventListener('click', () => {
+      const targetId = addFriendInput?.value.trim().replace(/^@/, '');
+      if (!targetId) {
+        if (window.showToast) window.showToast('申請を送るユーザーIDを入力してください', 'warning');
+        return;
+      }
+      if (window.friendsManager) {
+        window.friendsManager.sendFriendRequest(targetId);
+        if (addFriendInput) addFriendInput.value = '';
+      }
+    });
+
+    // Tutorial view controls
+    document.getElementById('tutorial-launch-sample-btn')?.addEventListener('click', () => {
+      this.createProjectFromTemplate('breaker');
+    });
+    this.initTutorialEvents();
+
+    // Default to Home View on initial launch
+    this.switchPageView('home');
+  }
+
+  switchPageView(viewName) {
+    if (viewName === 'settings') {
+      if (this.themeModal) this.themeModal.style.display = 'flex';
+      return;
+    }
+
+    if (viewName === 'marketplace') {
+      const marketModal = document.getElementById('marketplace-modal');
+      if (marketModal) {
+        marketModal.style.display = 'flex';
+        if (window.marketplace && typeof window.marketplace.renderMarketplace === 'function') {
+          window.marketplace.renderMarketplace();
+        }
+      } else if (window.showToast) {
+        window.showToast('マーケットプレイスを開きました', 'info');
+      }
+      return;
+    }
+
+    this.currentView = viewName;
+
+    // Nav button active class
+    const navButtons = [
+      { id: 'nav-btn-home', key: 'home' },
+      { id: 'nav-btn-projects', key: 'projects' },
+      { id: 'nav-btn-friends', key: 'friends' },
+      { id: 'nav-btn-tutorial', key: 'tutorial' },
+      { id: 'nav-btn-studio', key: 'studio' }
+    ];
+
+    navButtons.forEach(btnInfo => {
+      const el = document.getElementById(btnInfo.id);
+      if (el) {
+        el.classList.toggle('active', btnInfo.key === viewName);
+      }
+    });
+
+    // Views container references
+    const viewHome = document.getElementById('view-home');
+    const viewProjects = document.getElementById('view-projects');
+    const viewFriends = document.getElementById('view-friends');
+    const viewTutorial = document.getElementById('view-tutorial');
+    const workspaceContainer = document.getElementById('workspace-container');
+
+    if (viewHome) viewHome.style.display = (viewName === 'home') ? 'block' : 'none';
+    if (viewProjects) viewProjects.style.display = (viewName === 'projects') ? 'block' : 'none';
+    if (viewFriends) viewFriends.style.display = (viewName === 'friends') ? 'block' : 'none';
+    if (viewTutorial) viewTutorial.style.display = (viewName === 'tutorial') ? 'block' : 'none';
+    if (workspaceContainer) workspaceContainer.style.display = (viewName === 'studio') ? 'flex' : 'none';
+
+    // Trigger View-specific Renderers
+    if (viewName === 'home') {
+      this.renderHomeView();
+    } else if (viewName === 'projects') {
+      if (window.projectManager) {
+        window.projectManager.renderProjectsView();
+      }
+    } else if (viewName === 'friends') {
+      if (window.friendsManager) {
+        window.friendsManager.renderFriendsPageView();
+      }
+    } else if (viewName === 'studio') {
+      // Re-layout editor if needed
+      if (window.editor) {
+        window.editor.renderTree();
+      }
+    }
+  }
+
+  // Render PDF 1P Home View
+  renderHomeView() {
+    // 1. User Info (Top 4-column card)
+    const currentUser = window.supabaseAuth?.currentUser;
+    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || 'wiz_user';
+    const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'Wizユーザー';
+    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || 'Wizのユーザーです。AI Game Creatorでゲームを制作しています。';
+    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+
+    const avatarEl = document.getElementById('home-user-avatar');
+    const nameEl = document.getElementById('home-user-name');
+    const idEl = document.getElementById('home-user-id');
+    const bioEl = document.getElementById('home-user-bio');
+
+    if (avatarEl) avatarEl.src = avatarUrl;
+    if (nameEl) nameEl.textContent = username;
+    if (idEl) idEl.textContent = `@${userId}`;
+    if (bioEl) bioEl.textContent = userBio;
+
+    // Stats
+    const friends = window.friendsManager?.data?.friends || [];
+    const rooms = window.projectManager?.rooms || [];
+    const friendsCount = friends.length;
+    const onlineCount = friends.filter(f => f.online).length;
+    const projectsCount = rooms.length;
+
+    const friendsCountEl = document.getElementById('home-friends-count');
+    const friendsOnlineDesc = document.getElementById('home-friends-online-desc');
+    const projectsCountEl = document.getElementById('home-projects-count');
+    if (friendsCountEl) friendsCountEl.textContent = `${friendsCount}`;
+    if (friendsOnlineDesc) friendsOnlineDesc.textContent = `オンライン: ${onlineCount}人`;
+    if (projectsCountEl) projectsCountEl.textContent = `${projectsCount}`;
+
+    // Active project mini preview in home card
+    const activeRoom = window.projectManager?.getActiveRoom();
+    const miniProjName = document.getElementById('home-mini-proj-name');
+    const miniProjDesc = document.getElementById('home-mini-proj-desc');
+    if (activeRoom) {
+      if (miniProjName) miniProjName.textContent = activeRoom.name;
+      if (miniProjDesc) miniProjDesc.textContent = activeRoom.rules ? activeRoom.rules.slice(0, 35) + '...' : 'ゲームプロジェクト';
+    }
+
+    // 2. Recent Projects in Home
+    const recentProjectsContainer = document.getElementById('home-recent-projects-container');
+    if (recentProjectsContainer && window.projectManager) {
+      if (rooms.length === 0) {
+        recentProjectsContainer.innerHTML = `
+          <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 8px;">
+            <p style="margin-bottom: 0.6rem;">プロジェクトがまだありません。</p>
+            <button class="btn btn-primary btn-sm" onclick="window.projectManager.promptCreateNewRoom()">
+              <i class="fa-solid fa-plus"></i> 新規作成
+            </button>
+          </div>
+        `;
+      } else {
+        const displayRooms = rooms.slice(0, 4);
+        recentProjectsContainer.innerHTML = displayRooms.map(room => {
+          const dateStr = new Date(room.createdAt || Date.now()).toLocaleDateString('ja-JP');
+          const isAct = room.id === window.projectManager.activeRoomId;
+          return `
+            <div class="pdf-project-card ${isAct ? 'active' : ''}" style="margin-bottom: 0.8rem; cursor: pointer;" onclick="window.projectManager.openInStudio('${room.id}')">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                  <i class="fa-solid fa-gamepad" style="color: var(--brand-primary);"></i>
+                  <span>${this.escapeHtml(room.name)}</span>
+                </div>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">${dateStr}</span>
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${this.escapeHtml(room.rules || 'Wiz AI Game Creator プロジェクト')}
+              </div>
+              <div style="display: flex; justify-content: flex-end; gap: 0.4rem;">
+                <button class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;">
+                  <i class="fa-solid fa-arrow-right"></i> スタジオで開く
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 3. Recent Friends in Home
+    const recentFriendsContainer = document.getElementById('home-recent-friends-container');
+    if (recentFriendsContainer && window.friendsManager) {
+      if (friends.length === 0) {
+        recentFriendsContainer.innerHTML = `
+          <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 8px;">
+            <p style="margin-bottom: 0.6rem;">フレンドがまだいません。</p>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('add-friend-modal').style.display='flex'">
+              <i class="fa-solid fa-user-plus"></i> フレンド追加
+            </button>
+          </div>
+        `;
+      } else {
+        const displayFriends = friends.slice(0, 4);
+        recentFriendsContainer.innerHTML = displayFriends.map(friend => {
+          const fAvatar = friend.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${friend.userId}`;
+          return `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.6rem;">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <img src="${fAvatar}" style="width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-secondary);" />
+                <div>
+                  <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);">${this.escapeHtml(friend.username)}</div>
+                  <div style="font-size: 0.75rem; color: var(--brand-primary);">@${this.escapeHtml(friend.userId)}</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.3rem;">
+                <button class="btn btn-ghost btn-sm" onclick="window.friendsManager.openDirectChat('${friend.userId}')" title="チャット">
+                  <i class="fa-regular fa-comment-dots"></i>
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="window.friendsManager.openPublicProfile('${friend.userId}')" title="プロフィール">
+                  <i class="fa-solid fa-id-card"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // Quick Project Creator from Predefined Game Templates
+  createProjectFromTemplate(templateKey) {
+    const templates = {
+      breakout: {
+        name: 'ネオン・ブロック崩し',
+        rules: 'レトロネオン調のブロック崩しゲーム。パドル操作、ブロック破壊パーティクル、スコア加算機能。',
+        html: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ネオン・ブロック崩し</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <div class="hud">
+      <div id="score">SCORE: 0</div>
+      <div id="lives">LIVES: 3</div>
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div class="instructions">← → キー または マウスでパドル操作</div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>`,
+        css: `body {
+  margin: 0;
+  background: #0d1117;
+  color: #fff;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.game-container {
+  text-align: center;
+}
+.hud {
+  display: flex;
+  justify-content: space-between;
+  width: 600px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #8ab4f8;
+}
+canvas {
+  background: #000;
+  border: 2px solid #8ab4f8;
+  box-shadow: 0 0 20px rgba(138, 180, 248, 0.4);
+  border-radius: 8px;
+}
+.instructions {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #aaa;
+}`,
+        js: `const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let score = 0;
+let lives = 3;
+
+let paddleHeight = 12;
+let paddleWidth = 85;
+let paddleX = (canvas.width - paddleWidth) / 2;
+
+let x = canvas.width / 2;
+let y = canvas.height - 30;
+let dx = 3;
+let dy = -3;
+let ballRadius = 8;
+
+let rightPressed = false;
+let leftPressed = false;
+
+const brickRowCount = 4;
+const brickColumnCount = 7;
+const brickWidth = 72;
+const brickHeight = 18;
+const brickPadding = 10;
+const brickOffsetTop = 30;
+const brickOffsetLeft = 18;
+
+const colors = ['#ea4335', '#fbbc04', '#34a853', '#4285f4'];
+const bricks = [];
+for (let c = 0; c < brickColumnCount; c++) {
+  bricks[c] = [];
+  for (let r = 0; r < brickRowCount; r++) {
+    bricks[c][r] = { x: 0, y: 0, status: 1, color: colors[r] };
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = true;
+  else if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = true;
+});
+document.addEventListener('keyup', (e) => {
+  if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = false;
+  else if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = false;
+});
+document.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const relativeX = e.clientX - rect.left;
+  if (relativeX > 0 && relativeX < canvas.width) {
+    paddleX = relativeX - paddleWidth / 2;
+  }
+});
+
+function collisionDetection() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      const b = bricks[c][r];
+      if (b.status === 1) {
+        if (x > b.x && x < b.x + brickWidth && y > b.y && y < b.y + brickHeight) {
+          dy = -dy;
+          b.status = 0;
+          score += 10;
+          document.getElementById('score').innerText = 'SCORE: ' + score;
+        }
+      }
+    }
+  }
+}
+
+function drawBall() {
+  ctx.beginPath();
+  ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#8ab4f8';
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.closePath();
+}
+
+function drawPaddle() {
+  ctx.beginPath();
+  ctx.rect(paddleX, canvas.height - paddleHeight - 6, paddleWidth, paddleHeight);
+  ctx.fillStyle = '#8ab4f8';
+  ctx.shadowColor = '#1a73e8';
+  ctx.shadowBlur = 12;
+  ctx.fill();
+  ctx.closePath();
+}
+
+function drawBricks() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      if (bricks[c][r].status === 1) {
+        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+        bricks[c][r].x = brickX;
+        bricks[c][r].y = brickY;
+        ctx.beginPath();
+        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+        ctx.fillStyle = bricks[c][r].color;
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBricks();
+  drawBall();
+  drawPaddle();
+  collisionDetection();
+
+  if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) dx = -dx;
+  if (y + dy < ballRadius) dy = -dy;
+  else if (y + dy > canvas.height - ballRadius - paddleHeight - 6) {
+    if (x > paddleX && x < paddleX + paddleWidth) {
+      dy = -dy;
+    } else if (y + dy > canvas.height - ballRadius) {
+      lives--;
+      document.getElementById('lives').innerText = 'LIVES: ' + lives;
+      if (!lives) {
+        alert('GAME OVER');
+        document.location.reload();
+        return;
+      } else {
+        x = canvas.width / 2;
+        y = canvas.height - 30;
+        dx = 3;
+        dy = -3;
+        paddleX = (canvas.width - paddleWidth) / 2;
+      }
+    }
+  }
+
+  if (rightPressed && paddleX < canvas.width - paddleWidth) paddleX += 6;
+  else if (leftPressed && paddleX > 0) paddleX -= 6;
+
+  x += dx;
+  y += dy;
+  requestAnimationFrame(draw);
+}
+draw();`
+      },
+      clicker: {
+        name: 'クリッカー・アドベンチャー',
+        rules: 'タップでコインを稼ぎ、アップグレードを購入して自動生成レートを高めるクリッカーゲーム。',
+        html: `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>クリッカー・アドベンチャー</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="clicker-app">
+    <h1>⭐ クリッカー・アドベンチャー</h1>
+    <div class="stats">
+      <div id="coins-display">0 コイン</div>
+      <div id="cps-display">秒間: 0 コイン</div>
+    </div>
+    <button id="big-coin-btn">🪙 タップしてコイン獲得！</button>
+    <div class="upgrades">
+      <h3>ショップ & アップグレード</h3>
+      <button class="upgrade-btn" id="upgrade-auto-clicker">オートクリッカー (費用: 15) [+1/秒]</button>
+      <button class="upgrade-btn" id="upgrade-super-miner">スーパー採掘機 (費用: 100) [+10/秒]</button>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>`,
+        css: `body {
+  margin: 0;
+  background: #202124;
+  color: #fff;
+  font-family: sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.clicker-app {
+  text-align: center;
+  background: #2f3336;
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  max-width: 450px;
+  width: 100%;
+}
+#coins-display {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fbbc04;
+  margin-bottom: 0.4rem;
+}
+#cps-display {
+  font-size: 0.95rem;
+  color: #8ab4f8;
+  margin-bottom: 1.5rem;
+}
+#big-coin-btn {
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 1.2rem 2rem;
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #1a73e8, #8ab4f8);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(26,115,232,0.4);
+  transition: transform 0.1s;
+}
+#big-coin-btn:active {
+  transform: scale(0.95);
+}
+.upgrades {
+  margin-top: 2rem;
+  text-align: left;
+}
+.upgrade-btn {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 0.5rem;
+  background: #202124;
+  color: #fff;
+  border: 1px solid #5f6368;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.upgrade-btn:hover {
+  background: #3c4043;
+}`,
+        js: `let coins = 0;
+let cps = 0;
+let autoClickers = 0;
+let superMiners = 0;
+
+const coinsEl = document.getElementById('coins-display');
+const cpsEl = document.getElementById('cps-display');
+const coinBtn = document.getElementById('big-coin-btn');
+const autoBtn = document.getElementById('upgrade-auto-clicker');
+const superBtn = document.getElementById('upgrade-super-miner');
+
+function updateDisplay() {
+  coinsEl.textContent = Math.floor(coins) + ' コイン';
+  cpsEl.textContent = '秒間: ' + cps + ' コイン';
+}
+
+coinBtn.onclick = () => {
+  coins += 1;
+  updateDisplay();
+};
+
+autoBtn.onclick = () => {
+  const cost = Math.floor(15 * Math.pow(1.15, autoClickers));
+  if (coins >= cost) {
+    coins -= cost;
+    autoClickers++;
+    cps += 1;
+    autoBtn.textContent = 'オートクリッカー (費用: ' + Math.floor(15 * Math.pow(1.15, autoClickers)) + ') [+1/秒]';
+    updateDisplay();
+  } else {
+    alert('コインが足りません！');
+  }
+};
+
+superBtn.onclick = () => {
+  const cost = Math.floor(100 * Math.pow(1.2, superMiners));
+  if (coins >= cost) {
+    coins -= cost;
+    superMiners++;
+    cps += 10;
+    superBtn.textContent = 'スーパー採掘機 (費用: ' + Math.floor(100 * Math.pow(1.2, superMiners)) + ') [+10/秒]';
+    updateDisplay();
+  } else {
+    alert('コインが足りません！');
+  }
+};
+
+setInterval(() => {
+  coins += cps / 10;
+  updateDisplay();
+}, 100);`
+      }
+    };
+
+    const template = templates[templateKey] || templates.breakout;
+    const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
+    const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
+    const newRoomId = 'room_' + Date.now();
+
+    // Setup custom VFS root for this template
+    const vfsRoot = {
+      name: 'root',
+      type: 'directory',
+      children: {
+        'index.html': { name: 'index.html', type: 'file', content: template.html },
+        'style.css': { name: 'style.css', type: 'file', content: template.css },
+        'game.js': { name: 'game.js', type: 'file', content: template.js }
+      }
+    };
+
+    try {
+      localStorage.setItem(`wiz_vfs_room_${newRoomId}`, JSON.stringify(vfsRoot));
+    } catch (e) {}
+
+    const newRoom = {
+      id: newRoomId,
+      name: template.name,
+      rules: template.rules,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      chatHistory: [],
+      ownerId: myId,
+      ownerUsername: myName,
+      team: [
+        { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
+      ],
+      pendingInvites: [],
+      joinRequests: [],
+      vfsRoot: vfsRoot
+    };
+
+    if (window.projectManager) {
+      window.projectManager.rooms.unshift(newRoom);
+      window.projectManager.activeRoomId = newRoom.id;
+      window.projectManager.saveRooms();
+      window.projectManager.syncActiveRoomVFS();
+      window.projectManager.renderRoomsList();
+    }
+
+    if (window.showToast) {
+      window.showToast(`テンプレート「${template.name}」を作成しました！スタジオへ移動します`, 'success');
+    }
+
+    this.switchPageView('studio');
+  }
+
+  // Tutorial View Navigation
+  initTutorialEvents() {
+    let currentStep = 1;
+    const totalSteps = 3;
+
+    const prevBtn = document.getElementById('tutorial-prev-btn');
+    const nextBtn = document.getElementById('tutorial-next-btn');
+
+    const updateStep = (step) => {
+      currentStep = Math.max(1, Math.min(step, totalSteps));
+      document.querySelectorAll('.tutorial-step-card').forEach(card => {
+        const cardStep = parseInt(card.getAttribute('data-step'), 10);
+        card.classList.toggle('active', cardStep === currentStep);
+      });
+      if (prevBtn) prevBtn.disabled = (currentStep === 1);
+      if (nextBtn) {
+        if (currentStep === totalSteps) {
+          nextBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> スタジオで開始';
+          nextBtn.onclick = () => this.switchPageView('studio');
+        } else {
+          nextBtn.innerHTML = '次のステップ <i class="fa-solid fa-arrow-right"></i>';
+          nextBtn.onclick = () => updateStep(currentStep + 1);
+        }
+      }
+    };
+
+    prevBtn?.addEventListener('click', () => updateStep(currentStep - 1));
+    nextBtn?.addEventListener('click', () => updateStep(currentStep + 1));
   }
 }
 
@@ -1063,3 +1756,4 @@ class AppController {
 window.addEventListener('DOMContentLoaded', () => {
   window.app = new AppController();
 });
+

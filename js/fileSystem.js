@@ -6,6 +6,7 @@
 class VirtualFileSystem {
   constructor(storageKey = 'wiz_vfs_project') {
     this.storageKey = storageKey;
+    this.currentRoomId = null;
     this.root = {
       name: '',
       type: 'dir',
@@ -15,6 +16,55 @@ class VirtualFileSystem {
     this.undoHistory = []; // Snapshots for Wiz Undo feature
     this.maxHistory = 20;
     this.load();
+  }
+
+  // Set and switch current room context for VFS
+  setCurrentRoom(roomId, initialVfsRoot = null, roomName = '') {
+    if (!roomId) return;
+    this.currentRoomId = roomId;
+    this.storageKey = `wiz_vfs_room_${roomId}`;
+    this.undoHistory = []; // Reset undo stack for the new room
+
+    // 1. If explicit vfsRoot provided and valid
+    if (initialVfsRoot && typeof initialVfsRoot === 'object' && initialVfsRoot.children && Object.keys(initialVfsRoot.children).length > 0) {
+      this.root = JSON.parse(JSON.stringify(initialVfsRoot));
+      this.save();
+      this.notify(false);
+      return;
+    }
+
+    // 2. Try room-specific LocalStorage
+    const saved = localStorage.getItem(this.storageKey);
+    if (saved) {
+      try {
+        this.root = JSON.parse(saved);
+        this.notify(false);
+        return;
+      } catch (e) {
+        console.error('Failed to parse room VFS from LocalStorage:', e);
+      }
+    }
+
+    // 3. Backward compatibility for default initial room
+    if (roomId === 'room_default') {
+      const legacy = localStorage.getItem('wiz_vfs_project');
+      if (legacy) {
+        try {
+          this.root = JSON.parse(legacy);
+          this.save();
+          this.notify(false);
+          return;
+        } catch (e) {
+          console.warn('Legacy VFS parse failed:', e);
+        }
+      }
+    }
+
+    // 4. Create fresh template for new room
+    this.root = { name: '', type: 'dir', children: {} };
+    this.seedDefaultProject(roomName || '新規ゲーム');
+    this.save();
+    this.notify(false);
   }
 
   // Save snapshot before modifications
@@ -57,8 +107,10 @@ class VirtualFileSystem {
     this.listeners.push(callback);
   }
 
-  notify() {
-    this.save();
+  notify(triggerSave = true) {
+    if (triggerSave) {
+      this.save();
+    }
     this.listeners.forEach(fn => fn(this));
   }
 
@@ -92,25 +144,30 @@ class VirtualFileSystem {
   save() {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.root));
+      // Also sync back to active room in projectManager
+      if (window.projectManager && typeof window.projectManager.syncVfsToActiveRoom === 'function') {
+        window.projectManager.syncVfsToActiveRoom(this.root);
+      }
     } catch (e) {
       console.warn('Could not save VFS to LocalStorage:', e);
     }
   }
 
   // Reset to default sample game
-  resetToDefault() {
+  resetToDefault(roomName = '') {
     this.root = { name: '', type: 'dir', children: {} };
-    this.seedDefaultProject();
+    this.seedDefaultProject(roomName);
     this.notify();
   }
 
   // Seed standard files
-  seedDefaultProject() {
+  seedDefaultProject(roomName = 'ネオン・ブロック崩し') {
+    const title = roomName || 'ネオン・ブロック崩し';
     this.createFile('index.html', `<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ネオン・ブロック崩し - Neon Breaker</title>
+  <title>${title}</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>

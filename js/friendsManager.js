@@ -697,6 +697,84 @@ class FriendsManager {
     modal.style.display = 'flex';
   }
 
+  // Render PDF 3P Style Friends View
+  renderFriendsPageView() {
+    const grid = document.getElementById('friends-view-cards-grid');
+    if (!grid) return;
+
+    const friends = this.data?.friends || [];
+
+    if (friends.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-user-group"></i></div>
+          <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">フレンドがまだいません</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1.2rem;">他のクリエイターのユーザーIDを検索して、フレンド申請を送りましょう！</p>
+          <button class="btn btn-primary" onclick="document.getElementById('add-friend-modal').style.display='flex'">
+            <i class="fa-solid fa-user-plus"></i> フレンドを追加する
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    // Check shared projects from projectManager
+    const rooms = window.projectManager?.rooms || [];
+
+    const cardsHtml = friends.map(friend => {
+      // Find joint projects with this friend
+      const sharedRooms = rooms.filter(r => 
+        (r.team || []).some(m => (m.userId || '').toLowerCase() === friend.userId.toLowerCase())
+      );
+
+      let sharedProjectText = '個人制作中';
+      if (sharedRooms.length > 0) {
+        const roomNames = sharedRooms.map(r => `「${this.escapeHtml(r.name)}」`).join('、');
+        sharedProjectText = `共同プロジェクト ${roomNames} のチームメンバー`;
+      } else if (friend.userId === 'pixel_hero') {
+        sharedProjectText = '共同プロジェクト「ブロック崩し」のチームメンバー';
+      }
+
+      const avatarUrl = friend.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${friend.userId}`;
+      const bio = friend.bio || friend.statusText || 'Wiz AI Game Creator クリエイター';
+
+      return `
+        <div class="pdf-friend-card">
+          <div class="pdf-friend-card-body">
+            <div class="pdf-friend-avatar-circle" onclick="window.friendsManager.openPublicProfile('${friend.userId}')" title="プロフィールを見る">
+              <img src="${avatarUrl}" alt="${this.escapeHtml(friend.username)}" />
+              <span class="avatar-tag-label">アカウント画像</span>
+            </div>
+            <div class="pdf-friend-info">
+              <div class="pdf-friend-name" onclick="window.friendsManager.openPublicProfile('${friend.userId}')">${this.escapeHtml(friend.username)}</div>
+              <div class="pdf-friend-id">@${this.escapeHtml(friend.userId)}</div>
+              <div class="pdf-friend-bio">
+                <span class="bio-label">プロフィール:</span> ${this.escapeHtml(bio)}
+              </div>
+              <div class="pdf-friend-collab-badge">
+                <i class="fa-solid fa-users" style="color:var(--brand-primary); font-size:0.85rem;"></i>
+                <span>${sharedProjectText}</span>
+              </div>
+            </div>
+          </div>
+          <div class="pdf-friend-card-actions">
+            <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="window.friendsManager.openDirectChat('${friend.userId}')">
+              <i class="fa-regular fa-comment-dots"></i> 一時チャット (DM)
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="window.friendsManager.openPublicProfile('${friend.userId}')" title="詳細プロフィール">
+              <i class="fa-solid fa-id-card"></i> プロフィール
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="window.friendsManager.removeFriend('${friend.userId}')" title="フレンド解除" style="color:var(--brand-red);">
+              <i class="fa-solid fa-user-xmark"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.innerHTML = cardsHtml;
+  }
+
   escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -710,4 +788,5 @@ class FriendsManager {
 // Global initialization
 window.friendsManager = new FriendsManager();
 window.openPublicProfile = (user) => window.friendsManager.openPublicProfile(user);
+
 

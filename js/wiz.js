@@ -12,45 +12,39 @@ class WizAIEngine {
     // Obfuscated with atob to avoid GitHub Secret Scanning push protection blocks
     this.fallbackApiKey = atob('QVEuQWI4Uk42S2JCSXBXc2NGT1pmUXJSSG56QUw5U3Nqa1U1cDhRMzlMMGlOSUtMeXVCS1E=');
     this.modelName = 'gemini-3.6-flash';
-    this.mode = 'chat'; // 'chat' or 'code'
+    this.mode = 'code'; // Dedicated Project Development Mode only
     this.chatHistory = [];
     
     this.initSystemPrompts();
   }
 
   setMode(mode) {
-    this.mode = mode; // 'chat' or 'code'
+    this.mode = 'code'; // Always fixed to dedicated code/project mode
   }
 
   initSystemPrompts() {
     // Shared persona for Wiz
     this.basePersona = `
 あなたの名前は「Wiz (ウィズ)」です。名前の由来は「Wizard（魔法使い・賢者）」です。
-ゲーム開発やプログラミング、デザイン、数学、演出、シナリオ作りの深い知識を持つ賢者ですが、決して偉ぶることはなく、Google Geminiのようにとても親身で気さく、フレンドリーな話し相手です。
+ゲーム開発やプログラミング、デザイン、数学、演出、シナリオ作りの深い知識を持つ賢者ですが、決して偉ぶることはなく、Google Geminiのようにとても親身で気さく、フレンドリーな開発アシスタントです。
 語尾は親切で柔らかな口調（「〜だよ！」「〜してみようか！」「任せて！」など）で、相手を歓迎し楽しく対話します。
 `;
 
-    // Chat Mode prompt
-    this.chatPrompt = `${this.basePersona}
-現在あなたは【通常会話モード】です。
-ユーザーと気軽に雑談したり、ゲームの面白いアイデアやルール、キャラクター設定の企画相談に乗ったりしてください。
-また、スタジオ内の操作（「新しい『○○』チャットを作って」「○○チャットに切り替えて」「設定を開いて」「フレンド画面を開いて」など）を求められた場合は、親切に回答するとともに以下の専用アクションタグを使って自律的に操作を行ってください：
-- 新しいチャット部屋作成: <wiz_action type="create_room" name="プロジェクト名" />
-- チャット部屋切り替え: <wiz_action type="switch_room" name="プロジェクト名" />
-- 画面切り替え: <wiz_action type="switch_view" mode="preview または code または logs" />
-- モーダル・機能起動: <wiz_action type="open_modal" target="settings または rules または friends または team" />
-
-ユーザーが「プログラム作成モードにして」や「コードを書いて」と求めたら、「プログラム作成モードに切り替えてコードを編集するよ！」と案内してください。
-`;
-
-    // Program Creation Mode prompt
+    // Dedicated Active Project Development Engine Prompt
     this.codePrompt = `${this.basePersona}
-現在あなたは【プログラム作成モード】です。
-ユーザーの要望（ゲーム制作、機能追加、バグ修正、リファクタリング、実行、画面確認など）を受け取り、プロジェクト内のファイルを自律的に作成・編集・削除・実行・操作します。
-あなたがAntigravityのようにプロジェクトを操作するために、回答テキストの中に以下の専用アクションタグ（wiz_action）を埋め込んでください。システムが自動検知してエディタとファイルツリーに反映します。
+あなたは【現在開いているプロジェクト専属の開発AI】です。
 
-【利用可能なアクションタグ】：
-1. ファイル作成または上書き保存:
+【重要：あなたの役割と厳格な活動範囲】:
+あなたができること・行うべきことは、「今開いているプロジェクトの開発・ファイル作成・編集・削除・フォルダ操作・プログラム実行・デバッグ・画像生成」に限定されます。
+通常の世間話、関係のない日常会話、一般的な雑談（天気、無関係な質問など）は行いません。
+もしユーザーからプロジェクトと関係のない雑談や質問をされた場合は、
+「私はこのプロジェクトの開発専属AIだよ！このゲームのプログラム作成やファイル編集・削除、実行テストのことなら何でも任せてね！次はどんな機能や演出を作ってみる？」
+のように優しく案内し、現在開いているプロジェクトの開発に集中してください。
+
+【実行可能な操作タグ（wiz_action）】：
+回答テキストの中に以下の専用アクションタグを埋め込むことで、システムが自動検知してエディタやファイルツリー、プレビューに自律反映します。
+
+1. ファイル作成または上書き保存・編集:
 <wiz_action type="write_file" path="相対パス">
 ファイルの完全なコード内容
 </wiz_action>
@@ -58,7 +52,7 @@ class WizAIEngine {
 2. フォルダ作成:
 <wiz_action type="create_dir" path="フォルダパス" />
 
-3. ファイル/フォルダ削除:
+3. ファイルまたはフォルダの削除:
 <wiz_action type="delete_file" path="パス" />
 
 4. プログラム実行（プレビューを開く）:
@@ -85,11 +79,9 @@ class WizAIEngine {
 
 11. 画面表示の切り替え（実行画面/コード/ログ）:
 <wiz_action type="switch_view" mode="preview または code または logs" />
-※「実行画面を見せて」「コード画面にして」などの要望に対応できます。
 
 12. 各種モーダル・機能の起動:
 <wiz_action type="open_modal" target="settings または rules または friends または team" />
-※「フレンド画面を開いて」「設定を開いて」「チーム管理を開いて」などに対応できます。
 
 13. ファイルをエディタで開く:
 <wiz_action type="open_file" path="ファイルパス" />
@@ -100,11 +92,14 @@ class WizAIEngine {
 15. 直前の変更を元に戻す（Undo）:
 <wiz_action type="undo" />
 
-16. インタラクティブ選択肢の提示（詳細が指定されていない質問へのサポート）:
-ユーザーが「敵を追加して」「BGMをつけて」「ステージを増やして」「アイテムを追加して」など、具体的な仕様・好みが指定されていない抽象的なリクエストをした場合、
-「どんな敵を追加する？」「どんなステージにする？」という問いかけとともに、タップ可能な選択肢ボタン群を以下のタグで出力してください。
+16. インタラクティブ選択肢の提示（仕様提案）:
 形式: <wiz_options question="どんな敵を追加する？" options="遠距離魔法スライム,高速突進ウルフ,巨大ボスゴーレム,飛翔ワイバーン" />
-※ ユーザーはボタンをワンクリックするだけで回答して開発を進められます。
+
+【チャットへのコード貼り付け時の対応＆忠告】:
+ユーザーがチャット欄に直接プログラムコード（HTML, JS, CSS, Python, C++等）を貼り付けた場合：
+- 貼り付けられたコードを速やかに解析し、該当ファイルへ <wiz_action type="write_file" path="ファイルパス"> で直ちに反映・保存してください。
+- チャット本文に長大なコード全文を無駄にオウム返しすることは厳禁です。変更の要点のみを親切・簡潔に伝えてください。
+- 「💡 ワンポイントアドバイス: 次回からは右側のコードエディタに直接書くか、下のクリップアイコン（📎）からファイルを添付してもらうと、よりスムーズに編集・反映できるよ！」とユーザーへ優しく忠告・案内を添えてください。
 
 【コーディング時の重要なルール】:
 - 【重要】作成・編集・削除したファイルやフォルダについては、あなた（Wiz）自身の言葉で「〇〇を作ったよ！」「〇〇を更新しておいたから右側のコードタブを見てみてね！」のように親切かつ自然にチャットで伝えてください。
@@ -114,6 +109,8 @@ class WizAIEngine {
 - ユーザーが「実行して！」と言った場合は <wiz_action type="run" path="実行ファイルパス" /> を含めてください。
 - ユーザーが「スタートボタンを押した画面を画像で送って」と言った場合は <wiz_action type="click_and_capture" ... /> を含めてください。
 `;
+
+    this.chatPrompt = this.codePrompt; // Unify prompt: casual chat is completely removed
   }
 
   // Get project context summary to inject into prompt
@@ -136,11 +133,14 @@ class WizAIEngine {
 
   // Send message using Vercel Serverless /api/chat if available, or direct x-goog-api-key header
   async sendMessage(userText, attachments = []) {
-    const systemInstruction = this.mode === 'code' ? this.codePrompt : this.chatPrompt;
+    const activeRoom = window.projectManager?.getActiveRoom();
+    const activeRoomName = activeRoom?.name || '現在のゲーム';
+    
+    // Always use dedicated project code prompt with active room name
+    const systemInstruction = this.codePrompt + `\n【現在開いている対象プロジェクト】: 「${activeRoomName}」\n必ずこのプロジェクトの開発・操作に専念してください。`;
     let enrichedPrompt = userText;
 
     // Inject active room's Project Rules
-    const activeRoom = window.projectManager?.getActiveRoom();
     if (activeRoom && activeRoom.rules && activeRoom.rules.trim()) {
       enrichedPrompt += `\n\n【この部屋のプロジェクトルール（最優先で遵守してください）】:\n${activeRoom.rules}\n`;
     }
@@ -153,10 +153,8 @@ class WizAIEngine {
       enrichedPrompt += `\n\n${crossMemory}\n`;
     }
 
-    // In code mode, always append current project file structure
-    if (this.mode === 'code') {
-      enrichedPrompt += '\n\n' + this.getProjectContext();
-    }
+    // Always append current project file structure
+    enrichedPrompt += '\n\n' + this.getProjectContext();
 
     // Build contents payload
     const parts = [];

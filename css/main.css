@@ -1,116 +1,116 @@
 /* ==========================================================================
-   Wiz AI Game Creator - Main Stylesheet (Ultra Premium Edition)
-   Themes: Dark (Neon Cyber), White (Modern Clean), Gray (Slate Minimal)
+   Wiz AI Game Creator - Main Stylesheet (Google Theme Edition)
+   Themes: Dark (#202124), White (#ffffff), Gray (#2f3336) - Google Palette
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   THEME 1: DARK (Default - Cyber Mystic)
+   THEME 1: DARK (Google Dark - #202124)
    -------------------------------------------------------------------------- */
 :root, body.theme-dark {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #101626;
-  --bg-tertiary: #162035;
-  --bg-card: rgba(22, 32, 53, 0.75);
-  --bg-glass: rgba(16, 22, 38, 0.88);
-  --bg-editor: #0d1117;
-  --bg-input: #12192c;
+  --bg-primary: #202124;
+  --bg-secondary: #292a2d;
+  --bg-tertiary: #303134;
+  --bg-card: #303134;
+  --bg-glass: rgba(32, 33, 36, 0.94);
+  --bg-editor: #1e1e1e;
+  --bg-input: #303134;
   
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.16);
-  --border-accent: rgba(0, 242, 254, 0.4);
+  --border-subtle: #3c4043;
+  --border-medium: #5f6368;
+  --border-accent: #8ab4f8;
   
-  --text-primary: #f0f6fc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --text-muted: #80868b;
   
-  --wiz-cyan: #00f2fe;
-  --wiz-blue: #4facfe;
-  --wiz-purple: #9d4edd;
-  --wiz-accent: #00f2fe;
-  --wiz-glow: 0 0 20px rgba(0, 242, 254, 0.35);
+  --wiz-cyan: #8ab4f8;
+  --wiz-blue: #8ab4f8;
+  --wiz-purple: #c58af9;
+  --wiz-accent: #8ab4f8;
+  --wiz-glow: 0 0 16px rgba(138, 180, 248, 0.25);
   
-  --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #9d4edd 100%);
-  --accent-hover: linear-gradient(135deg, #38f9d7 0%, #4facfe 100%);
-  --chat-user-bg: linear-gradient(135deg, rgba(0, 242, 254, 0.18), rgba(157, 78, 221, 0.22));
-  --chat-user-border: rgba(0, 242, 254, 0.35);
+  --accent-gradient: linear-gradient(135deg, #8ab4f8 0%, #aecbfa 100%);
+  --accent-hover: linear-gradient(135deg, #aecbfa 0%, #8ab4f8 100%);
+  --chat-user-bg: #283547;
+  --chat-user-border: #3c4043;
   
-  --shadow-popup: 0 16px 36px rgba(0, 0, 0, 0.6);
+  --shadow-popup: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 /* --------------------------------------------------------------------------
-   THEME 2: WHITE (Clean Modern Light)
+   THEME 2: WHITE (Google White / Clean Light - #ffffff)
    -------------------------------------------------------------------------- */
 body.theme-white {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #edf2f7;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f1f3f4;
   --bg-card: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.92);
-  --bg-editor: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.96);
+  --bg-editor: #f8f9fa;
   --bg-input: #ffffff;
   
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-medium: rgba(0, 0, 0, 0.15);
-  --border-accent: rgba(79, 70, 229, 0.4);
+  --border-subtle: #dadce0;
+  --border-medium: #bdc1c6;
+  --border-accent: #1a73e8;
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #70757a;
   
-  --wiz-cyan: #4f46e5;
-  --wiz-blue: #2563eb;
-  --wiz-purple: #7c3aed;
-  --wiz-accent: #4f46e5;
-  --wiz-glow: 0 0 16px rgba(79, 70, 229, 0.2);
+  --wiz-cyan: #1a73e8;
+  --wiz-blue: #1a73e8;
+  --wiz-purple: #8430ce;
+  --wiz-accent: #1a73e8;
+  --wiz-glow: 0 0 16px rgba(26, 115, 232, 0.2);
   
-  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  --accent-hover: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-  --chat-user-bg: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(124, 58, 237, 0.14));
-  --chat-user-border: rgba(79, 70, 229, 0.3);
+  --accent-gradient: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+  --accent-hover: linear-gradient(135deg, #1765cc 0%, #1a73e8 100%);
+  --chat-user-bg: #e8f0fe;
+  --chat-user-border: #dadce0;
   
-  --shadow-popup: 0 14px 30px rgba(15, 23, 42, 0.12);
+  --shadow-popup: 0 8px 24px rgba(32, 33, 36, 0.12);
 }
 
 /* --------------------------------------------------------------------------
-   THEME 3: GRAY (Slate Minimal)
+   THEME 3: GRAY (Google Gray / Slate Minimal - #2f3336)
    -------------------------------------------------------------------------- */
 body.theme-gray {
-  --bg-primary: #1e2430;
-  --bg-secondary: #272f3d;
-  --bg-tertiary: #323b4c;
-  --bg-card: rgba(39, 47, 61, 0.85);
-  --bg-glass: rgba(39, 47, 61, 0.92);
-  --bg-editor: #1a202c;
-  --bg-input: #212836;
+  --bg-primary: #2f3336;
+  --bg-secondary: #393d40;
+  --bg-tertiary: #42474a;
+  --bg-card: #393d40;
+  --bg-glass: rgba(47, 51, 54, 0.95);
+  --bg-editor: #282b2d;
+  --bg-input: #393d40;
   
-  --border-subtle: rgba(255, 255, 255, 0.09);
-  --border-medium: rgba(255, 255, 255, 0.18);
-  --border-accent: rgba(45, 212, 191, 0.45);
+  --border-subtle: #4d5156;
+  --border-medium: #63676c;
+  --border-accent: #8ab4f8;
   
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #f1f3f4;
+  --text-secondary: #a8adb2;
+  --text-muted: #7a8085;
   
-  --wiz-cyan: #2dd4bf;
-  --wiz-blue: #38bdf8;
-  --wiz-purple: #818cf8;
-  --wiz-accent: #2dd4bf;
-  --wiz-glow: 0 0 18px rgba(45, 212, 191, 0.25);
+  --wiz-cyan: #8ab4f8;
+  --wiz-blue: #8ab4f8;
+  --wiz-purple: #c58af9;
+  --wiz-accent: #8ab4f8;
+  --wiz-glow: 0 0 16px rgba(138, 180, 248, 0.22);
   
-  --accent-gradient: linear-gradient(135deg, #0d9488 0%, #6366f1 100%);
-  --accent-hover: linear-gradient(135deg, #14b8a6 0%, #818cf8 100%);
-  --chat-user-bg: linear-gradient(135deg, rgba(45, 212, 191, 0.16), rgba(99, 102, 241, 0.18));
-  --chat-user-border: rgba(45, 212, 191, 0.35);
+  --accent-gradient: linear-gradient(135deg, #5f6368 0%, #8ab4f8 100%);
+  --accent-hover: linear-gradient(135deg, #4d5156 0%, #aecbfa 100%);
+  --chat-user-bg: #38404a;
+  --chat-user-border: #4d5156;
   
-  --shadow-popup: 0 16px 36px rgba(0, 0, 0, 0.45);
+  --shadow-popup: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* Global Tokens */
+/* Global Tokens (Google Brand Accent Colors) */
 :root {
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.15);
-  --success: #10b981;
-  --warning: #f59e0b;
+  --danger: #ea4335;
+  --danger-bg: rgba(234, 67, 53, 0.15);
+  --success: #34a853;
+  --warning: #fbbc04;
 
   --font-sans: 'Outfit', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
@@ -1063,9 +1063,9 @@ body {
   border-radius: 50%;
   border: 2px solid var(--border-subtle);
 }
-.theme-dark-circle { background: #0a0e17; border-color: #00f2fe; }
-.theme-white-circle { background: #ffffff; border-color: #4f46e5; }
-.theme-gray-circle { background: #1e2430; border-color: #2dd4bf; }
+.theme-dark-circle { background: #202124; border-color: #8ab4f8; }
+.theme-white-circle { background: #ffffff; border-color: #1a73e8; }
+.theme-gray-circle { background: #2f3336; border-color: #8ab4f8; }
 
 .theme-card span {
   font-size: 0.82rem;
@@ -4093,3 +4093,783 @@ input:checked + .slider:before {
   line-height: 1.4;
   margin-bottom: 0.75rem;
 }
+
+/* ==========================================================================
+   PDF DESIGN UNIFIED STYLES (Header, 1P Home, 2P Projects, 3P Friends)
+   ========================================================================== */
+
+/* Brand Logo (PDF Style) */
+.brand-pdf-style {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+.brand-pdf-style .brand-text {
+  display: flex;
+  flex-direction: column;
+}
+.brand-sub-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.brand-pdf-style .brand-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.brand-wiz-blue {
+  color: #8ab4f8; /* Google Blue */
+}
+body.theme-white .brand-wiz-blue {
+  color: #1a73e8;
+}
+.brand-studio-purple {
+  color: #e879f9; /* Vibrant Magenta / Purple from PDF */
+}
+body.theme-white .brand-studio-purple {
+  color: #a21caf;
+}
+
+/* PDF Navigation Menu in Header */
+.header-pdf-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 auto;
+}
+.pdf-nav-link {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+}
+.pdf-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+.pdf-nav-link.active {
+  color: var(--wiz-accent);
+  background: rgba(138, 180, 248, 0.12);
+  border-bottom: 2px solid var(--wiz-accent);
+}
+body.theme-white .pdf-nav-link.active {
+  background: rgba(26, 115, 232, 0.1);
+  border-bottom: 2px solid #1a73e8;
+}
+.nav-studio-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  margin-left: 0.5rem;
+}
+.nav-studio-btn:hover {
+  border-color: var(--wiz-accent);
+  color: var(--wiz-accent);
+}
+
+/* Page Views Container */
+.pdf-page-view {
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+.pdf-view-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem 1.5rem;
+}
+
+/* Block Titles & Headings */
+.pdf-page-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.5px;
+}
+.pdf-main-heading {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+.block-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.block-tools-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+.pdf-block-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   PDF 1P: HOME USER CARD (4 Columns with vertical dividers)
+   -------------------------------------------------------------------------- */
+.pdf-user-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+  border-radius: 20px;
+  padding: 1.5rem 1.8rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  gap: 1.5rem;
+}
+.user-card-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.user-card-col.col-account {
+  flex: 1.3;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.2rem;
+}
+.user-card-divider {
+  width: 2px;
+  background: var(--border-medium);
+  align-self: stretch;
+}
+
+/* Account Column */
+.account-avatar-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+.account-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid var(--border-medium);
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+.account-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow: hidden;
+}
+.account-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.account-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.account-id {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--wiz-accent);
+}
+.account-bio-row {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+.bio-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+.account-bio {
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Stats Columns (Friends & Projects) */
+.stat-header-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+.stat-number-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+.stat-number {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.stat-unit {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.stat-sub-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+}
+
+/* Col 3: Mini project badge inside user card (PDF 1P) */
+.mini-project-card {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  max-width: 200px;
+}
+.mini-proj-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mini-proj-desc {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Col 4: Other Info */
+.other-info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.info-row {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.info-row i {
+  color: var(--wiz-accent);
+  width: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   PDF 1P: Main Section (フレンドやプロジェクト一覧＆詳細)
+   -------------------------------------------------------------------------- */
+.home-main-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.home-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+/* Template Fast-Starter Bar */
+.template-fast-start-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 1.2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+.fast-start-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.fast-start-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.fast-chip-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+.fast-chip-btn:hover {
+  border-color: var(--wiz-accent);
+  color: var(--wiz-accent);
+  background: rgba(138, 180, 248, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Home Split Columns Grid */
+.home-columns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.home-column-box {
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+  border-radius: 16px;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+}
+.column-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.8rem;
+}
+.column-box-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-text-link {
+  background: none;
+  border: none;
+  color: var(--wiz-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.btn-text-link:hover {
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   PDF 2P: PROJECTS CARDS GRID (マイプロジェクト & 共同プロジェクト)
+   -------------------------------------------------------------------------- */
+.pdf-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Project Card (PDF 2P Design: プロジェクト名, 作成日時, 説明, <実行ビュー>) */
+.pdf-project-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+.pdf-project-card:hover {
+  border-color: var(--wiz-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.project-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  gap: 0.5rem;
+}
+.project-card-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  word-break: break-word;
+}
+.project-card-date {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.project-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 1rem;
+  min-height: 2.5em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Team Members Row for Shared Projects */
+.project-card-team-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+.team-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.team-avatars-list {
+  display: flex;
+  align-items: center;
+}
+.team-avatar-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-card);
+  margin-left: -6px;
+  background: var(--bg-secondary);
+}
+.team-avatar-mini:first-child {
+  margin-left: 0;
+}
+.team-count-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--wiz-accent);
+  margin-left: 4px;
+}
+
+/* <実行ビュー> Execution View Container (PDF 2P) */
+.project-card-run-view {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.run-view-preview-frame {
+  width: 100%;
+  height: 140px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.run-view-preview-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: none;
+}
+.run-view-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+.run-view-preview-frame:hover .run-view-preview-overlay {
+  opacity: 1;
+}
+.btn-overlay-play {
+  background: var(--wiz-accent);
+  color: #000;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.run-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+.btn-card-action {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   PDF 3P: FRIENDS CARDS GRID (アカウント画像, ユーザー名, ID, プロフィール)
+   -------------------------------------------------------------------------- */
+.pdf-friend-add-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+.pdf-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pdf-search-wrap i {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-muted);
+}
+.pdf-search-input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+.pdf-search-input:focus {
+  border-color: var(--wiz-accent);
+  outline: none;
+}
+.my-id-badge-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.my-id-badge-pill:hover {
+  border-color: var(--wiz-accent);
+  color: var(--wiz-accent);
+}
+
+/* Friend Cards Grid (PDF 3P) */
+.pdf-friends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.5rem;
+}
+.pdf-friend-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+.pdf-friend-card:hover {
+  border-color: var(--wiz-accent);
+  transform: translateY(-2px);
+}
+.friend-card-avatar-wrap {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+}
+.friend-card-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--border-medium);
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+.friend-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+.friend-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.friend-card-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.friend-card-id {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--wiz-accent);
+}
+.friend-card-bio {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin: 0;
+}
+.friend-card-shared-tag {
+  margin-top: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(138, 180, 248, 0.08);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  color: var(--wiz-accent);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.friend-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+/* --------------------------------------------------------------------------
+   TUTORIAL VIEW STYLES
+   -------------------------------------------------------------------------- */
+.tutorial-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+.tutorial-step-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-medium);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.tutorial-step-card:hover {
+  border-color: var(--wiz-accent);
+  transform: translateY(-2px);
+}
+.step-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--wiz-accent);
+  background: rgba(138, 180, 248, 0.12);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  width: fit-content;
+  margin-bottom: 0.8rem;
+}
+.step-icon {
+  font-size: 2rem;
+  color: var(--wiz-accent);
+  margin-bottom: 0.8rem;
+}
+.tutorial-step-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.tutorial-step-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .pdf-user-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .user-card-divider {
+    width: 100%;
+    height: 1px;
+  }
+  .home-columns-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
