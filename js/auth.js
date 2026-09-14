@@ -1,10 +1,13 @@
 /**
- * Wiz AI Game Creator - Auth0 Authentication Manager
+ * Wiz AI Game Creator - Auth0 Authentication & Settings Manager
  * 
  * Fully manages:
  * - Auth0 SPA SDK Login / Sign Up / Redirect Handling / Logout
- * - User Profile Synchronization (sub, email, nickname, avatar picture)
- * - Quick UI Setup for Auth0 Domain & Client ID
+ * - Initial Creator Profile Setup Modal (Username, User ID @..., Avatar selection)
+ * - Settings Modal Navigation Tabs (General, Notifications, Security, Profile)
+ * - Profile Editing (Username, User ID, Bio, Avatar selection)
+ * - Security Actions (2FA, Touch ID, Password & Email change, Danger Account Deletion)
+ * - Notifications Sync
  * - Backward Compatibility for Studio Workspace, Marketplace, and Friends Manager
  */
 
@@ -14,7 +17,7 @@ class Auth0AuthManager {
     this.currentUser = null;
     this.isOnline = navigator.onLine;
 
-    // Initialize mock users for offline or test mode
+    // Default demo accounts for testing
     this.ensureSeedAccounts();
 
     // DOM Ready hook
@@ -57,11 +60,39 @@ class Auth0AuthManager {
     }
   }
 
+  saveLocalUsers(users) {
+    try {
+      localStorage.setItem('wiz_local_users', JSON.stringify(users));
+    } catch (e) {
+      console.error('Error saving local users:', e);
+    }
+  }
+
+  updateUserInStore(user) {
+    if (!user) return;
+    const users = this.getLocalUsers();
+    const idx = users.findIndex(u => u.id === user.id || u.userId === user.userId || (u.email && u.email === user.email));
+    if (idx !== -1) {
+      users[idx] = { ...users[idx], ...user };
+    } else {
+      users.push(user);
+    }
+    this.saveLocalUsers(users);
+
+    if (user.auth0_profile || localStorage.getItem('wiz_auth0_user')) {
+      localStorage.setItem('wiz_auth0_user', JSON.stringify(user));
+    } else {
+      localStorage.setItem('wiz_mock_user', JSON.stringify(user));
+    }
+  }
+
   async init() {
-    this.bindUI();
+    this.bindGateUI();
+    this.bindSettingsModalFeatures();
+    this.bindInitialProfileModal();
     this.updateConfigStatusUI();
 
-    // Check if network status changes
+    // Online / Offline monitor
     window.addEventListener('online', () => this.handleNetworkChange(true));
     window.addEventListener('offline', () => this.handleNetworkChange(false));
 
@@ -69,9 +100,12 @@ class Auth0AuthManager {
     await this.initAuth0Client();
   }
 
+  /* ==========================================================================
+     Auth0 Configuration & Gate UI
+     ========================================================================== */
+
   updateConfigStatusUI() {
     const badge = document.getElementById('auth0-status-badge');
-    const text = document.getElementById('auth0-status-text');
     const card = document.getElementById('auth0-config-card');
     const domainInput = document.getElementById('auth0-domain-input');
     const clientIdInput = document.getElementById('auth0-client-id-input');
@@ -98,7 +132,7 @@ class Auth0AuthManager {
     }
   }
 
-  bindUI() {
+  bindGateUI() {
     // Auth0 Login Button
     const auth0LoginBtn = document.getElementById('gate-auth0-login-btn');
     auth0LoginBtn?.addEventListener('click', () => this.loginWithAuth0());
@@ -140,16 +174,14 @@ class Auth0AuthManager {
   }
 
   async initAuth0Client() {
-    // If not configured, check for mock user session
     if (!window.AUTH0_CONFIG?.isConfigured()) {
-      this.checkLocalMockSession();
+      this.checkLocalSessions();
       return;
     }
 
-    // Check if auth0 SPA SDK is available
     if (typeof auth0 === 'undefined') {
       console.warn('Auth0 SPA SDK is not loaded yet.');
-      this.checkLocalMockSession();
+      this.checkLocalSessions();
       return;
     }
 
@@ -171,7 +203,7 @@ class Auth0AuthManager {
         try {
           await this.auth0Client.handleRedirectCallback();
           window.history.replaceState({}, document.title, window.location.pathname);
-          if (window.showToast) window.showToast('Auth0 ログインが完了しました！', 'success');
+          if (window.showToast) window.showToast('Auth0 認証が完了しました！', 'success');
         } catch (err) {
           console.error('Error handling redirect callback:', err);
           if (window.showToast) window.showToast('ログインコールバック処理に失敗しました: ' + err.message, 'error');
@@ -181,45 +213,90 @@ class Auth0AuthManager {
       // Check if user is authenticated
       const isAuthenticated = await this.auth0Client.isAuthenticated();
       if (isAuthenticated) {
-        const user = await this.auth0Client.getUser();
-        this.setAuth0User(user);
+        const auth0User = await this.auth0Client.getUser();
+        this.processAuth0UserLogin(auth0User);
         return;
       }
     } catch (err) {
       console.error('Auth0 Client Initialization Error:', err);
     }
 
-    // If not authenticated via Auth0, check for existing mock session
-    this.checkLocalMockSession();
+    this.checkLocalSessions();
   }
 
-  setAuth0User(auth0User) {
+  checkLocalSessions() {
+    // 1. Check Auth0 saved user
+    const savedAuth0 = localStorage.getItem('wiz_auth0_user');
+    if (savedAuth0) {
+      try {
+        this.currentUser = JSON.parse(savedAuth0);
+        this.completeLoginProcess(this.currentUser);
+        return;
+      } catch (e) {}
+    }
+
+    // 2. Check Mock user
+    const savedMock = localStorage.getItem('wiz_mock_user');
+    if (savedMock) {
+      try {
+        this.currentUser = JSON.parse(savedMock);
+        this.completeLoginProcess(this.currentUser);
+        return;
+      } catch (e) {}
+    }
+
+    this.updateGateVisibility();
+    this.updateUserUI(null);
+  }
+
+  processAuth0UserLogin(auth0User) {
     if (!auth0User) return;
 
-    const email = auth0User.email || '';
-    const name = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : 'Auth0 User');
-    const rawId = auth0User.nickname || auth0User.preferred_username || (email ? email.split('@')[0] : 'auth0_user');
-    const userId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20);
-    const avatar = auth0User.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+    // Check if we already have this user customized in local store
+    const localUsers = this.getLocalUsers();
+    const existing = localUsers.find(u => u.id === auth0User.sub || (u.email && u.email === auth0User.email));
 
-    this.currentUser = {
+    const email = auth0User.email || '';
+    const defaultName = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : 'クリエイター');
+    const rawId = auth0User.nickname || (email ? email.split('@')[0] : 'creator');
+    const defaultUserId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20) || 'creator_' + Math.floor(Math.random() * 1000);
+    const defaultAvatar = auth0User.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${defaultUserId}`;
+
+    const isFirstTime = !existing || !existing.isProfileConfigured;
+
+    this.currentUser = existing ? {
+      ...existing,
+      email: email || existing.email,
+      auth0_profile: auth0User
+    } : {
       id: auth0User.sub,
       email: email,
-      username: name,
-      userId: userId,
+      username: defaultName,
+      userId: defaultUserId,
+      avatar: defaultAvatar,
+      isProfileConfigured: false,
       user_metadata: {
-        full_name: name,
-        user_id: userId,
-        avatar_url: avatar
+        full_name: defaultName,
+        user_id: defaultUserId,
+        avatar_url: defaultAvatar
       },
       auth0_profile: auth0User
     };
 
-    localStorage.setItem('wiz_auth0_user', JSON.stringify(this.currentUser));
+    this.updateUserInStore(this.currentUser);
     localStorage.removeItem('wiz_mock_user');
 
+    if (isFirstTime) {
+      // Show Initial Creator Setup Modal so user can choose custom name & ID
+      this.openInitialProfileModal(this.currentUser);
+    } else {
+      this.completeLoginProcess(this.currentUser);
+    }
+  }
+
+  completeLoginProcess(user) {
     this.updateGateVisibility();
-    this.updateUserUI(this.currentUser);
+    this.updateUserUI(user);
     this.showHomeDashboard();
   }
 
@@ -259,34 +336,26 @@ class Auth0AuthManager {
     }
   }
 
-  checkLocalMockSession() {
-    const savedMock = localStorage.getItem('wiz_mock_user');
-    if (savedMock) {
-      try {
-        this.currentUser = JSON.parse(savedMock);
-        this.updateGateVisibility();
-        this.updateUserUI(this.currentUser);
-        this.showHomeDashboard();
-        return;
-      } catch (e) {}
+  loginAsMockUser() {
+    const localUsers = this.getLocalUsers();
+    let user = localUsers.find(u => u.userId === 'wiz_creator');
+    if (!user) {
+      user = {
+        id: 'usr_mock_001',
+        email: 'creator@wiz-game.dev',
+        username: 'Wiz Creator',
+        userId: 'wiz_creator',
+        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator',
+        isProfileConfigured: true,
+        user_metadata: {
+          full_name: 'Wiz Creator',
+          user_id: 'wiz_creator',
+          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator'
+        }
+      };
     }
 
-    this.updateGateVisibility();
-    this.updateUserUI(null);
-  }
-
-  loginAsMockUser() {
-    this.currentUser = {
-      id: 'usr_mock_001',
-      email: 'creator@wiz-game.dev',
-      username: 'Wiz Creator',
-      userId: 'wiz_creator',
-      user_metadata: {
-        full_name: 'Wiz Creator',
-        user_id: 'wiz_creator',
-        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator'
-      }
-    };
+    this.currentUser = user;
     localStorage.setItem('wiz_mock_user', JSON.stringify(this.currentUser));
     localStorage.removeItem('wiz_auth0_user');
 
@@ -294,10 +363,381 @@ class Auth0AuthManager {
       window.showToast('テストアカウントでログインしました', 'success');
     }
 
-    this.updateGateVisibility();
-    this.updateUserUI(this.currentUser);
-    this.showHomeDashboard();
+    this.completeLoginProcess(this.currentUser);
   }
+
+  /* ==========================================================================
+     Initial Profile Setup Modal (For First-time Registration & Custom ID Setup)
+     ========================================================================== */
+
+  bindInitialProfileModal() {
+    const submitBtn = document.getElementById('init-profile-submit-btn');
+    const idInput = document.getElementById('init-profile-userid');
+    const nameInput = document.getElementById('init-profile-username');
+
+    idInput?.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    });
+
+    submitBtn?.addEventListener('click', () => {
+      const username = nameInput?.value.trim();
+      let userId = idInput?.value.trim().replace(/^@/, '').toLowerCase();
+
+      if (!username) {
+        if (window.showToast) window.showToast('表示名を入力してください', 'warning');
+        nameInput?.focus();
+        return;
+      }
+
+      if (!userId || userId.length < 3) {
+        if (window.showToast) window.showToast('ユーザーIDは3文字以上の半角英数字で入力してください', 'warning');
+        idInput?.focus();
+        return;
+      }
+
+      const existingUsers = this.getLocalUsers();
+      const isTaken = existingUsers.some(u => u.userId === userId && u.id !== this.currentUser?.id);
+      if (isTaken) {
+        if (window.showToast) window.showToast(`ユーザーID「@${userId}」は既に使用されています。別のIDをお試しください`, 'warning');
+        idInput?.focus();
+        return;
+      }
+
+      const selectedAvatar = document.querySelector('#init-avatar-select-grid .avatar-option.selected');
+      const avatarUrl = selectedAvatar?.getAttribute('data-avatar-url') || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+
+      this.currentUser.username = username;
+      this.currentUser.userId = userId;
+      this.currentUser.avatar = avatarUrl;
+      this.currentUser.isProfileConfigured = true;
+      this.currentUser.user_metadata = {
+        full_name: username,
+        user_id: userId,
+        avatar_url: avatarUrl
+      };
+
+      this.updateUserInStore(this.currentUser);
+
+      const initModal = document.getElementById('initial-profile-modal');
+      if (initModal) initModal.style.display = 'none';
+
+      if (window.showToast) window.showToast(`🎉 ようこそ、${username}さん！スタジオが準備できました`, 'success');
+
+      this.completeLoginProcess(this.currentUser);
+    });
+  }
+
+  openInitialProfileModal(user) {
+    const initModal = document.getElementById('initial-profile-modal');
+    const nameInput = document.getElementById('init-profile-username');
+    const idInput = document.getElementById('init-profile-userid');
+    const avatarGrid = document.getElementById('init-avatar-select-grid');
+
+    if (!initModal) return;
+
+    if (nameInput) nameInput.value = user.username || '';
+    if (idInput) idInput.value = user.userId || '';
+
+    if (avatarGrid) {
+      const seeds = [user.userId || 'gamer', 'wizard', 'cyber_hero', 'sound_mage', 'pixel_art', 'neon_cat', 'retro_bot'];
+      avatarGrid.innerHTML = seeds.map((seed, idx) => {
+        const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+        const isSelected = idx === 0;
+        return `
+          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
+            <img src="${url}" alt="${seed}">
+          </div>
+        `;
+      }).join('');
+
+      avatarGrid.querySelectorAll('.avatar-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          avatarGrid.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+        });
+      });
+    }
+
+    const gateModal = document.getElementById('auth-gate-modal');
+    if (gateModal) gateModal.style.display = 'none';
+    initModal.style.display = 'flex';
+  }
+
+  /* ==========================================================================
+     Studio Settings Modal (General, Notifications, Security, Profile)
+     ========================================================================== */
+
+  bindSettingsModalFeatures() {
+    // 1. Settings Navigation Tabs Switcher
+    const tabs = [
+      { btnId: 'settings-tab-general', panelId: 'settings-panel-general' },
+      { btnId: 'settings-tab-notifs', panelId: 'settings-panel-notifs' },
+      { btnId: 'settings-tab-security', panelId: 'settings-panel-security' },
+      { btnId: 'settings-tab-profile', panelId: 'settings-panel-profile' }
+    ];
+
+    tabs.forEach(t => {
+      const btn = document.getElementById(t.btnId);
+      btn?.addEventListener('click', () => {
+        tabs.forEach(item => {
+          document.getElementById(item.btnId)?.classList.remove('active');
+          const p = document.getElementById(item.panelId);
+          if (p) p.style.display = 'none';
+        });
+        btn.classList.add('active');
+        const activePanel = document.getElementById(t.panelId);
+        if (activePanel) activePanel.style.display = 'block';
+
+        if (t.btnId === 'settings-tab-profile') {
+          this.populateProfileForm();
+        } else if (t.btnId === 'settings-tab-notifs') {
+          this.populateNotificationSettings();
+        } else if (t.btnId === 'settings-tab-security') {
+          this.populateSecuritySettings();
+        }
+      });
+    });
+
+    // 2. Close Modal Buttons
+    const closeBtn = document.getElementById('close-theme-modal-btn');
+    const applyBtn = document.getElementById('apply-theme-btn');
+    const modal = document.getElementById('theme-settings-modal');
+
+    [closeBtn, applyBtn].forEach(b => {
+      b?.addEventListener('click', () => {
+        if (modal) modal.style.display = 'none';
+      });
+    });
+
+    // 3. Profile Tab: User ID input format filter
+    const editUserIdInput = document.getElementById('profile-edit-userid');
+    editUserIdInput?.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    });
+
+    // 4. Profile Tab: Save Profile
+    document.getElementById('btn-save-profile')?.addEventListener('click', () => {
+      this.saveProfileForm();
+    });
+
+    // 5. Notification Settings Sync
+    const masterNotif = document.getElementById('notif-opt-master');
+    const friendNotif = document.getElementById('notif-opt-friends');
+    const inviteNotif = document.getElementById('notif-opt-invites');
+    const updateNotif = document.getElementById('notif-opt-updates');
+
+    const saveNotifSettings = () => {
+      if (!window.notificationsCenter) return;
+      window.notificationsCenter.settings.enabled = masterNotif ? masterNotif.checked : true;
+      window.notificationsCenter.settings.friendRequests = friendNotif ? friendNotif.checked : true;
+      window.notificationsCenter.settings.projectInvites = inviteNotif ? inviteNotif.checked : true;
+      window.notificationsCenter.settings.projectUpdates = updateNotif ? updateNotif.checked : true;
+      window.notificationsCenter.saveSettings();
+    };
+
+    [masterNotif, friendNotif, inviteNotif, updateNotif].forEach(el => {
+      el?.addEventListener('change', saveNotifSettings);
+    });
+
+    // 6. Security Tab: Remote Devices Logout
+    document.getElementById('btn-logout-other-devices')?.addEventListener('click', async () => {
+      const ok = await window.showConfirm?.('他のすべての端末からログアウトしますか？\n現在使用中の端末以外のセッションが無効化されます。', '他端末からのログアウト確認') ?? confirm('他のすべての端末からログアウトしますか？');
+      if (ok) {
+        const devList = document.getElementById('settings-devices-list');
+        if (devList) {
+          const remotes = devList.querySelectorAll('.device-item.remote');
+          remotes.forEach(el => el.remove());
+        }
+        if (window.showToast) window.showToast('他のすべての端末からログアウトしました', 'success');
+      }
+    });
+
+    // 7. Security Tab: 2FA Toggle
+    const toggle2fa = document.getElementById('setting-enable-2fa');
+    toggle2fa?.addEventListener('change', () => {
+      if (!this.currentUser) return;
+      this.currentUser.is2faEnabled = toggle2fa.checked;
+      this.updateUserInStore(this.currentUser);
+      if (window.showToast) {
+        window.showToast(toggle2fa.checked ? '2段階認証 (メール確認コード) を有効にしました' : '2段階認証を無効にしました', 'info');
+      }
+    });
+
+    // 8. Security Tab: Touch ID
+    document.getElementById('btn-setup-biometrics')?.addEventListener('click', async () => {
+      const ok = await window.showConfirm?.('Touch ID / 指紋認証または顔認証を登録しますか？', '生体認証登録') ?? confirm('生体認証を登録しますか？');
+      if (ok) {
+        if (!this.currentUser) return;
+        this.currentUser.biometricsEnabled = true;
+        this.updateUserInStore(this.currentUser);
+        if (window.showToast) window.showToast('✅ Touch ID / 生体認証を登録しました！', 'success');
+      }
+    });
+
+    // 9. Security Tab: Phone SMS 2FA
+    document.getElementById('btn-setup-sms-2fa')?.addEventListener('click', async () => {
+      const phone = await window.showPrompt?.('SMS認証用の電話番号を入力してください:', '090-1234-5678', '電話番号登録') ?? prompt('電話番号を入力してください:');
+      if (phone && phone.trim()) {
+        if (!this.currentUser) return;
+        this.currentUser.phone = phone.trim();
+        this.currentUser.sms2faEnabled = true;
+        this.updateUserInStore(this.currentUser);
+        if (window.showToast) window.showToast(`✅ 電話番号 (${phone}) を登録しました`, 'success');
+      }
+    });
+
+    // 10. Security Tab: Password Change
+    document.getElementById('btn-change-password')?.addEventListener('click', async () => {
+      const newPass = await window.showPrompt?.('新しいパスワードを入力してください (6文字以上):', '', 'パスワード変更') ?? prompt('新しいパスワードを入力してください:');
+      if (newPass) {
+        if (newPass.length < 6) {
+          if (window.showToast) window.showToast('パスワードは6文字以上で入力してください', 'warning');
+          return;
+        }
+        if (this.currentUser) {
+          this.currentUser.password = newPass;
+          this.updateUserInStore(this.currentUser);
+          if (window.showToast) window.showToast('🎉 パスワードを変更しました！', 'success');
+        }
+      }
+    });
+
+    // 11. Security Tab: Email Change
+    document.getElementById('btn-change-email')?.addEventListener('click', async () => {
+      const newEmail = await window.showPrompt?.('新しいメールアドレスを入力してください:', this.currentUser?.email || '', 'メールアドレス変更') ?? prompt('新しいメールアドレス:');
+      if (newEmail && newEmail.includes('@')) {
+        if (this.currentUser) {
+          this.currentUser.email = newEmail.trim().toLowerCase();
+          this.updateUserInStore(this.currentUser);
+          this.updateUserUI(this.currentUser);
+          if (window.showToast) window.showToast(`🎉 メールアドレスを「${this.currentUser.email}」に変更しました！`, 'success');
+        }
+      }
+    });
+
+    // 12. Security Tab: Account Deletion (Danger Zone)
+    document.getElementById('btn-delete-account')?.addEventListener('click', async () => {
+      const confirmText = await window.showPrompt?.('アカウントを完全に削除します。確認のため「アカウントを削除」と入力してください:', '', 'アカウント削除確認') ?? prompt('確認のため「アカウントを削除」と入力してください:');
+      if (confirmText === 'アカウントを削除') {
+        const users = this.getLocalUsers().filter(u => u.userId !== this.currentUser?.userId && u.id !== this.currentUser?.id);
+        this.saveLocalUsers(users);
+        if (modal) modal.style.display = 'none';
+        this.signOut();
+        if (window.showToast) window.showToast('アカウントを完全に削除しました。ご利用ありがとうございました。', 'info');
+      } else if (confirmText !== null) {
+        if (window.showToast) window.showToast('確認文字列が一致しませんでした。削除を中止しました。', 'warning');
+      }
+    });
+  }
+
+  populateNotificationSettings() {
+    if (!window.notificationsCenter) return;
+    const s = window.notificationsCenter.settings;
+    const master = document.getElementById('notif-opt-master');
+    const friends = document.getElementById('notif-opt-friends');
+    const invites = document.getElementById('notif-opt-invites');
+    const updates = document.getElementById('notif-opt-updates');
+
+    if (master) master.checked = s.enabled !== false;
+    if (friends) friends.checked = s.friendRequests !== false;
+    if (invites) invites.checked = s.projectInvites !== false;
+    if (updates) updates.checked = s.projectUpdates !== false;
+  }
+
+  populateSecuritySettings() {
+    const toggle2fa = document.getElementById('setting-enable-2fa');
+    if (toggle2fa && this.currentUser) {
+      toggle2fa.checked = Boolean(this.currentUser.is2faEnabled);
+    }
+  }
+
+  populateProfileForm() {
+    if (!this.currentUser) return;
+    const usernameInput = document.getElementById('profile-edit-username');
+    const userIdInput = document.getElementById('profile-edit-userid');
+    const bioInput = document.getElementById('profile-edit-bio');
+    const avatarGrid = document.getElementById('avatar-select-grid');
+
+    if (usernameInput) usernameInput.value = this.currentUser.username || this.currentUser.user_metadata?.full_name || '';
+    if (userIdInput) userIdInput.value = this.currentUser.userId || 'user';
+    if (bioInput) bioInput.value = this.currentUser.bio || '';
+
+    // Render Avatar selection
+    if (avatarGrid) {
+      const currentId = this.currentUser.userId || 'user';
+      const seeds = [currentId, 'wiz_creator', 'pixel_hero', 'sound_mage', 'retro_gamer', 'neon_cat', 'bot_99', 'star_pilot'];
+      const currentAvatar = this.currentUser.avatar || this.currentUser.user_metadata?.avatar_url || '';
+
+      avatarGrid.innerHTML = seeds.map(seed => {
+        const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+        const isSelected = (currentAvatar === url) || (!currentAvatar && seed === currentId);
+        return `
+          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
+            <img src="${url}" alt="${seed}">
+          </div>
+        `;
+      }).join('');
+
+      avatarGrid.querySelectorAll('.avatar-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          avatarGrid.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+        });
+      });
+    }
+  }
+
+  saveProfileForm() {
+    if (!this.currentUser) return;
+    const usernameInput = document.getElementById('profile-edit-username');
+    const userIdInput = document.getElementById('profile-edit-userid');
+    const bioInput = document.getElementById('profile-edit-bio');
+    const selectedAvatar = document.querySelector('#avatar-select-grid .avatar-option.selected');
+
+    const newName = usernameInput?.value.trim();
+    let newUserId = userIdInput?.value.trim().replace(/^@/, '').toLowerCase();
+
+    if (!newName) {
+      if (window.showToast) window.showToast('表示名を入力してください', 'warning');
+      return;
+    }
+
+    if (!newUserId || newUserId.length < 3) {
+      if (window.showToast) window.showToast('ユーザーIDは3文字以上で入力してください', 'warning');
+      return;
+    }
+
+    // Check if new userId is taken by someone else
+    const allUsers = this.getLocalUsers();
+    const isTaken = allUsers.some(u => u.userId === newUserId && u.id !== this.currentUser.id);
+    if (isTaken) {
+      if (window.showToast) window.showToast(`ユーザーID「@${newUserId}」は既に使用されています`, 'warning');
+      return;
+    }
+
+    this.currentUser.username = newName;
+    this.currentUser.userId = newUserId;
+    if (bioInput) this.currentUser.bio = bioInput.value.trim();
+
+    if (selectedAvatar) {
+      this.currentUser.avatar = selectedAvatar.getAttribute('data-avatar-url');
+    }
+
+    this.currentUser.user_metadata = {
+      full_name: newName,
+      user_id: newUserId,
+      avatar_url: this.currentUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${newUserId}`
+    };
+
+    this.updateUserInStore(this.currentUser);
+    this.updateUserUI(this.currentUser);
+
+    if (window.showToast) window.showToast('🎉 プロフィール設定を保存しました！', 'success');
+  }
+
+  /* ==========================================================================
+     Sign Out, UI Visibility & Helpers
+     ========================================================================== */
 
   showHomeDashboard() {
     const homeView = document.getElementById('home-dashboard-view');
@@ -347,6 +787,7 @@ class Auth0AuthManager {
   updateGateVisibility() {
     const gateModal = document.getElementById('auth-gate-modal');
     const studioRoot = document.getElementById('studio-app-root');
+    const initModal = document.getElementById('initial-profile-modal');
 
     if (this.currentUser) {
       if (gateModal) gateModal.style.display = 'none';
@@ -355,6 +796,7 @@ class Auth0AuthManager {
     } else {
       if (gateModal) gateModal.style.display = 'flex';
       if (studioRoot) studioRoot.style.display = 'none';
+      if (initModal) initModal.style.display = 'none';
       document.body.classList.add('auth-locked');
     }
   }
@@ -366,7 +808,7 @@ class Auth0AuthManager {
     if (user) {
       const name = user.username || user.user_metadata?.full_name || user.email?.split('@')[0] || 'クリエイター';
       const userId = user.userId || user.user_metadata?.user_id || 'wiz_user';
-      const avatarUrl = user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+      const avatarUrl = user.avatar || user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
 
       userContainer.innerHTML = `
         <div class="user-profile-card">
@@ -408,7 +850,6 @@ class Auth0AuthManager {
   }
 
   saveRoomToCloud(room) {
-    // Synchronize room to localStorage rooms
     try {
       const rooms = JSON.parse(localStorage.getItem('wiz_rooms') || '[]');
       const idx = rooms.findIndex(r => r.id === room.id);

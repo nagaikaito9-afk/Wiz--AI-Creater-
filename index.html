@@ -939,8 +939,14 @@
             </div>
 
             <div class="form-group" style="margin-bottom:1rem;">
-              <label class="setting-label"><i class="fa-solid fa-at"></i> ユーザーID (変更不可)</label>
-              <input type="text" id="profile-edit-userid" class="form-input" disabled style="opacity:0.7;">
+              <label class="setting-label"><i class="fa-solid fa-at"></i> ユーザーID (英数字・アンダースコア)</label>
+              <div class="userid-input-wrapper">
+                <span class="userid-prefix">@</span>
+                <input type="text" id="profile-edit-userid" class="form-input userid-field" placeholder="your_user_id" maxlength="20">
+              </div>
+              <span class="field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+                ※ 半角英数字・アンダースコア3〜20文字で入力してください
+              </span>
             </div>
 
             <div class="form-group" style="margin-bottom:1rem;">
@@ -975,6 +981,52 @@
 
       <div class="modal-footer">
         <button id="apply-theme-btn" class="btn btn-primary">保存して閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INITIAL CREATOR PROFILE SETUP MODAL (新規登録・初回ログイン時のプロフィール決定画面) -->
+  <div class="modal-backdrop" id="initial-profile-modal" style="display: none; z-index: 100002;">
+    <div class="modal-card modal-card-md" style="max-width: 520px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.8rem;">
+        <h3><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--wiz-accent);"></i> プロフィールの初期設定</h3>
+      </div>
+      <div class="modal-body" style="padding-top: 1rem;">
+        <div style="background: rgba(0, 242, 254, 0.08); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 12px; padding: 0.8rem 1rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.8rem;">
+          <i class="fa-solid fa-circle-check" style="color: var(--wiz-cyan); font-size: 1.3rem;"></i>
+          <p style="margin: 0; font-size: 0.86rem; color: var(--text-primary); line-height: 1.4;">
+            <strong>Auth0 認証が完了しました！</strong><br>
+            Wiz AI Studio で使用するあなたのクリエイター名とIDを決定しましょう。
+          </p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="setting-label"><i class="fa-solid fa-user"></i> 表示名 (クリエイター名)</label>
+          <input type="text" id="init-profile-username" class="form-input" placeholder="例: 魔導士アリス" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label class="setting-label"><i class="fa-solid fa-at"></i> ユーザーID (半角英数字・一意なID)</label>
+          <div class="userid-input-wrapper">
+            <span class="userid-prefix">@</span>
+            <input type="text" id="init-profile-userid" class="form-input userid-field" placeholder="alice_game" maxlength="20" required>
+          </div>
+          <span id="init-profile-id-hint" class="field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
+            ※ 半角英数字・アンダースコア（3〜20文字）。後からいつでも変更可能です。
+          </span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label class="setting-label"><i class="fa-solid fa-image"></i> アバターアイコンを選択</label>
+          <div class="avatar-select-grid" id="init-avatar-select-grid">
+            <!-- Dynamically populated avatar presets -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid var(--border-subtle); justify-content: flex-end;">
+        <button id="init-profile-submit-btn" class="btn btn-primary" type="button" style="padding: 0.7rem 1.6rem; font-weight: 700;">
+          <span>設定を完了してスタジオを開始</span> <i class="fa-solid fa-arrow-right"></i>
+        </button>
       </div>
     </div>
   </div>
