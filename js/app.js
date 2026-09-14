@@ -1093,6 +1093,8 @@ class AppController {
     const navMarket = document.getElementById('nav-btn-marketplace');
     const navProjects = document.getElementById('nav-btn-projects');
     const navFriends = document.getElementById('nav-btn-friends');
+    const navCommunity = document.getElementById('nav-btn-community');
+    const navNotifs = document.getElementById('nav-btn-notifications');
     const navSettings = document.getElementById('nav-btn-settings');
     const navTutorial = document.getElementById('nav-btn-tutorial');
     const logoBtn = document.getElementById('header-logo-home-btn') || document.getElementById('header-brand-logo');
@@ -1100,6 +1102,8 @@ class AppController {
     navMarket?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('marketplace'); });
     navProjects?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('projects'); });
     navFriends?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('friends'); });
+    navCommunity?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('community'); });
+    navNotifs?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('notifications'); });
     navSettings?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('settings'); });
     navTutorial?.addEventListener('click', (e) => { e.preventDefault(); this.switchPageView('tutorial'); });
 
