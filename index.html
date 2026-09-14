@@ -58,6 +58,13 @@
         <span>フレンド</span>
         <span id="nav-friends-badge" class="nav-badge" style="display:none;">0</span>
       </button>
+      <button id="nav-btn-community" class="pdf-nav-link" type="button" title="コミュニティ (10部屋のオープンチャット)">
+        <span>コミュニティ</span>
+      </button>
+      <button id="nav-btn-notifications" class="pdf-nav-link" type="button" title="通知センター">
+        <span>通知センター</span>
+        <span id="nav-notifs-badge" class="nav-badge" style="display:none;">0</span>
+      </button>
       <button id="nav-btn-settings" class="pdf-nav-link" type="button" title="設定 (テーマ・通知・アカウント)">
         <span>設定</span>
       </button>
@@ -221,42 +228,39 @@
 
   <!-- 2P: PROJECTS VIEW (マイプロジェクト & 共同プロジェクト) -->
   <section id="view-projects" class="pdf-page-view" style="display: none;">
-    <div class="pdf-view-content">
+    <div class="pdf-view-content" style="max-width: 1100px;">
       
-      <!-- Section 1: マイプロジェクト (PDF 2P) -->
-      <div class="pdf-projects-block">
-        <div class="block-header-row">
-          <h1 class="pdf-page-title">マイプロジェクト</h1>
-          <div class="block-tools-row">
-            <div class="pdf-search-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="projects-view-search" placeholder="マイプロジェクトを検索..." class="pdf-search-input">
-            </div>
-            <button id="projects-view-create-btn" class="btn btn-primary" type="button">
-              <i class="fa-solid fa-plus"></i> <span>新規プロジェクト作成</span>
-            </button>
+      <!-- Unified Projects Dashboard Header -->
+      <div class="block-header-row" style="margin-bottom: 1.25rem;">
+        <div>
+          <h1 class="pdf-page-title" style="margin-bottom: 0.2rem;"><i class="fa-solid fa-folder-closed" style="color:var(--wiz-accent); margin-right:0.5rem;"></i>プロジェクト</h1>
+          <span class="pdf-block-desc">あなたが制作中のゲームおよびフレンドとの共同開発プロジェクト</span>
+        </div>
+        <div class="block-tools-row">
+          <div class="pdf-search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="projects-view-search" placeholder="プロジェクトを検索..." class="pdf-search-input" style="min-width: 220px;">
           </div>
-        </div>
-
-        <!-- Grid of Project Cards (PDF 2P: プロジェクト名, 作成日時, 説明, <実行ビュー>) -->
-        <div id="my-projects-cards-grid" class="pdf-cards-grid">
-          <!-- Dynamically populated cards -->
+          <button id="projects-view-create-btn" class="btn btn-primary" type="button">
+            <i class="fa-solid fa-plus"></i> <span>新規プロジェクト作成</span>
+          </button>
         </div>
       </div>
 
-      <!-- Section 2: 共同プロジェクト (PDF 2P) -->
-      <div class="pdf-projects-block" style="margin-top: 3rem;">
-        <div class="block-header-row">
-          <h2 class="pdf-page-title">共同プロジェクト</h2>
-          <span class="pdf-block-desc">チームメンバーと一緒に共同開発しているプロジェクト</span>
-        </div>
-
-        <!-- Grid of Shared Project Cards (PDF 2P: プロジェクト名, 作成日時, チームメンバー, 実行ビュー) -->
-        <div id="shared-projects-cards-grid" class="pdf-cards-grid">
-          <!-- Dynamically populated shared cards -->
-        </div>
+      <!-- Filter Category Tabs -->
+      <div class="fast-start-chips" id="projects-filter-chips" style="margin-bottom: 1.5rem;">
+        <button class="fast-chip-btn active" data-proj-filter="all">すべて</button>
+        <button class="fast-chip-btn" data-proj-filter="my">マイプロジェクト</button>
+        <button class="fast-chip-btn" data-proj-filter="shared">共同プロジェクト</button>
       </div>
 
+      <!-- Projects Grid -->
+      <div id="my-projects-cards-grid" class="pdf-cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+        <!-- Dynamically populated clean modern cards -->
+      </div>
+
+      <!-- Hidden shared container for script compatibility -->
+      <div id="shared-projects-cards-grid" style="display: none;"></div>
     </div>
   </section>
 
@@ -264,7 +268,12 @@
   <section id="view-friends" class="pdf-page-view" style="display: none;">
     <div class="pdf-view-content">
       <div class="block-header-row">
-        <h1 class="pdf-page-title">フレンド</h1>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <h1 class="pdf-page-title" style="margin-bottom: 0;">フレンド</h1>
+          <button id="friends-view-open-add-modal-btn" class="btn btn-primary" type="button">
+            <i class="fa-solid fa-user-plus"></i> <span>フレンドを追加する</span>
+          </button>
+        </div>
         <div class="block-tools-row">
           <div class="my-id-badge-pill" id="friends-view-copy-id-btn" title="クリックして自分のIDをコピー">
             <i class="fa-solid fa-id-badge"></i>
@@ -272,17 +281,6 @@
             <i class="fa-regular fa-copy"></i>
           </div>
         </div>
-      </div>
-
-      <!-- Friend Add Bar -->
-      <div class="pdf-friend-add-bar">
-        <div class="pdf-search-wrap flex-grow">
-          <i class="fa-solid fa-user-plus"></i>
-          <input type="text" id="friends-view-add-input" placeholder="ユーザーID (@username) を入力して検索・フレンド申請..." class="pdf-search-input">
-        </div>
-        <button id="friends-view-send-btn" class="btn btn-primary" type="button">
-          <i class="fa-solid fa-paper-plane"></i> <span>フレンド申請を送る</span>
-        </button>
       </div>
 
       <!-- Pending Requests Box (If any) -->
@@ -378,6 +376,78 @@
       <!-- Marketplace Games Grid -->
       <div id="marketplace-page-cards-grid" class="pdf-cards-grid">
         <!-- Dynamically populated by marketplace.js / app.js -->
+  <!-- COMMUNITY VIEW (10 Rooms Open Chat) -->
+  <section id="view-community" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content" style="max-width: 1100px;">
+      <div class="block-header-row">
+        <div>
+          <h1 class="pdf-page-title"><i class="fa-solid fa-comments" style="color:var(--wiz-accent); margin-right:0.5rem;"></i>コミュニティ</h1>
+          <span class="pdf-block-desc">誰でも自由に参加できる10個のオープンチャット部屋。クリエイター仲間とリアルタイムに交流しよう！</span>
+        </div>
+      </div>
+
+      <!-- Community Two-Pane Container -->
+      <div class="community-container">
+        <!-- Left: 10 Rooms List -->
+        <div class="community-rooms-sidebar">
+          <div class="community-rooms-header">
+            <span><i class="fa-solid fa-door-open"></i> ルーム一覧 (全10部屋)</span>
+          </div>
+          <div class="community-rooms-list" id="community-rooms-list">
+            <!-- Dynamically populated 10 rooms -->
+          </div>
+        </div>
+
+        <!-- Right: Active Room Chat Area -->
+        <div class="community-chat-area">
+          <div class="community-chat-header" id="community-active-room-header">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span id="community-active-room-icon" style="font-size: 1.4rem;">🔰</span>
+              <div>
+                <h3 id="community-active-room-title" style="margin: 0; font-size: 1.05rem; font-weight: 700;">初心者歓迎・雑談ルーム</h3>
+                <span id="community-active-room-desc" style="font-size: 0.8rem; color: var(--text-secondary);">ゲーム制作を始めたばかりの方も気軽に話せる雑談部屋です</span>
+              </div>
+            </div>
+            <div class="badge" style="background: rgba(52, 168, 83, 0.15); color: var(--success); font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 6px;">
+              <i class="fa-solid fa-circle" style="font-size: 0.55rem; margin-right: 3px;"></i> 参加中
+            </div>
+          </div>
+
+          <!-- Messages Container -->
+          <div class="community-messages-box" id="community-messages-box">
+            <!-- Messages populated dynamically -->
+          </div>
+
+          <!-- Message Input Bar -->
+          <div class="community-input-bar">
+            <input type="text" id="community-msg-input" class="settings-input" placeholder="メッセージを入力... (Enterで送信)" maxlength="300">
+            <button id="community-send-btn" class="btn btn-primary" type="button" style="white-space: nowrap; padding: 0.6rem 1.2rem;">
+              <i class="fa-solid fa-paper-plane"></i> <span>送信</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOTIFICATION CENTER VIEW (フルページ通知センター) -->
+  <section id="view-notifications" class="pdf-page-view" style="display: none;">
+    <div class="pdf-view-content" style="max-width: 860px;">
+      <div class="block-header-row">
+        <div>
+          <h1 class="pdf-page-title"><i class="fa-solid fa-bell" style="color:var(--wiz-accent); margin-right:0.5rem;"></i>通知センター</h1>
+          <span class="pdf-block-desc">システム通知、プロジェクト更新、フレンド申請の履歴</span>
+        </div>
+        <div class="block-tools-row">
+          <button id="clear-all-notifications-btn" class="btn btn-secondary btn-sm" type="button">
+            <i class="fa-solid fa-trash-can"></i> 通知をすべて消去
+          </button>
+        </div>
+      </div>
+
+      <!-- Notification List Cards -->
+      <div id="full-notifications-list" class="notifications-page-list">
+        <!-- Dynamically populated notifications -->
       </div>
     </div>
   </section>
@@ -514,7 +584,7 @@
                   <span class="personality-badge">🧙‍♂️</span>
                   <div class="personality-info">
                     <strong>親しみやすいモード</strong>
-                    <p>気さくで親しみやすい賢者口調。「〜じゃ！」「任せておけ！」と楽しくサポートします。</p>
+                    <p>普通の友達のような気さくで親身な口調。「〜だよ！」「任せてね！」と楽しくサポートします。</p>
                   </div>
                 </div>
                 <div class="personality-card" data-personality="polite" id="personality-opt-polite">
@@ -2075,6 +2145,7 @@
   <script src="js/projectManager.js"></script>
   <script src="js/marketplace.js"></script>
   <script src="js/wiz.js"></script>
+  <script src="js/community.js"></script>
   <script src="js/agentActions.js"></script>
   <script src="js/contextMenu.js"></script>
   <script src="js/app.js"></script>

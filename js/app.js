@@ -1125,6 +1125,17 @@ class AppController {
       });
     });
 
+    // Project Filter chips (All / My / Shared)
+    document.querySelectorAll('#projects-filter-chips .fast-chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#projects-filter-chips .fast-chip-btn').forEach(b => b.classList.toggle('active', b === btn));
+        if (window.projectManager) {
+          window.projectManager.activeProjectsFilter = btn.getAttribute('data-proj-filter');
+          window.projectManager.renderProjectsView();
+        }
+      });
+    });
+
     // 2P: Projects View interactive controls
     document.getElementById('projects-view-create-btn')?.addEventListener('click', () => {
       window.projectManager?.promptCreateNewRoom();
@@ -1147,18 +1158,16 @@ class AppController {
       });
     });
 
-    const addFriendInput = document.getElementById('friends-view-add-input');
-    const sendFriendBtn = document.getElementById('friends-view-send-btn');
-    sendFriendBtn?.addEventListener('click', () => {
-      const targetId = addFriendInput?.value.trim().replace(/^@/, '');
-      if (!targetId) {
-        if (window.showToast) window.showToast('申請を送るユーザーIDを入力してください', 'warning');
-        return;
+    // Notification Center buttons
+    document.getElementById('notification-center-btn')?.addEventListener('click', () => {
+      this.switchPageView('notifications');
+    });
+    document.getElementById('clear-all-notifications-btn')?.addEventListener('click', () => {
+      if (window.notificationsManager) {
+        window.notificationsManager.clearAll();
       }
-      if (window.friendsManager) {
-        window.friendsManager.sendFriendRequest(targetId);
-        if (addFriendInput) addFriendInput.value = '';
-      }
+      this.renderNotificationCenterView();
+      if (window.showToast) window.showToast('通知をすべてクリアしました', 'info');
     });
 
     // Tutorial view controls
@@ -1185,6 +1194,8 @@ class AppController {
       { id: 'nav-btn-marketplace', key: 'marketplace' },
       { id: 'nav-btn-projects', key: 'projects' },
       { id: 'nav-btn-friends', key: 'friends' },
+      { id: 'nav-btn-community', key: 'community' },
+      { id: 'nav-btn-notifications', key: 'notifications' },
       { id: 'nav-btn-settings', key: 'settings' },
       { id: 'nav-btn-tutorial', key: 'tutorial' }
     ];
@@ -1200,6 +1211,8 @@ class AppController {
     const viewHome = document.getElementById('view-home');
     const viewProjects = document.getElementById('view-projects');
     const viewFriends = document.getElementById('view-friends');
+    const viewCommunity = document.getElementById('view-community');
+    const viewNotifications = document.getElementById('view-notifications');
     const viewMarketplace = document.getElementById('view-marketplace');
     const viewSettings = document.getElementById('view-settings');
     const viewTutorial = document.getElementById('view-tutorial');
@@ -1208,6 +1221,8 @@ class AppController {
     if (viewHome) viewHome.style.display = (viewName === 'home') ? 'block' : 'none';
     if (viewProjects) viewProjects.style.display = (viewName === 'projects') ? 'block' : 'none';
     if (viewFriends) viewFriends.style.display = (viewName === 'friends') ? 'block' : 'none';
+    if (viewCommunity) viewCommunity.style.display = (viewName === 'community') ? 'block' : 'none';
+    if (viewNotifications) viewNotifications.style.display = (viewName === 'notifications') ? 'block' : 'none';
     if (viewMarketplace) viewMarketplace.style.display = (viewName === 'marketplace') ? 'block' : 'none';
     if (viewSettings) viewSettings.style.display = (viewName === 'settings') ? 'block' : 'none';
     if (viewTutorial) viewTutorial.style.display = (viewName === 'tutorial') ? 'block' : 'none';
@@ -1230,6 +1245,12 @@ class AppController {
       if (window.friendsManager) {
         window.friendsManager.renderFriendsPageView();
       }
+    } else if (viewName === 'community') {
+      if (window.communityManager) {
+        window.communityManager.renderCommunityView();
+      }
+    } else if (viewName === 'notifications') {
+      this.renderNotificationCenterView();
     } else if (viewName === 'marketplace') {
       this.renderMarketplacePageView();
     } else if (viewName === 'settings') {
@@ -1240,6 +1261,37 @@ class AppController {
         window.editor.renderTabs();
       }
     }
+  }
+
+  renderNotificationCenterView() {
+    const listContainer = document.getElementById('full-notifications-list');
+    if (!listContainer) return;
+
+    const notifs = window.notificationsManager?.notifications || [];
+    if (notifs.length === 0) {
+      listContainer.innerHTML = `
+        <div style="text-align:center; padding: 4rem 1.5rem; border: 2px dashed var(--border-subtle); border-radius: 16px; background: var(--bg-card); color: var(--text-muted);">
+          <div style="font-size: 2.8rem; margin-bottom: 0.8rem; opacity: 0.5;"><i class="fa-solid fa-bell-slash"></i></div>
+          <h3 style="color: var(--text-primary); margin-bottom: 0.3rem; font-size: 1.15rem; font-weight: 700;">通知はありません</h3>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">新しいメッセージやプロジェクトの更新があるとここに届きます。</p>
+        </div>
+      `;
+      return;
+    }
+
+    listContainer.innerHTML = notifs.map(n => {
+      const icon = n.type === 'project' ? 'fa-gamepad' : n.type === 'friend' ? 'fa-user-group' : 'fa-info';
+      return `
+        <div class="notification-page-card">
+          <div class="notif-page-icon"><i class="fa-solid ${icon}"></i></div>
+          <div class="notif-page-content">
+            <div class="notif-page-title">${this.escapeHtml(n.title || '通知')}</div>
+            <div class="notif-page-message">${this.escapeHtml(n.message || '')}</div>
+            <div class="notif-page-time">${n.time || ''}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ==========================================
@@ -1669,37 +1721,44 @@ class AppController {
 
     grid.innerHTML = allGames.map(game => {
       return `
-        <div class="pdf-project-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="project-card-modern">
           <div>
-            <div class="pdf-project-card-header">
-              <div>
-                <div class="pdf-project-title">
-                  <i class="fa-solid fa-gamepad" style="color:var(--brand-primary);"></i>
-                  <span>${this.escapeHtml(game.title)}</span>
+            <div class="project-card-modern-header">
+              <div class="project-card-modern-title-wrap">
+                <div class="project-card-icon-box" style="background:rgba(232,121,249,0.12); color:#e879f9;">
+                  <i class="fa-solid fa-gamepad"></i>
                 </div>
-                <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.3rem;">
-                  <img src="${game.authorAvatar}" style="width:20px; height:20px; border-radius:50%; background:var(--bg-secondary);" />
-                  <span style="font-size:0.78rem; color:var(--text-secondary);">${this.escapeHtml(game.author)} (@${this.escapeHtml(game.authorId)})</span>
+                <div>
+                  <div class="project-card-modern-title">${this.escapeHtml(game.title)}</div>
+                  <div style="display:flex; align-items:center; gap:0.4rem; margin-top:2px;">
+                    <img src="${game.authorAvatar}" style="width:16px; height:16px; border-radius:50%; background:var(--bg-secondary);" />
+                    <span style="font-size:0.75rem; color:var(--text-secondary);">${this.escapeHtml(game.author)}</span>
+                  </div>
                 </div>
               </div>
               <div style="text-align:right;">
-                <span style="font-size:0.8rem; font-weight:700; color:var(--brand-yellow);"><i class="fa-solid fa-star"></i> ${game.rating}</span>
+                <span style="font-size:0.8rem; font-weight:700; color:var(--warning);"><i class="fa-solid fa-star"></i> ${game.rating}</span>
                 <div style="font-size:0.72rem; color:var(--text-muted);">${game.plays} プレイ</div>
               </div>
             </div>
 
-            <div class="pdf-project-desc" style="margin-top:0.8rem;">
+            <div class="project-card-modern-desc">
               ${this.escapeHtml(game.description)}
             </div>
           </div>
 
-          <div class="pdf-project-actions" style="margin-top:1.2rem;">
-            <button class="btn btn-primary btn-sm" style="flex:1;" onclick="window.app.importMarketGame('${game.id}', '${game.templateKey || 'breaker'}')">
-              <i class="fa-solid fa-download"></i> スタジオにインポート
-            </button>
-            <button class="btn btn-secondary btn-sm" onclick="window.app.playMarketGame('${game.id}', '${game.templateKey || 'breaker'}')" title="今すぐプレイ">
-              <i class="fa-solid fa-play"></i> プレイ
-            </button>
+          <div class="project-card-modern-footer">
+            <span class="badge" style="background:var(--bg-tertiary); color:var(--text-secondary); font-size:0.72rem; padding:2px 8px; border-radius:6px;">
+              ${game.category ? game.category.toUpperCase() : 'WEB'}
+            </span>
+            <div class="project-card-actions-group">
+              <button class="btn btn-secondary btn-sm" onclick="window.app.playMarketGame('${game.id}', '${game.templateKey || 'breaker'}')" title="今すぐプレイ">
+                <i class="fa-solid fa-play"></i> プレイ
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="window.app.importMarketGame('${game.id}', '${game.templateKey || 'breaker'}')">
+                <i class="fa-solid fa-download"></i> インポート
+              </button>
+            </div>
           </div>
         </div>
       `;

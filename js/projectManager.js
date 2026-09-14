@@ -1195,59 +1195,59 @@ class ProjectManager {
     }
   }
 
-  // Render PDF 2P Style Projects View
+  // Render Modern Unified Projects View
   renderProjectsView() {
-    const myProjectsGrid = document.getElementById('my-projects-cards-grid');
-    const sharedProjectsGrid = document.getElementById('shared-projects-cards-grid');
-    if (!myProjectsGrid) return;
+    const grid = document.getElementById('my-projects-cards-grid');
+    if (!grid) return;
 
     const myId = (window.supabaseAuth?.currentUser?.userId || 'wiz_creator').toLowerCase();
+    const filter = this.activeProjectsFilter || 'all';
+    const query = (this.searchQuery || '').toLowerCase();
 
-    // Separate My Projects and Shared Projects
-    const myProjects = [];
-    const sharedProjects = [];
-
-    this.rooms.forEach(room => {
-      const isOwner = (room.ownerId || 'wiz_creator').toLowerCase() === myId;
-      const isTeamMember = (room.team || []).some(m => (m.userId || '').toLowerCase() === myId);
-
-      // If owner or only member, it's my project. If owner and has other members, or not owner but in team, it's shared
-      const otherMembers = (room.team || []).filter(m => (m.userId || '').toLowerCase() !== myId);
-      if (otherMembers.length > 0 || !isOwner) {
-        sharedProjects.push(room);
-      } else {
-        myProjects.push(room);
+    // Filter projects
+    let displayList = this.rooms.filter(room => {
+      if (query) {
+        const nameMatch = (room.name || '').toLowerCase().includes(query);
+        const rulesMatch = (room.rules || '').toLowerCase().includes(query);
+        if (!nameMatch && !rulesMatch) return false;
       }
+      return true;
     });
 
-    // Render My Projects Grid
-    if (myProjects.length === 0) {
-      myProjectsGrid.innerHTML = `
-        <div style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:12px;">
-          <p style="margin-bottom:1rem;">プロジェクトがまだありません。</p>
+    if (filter === 'my') {
+      displayList = displayList.filter(room => {
+        const otherMembers = (room.team || []).filter(m => (m.userId || '').toLowerCase() !== myId);
+        return otherMembers.length === 0;
+      });
+    } else if (filter === 'shared') {
+      displayList = displayList.filter(room => {
+        const isOwner = (room.ownerId || 'wiz_creator').toLowerCase() === myId;
+        const otherMembers = (room.team || []).filter(m => (m.userId || '').toLowerCase() !== myId);
+        return otherMembers.length > 0 || !isOwner;
+      });
+    }
+
+    if (displayList.length === 0) {
+      const msg = filter === 'shared' ? '共同開発中のプロジェクトはありません。' : 'プロジェクトが見つかりませんでした。';
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1.5rem; border: 2px dashed var(--border-subtle); border-radius: 16px; background: var(--bg-card); color: var(--text-muted);">
+          <div style="font-size: 2.8rem; margin-bottom: 0.8rem; opacity: 0.5;"><i class="fa-solid fa-folder-open"></i></div>
+          <h3 style="color: var(--text-primary); margin-bottom: 0.4rem; font-size: 1.15rem; font-weight: 700;">${msg}</h3>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.2rem;">新しいゲームプロジェクトを作って開発を始めましょう！</p>
           <button class="btn btn-primary" onclick="window.projectManager.promptCreateNewRoom()">
-            <i class="fa-solid fa-plus"></i> 新規プロジェクトを作成
+            <i class="fa-solid fa-plus"></i> 新規プロジェクト作成
           </button>
         </div>
       `;
-    } else {
-      myProjectsGrid.innerHTML = myProjects.map(room => this.buildPdfProjectCardHtml(room, false)).join('');
+      return;
     }
 
-    // Render Shared Projects Grid
-    if (sharedProjectsGrid) {
-      if (sharedProjects.length === 0) {
-        // Provide friendly prompt
-        sharedProjectsGrid.innerHTML = `
-          <div style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:12px;">
-            <p style="margin-bottom:0.8rem;">現在、共同プロジェクトはありません。</p>
-            <p style="font-size:0.85rem;">プロジェクトの「チーム」メニューからフレンドを招待して共同開発を始めましょう！</p>
-          </div>
-        `;
-      } else {
-        sharedProjectsGrid.innerHTML = sharedProjects.map(room => this.buildPdfProjectCardHtml(room, true)).join('');
-      }
-    }
+    grid.innerHTML = displayList.map(room => {
+      const isOwner = (room.ownerId || 'wiz_creator').toLowerCase() === myId;
+      const otherMembers = (room.team || []).filter(m => (m.userId || '').toLowerCase() !== myId);
+      const isShared = otherMembers.length > 0 || !isOwner;
+      return this.buildPdfProjectCardHtml(room, isShared);
+    }).join('');
   }
 
   buildPdfProjectCardHtml(room, isShared) {
@@ -1258,74 +1258,66 @@ class ProjectManager {
     });
     const isActive = room.id === this.activeRoomId;
     const desc = room.rules ? room.rules.replace(/\n/g, ' ') : 'Wiz AI Game Creator プロジェクト';
-    const truncatedDesc = desc.length > 60 ? desc.substring(0, 60) + '...' : desc;
+    const truncatedDesc = desc.length > 90 ? desc.substring(0, 90) + '...' : desc;
 
-    // Team members HTML for shared projects
+    // Team avatars
     let teamHtml = '';
     if (isShared && room.team && room.team.length > 0) {
       const avatars = room.team.map(m => {
         const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userId}`;
         return `
-          <img src="${avatarUrl}" title="${this.escapeHtml(m.username)} (@${m.userId}) - ${m.role}"
-               style="width:28px; height:28px; border-radius:50%; border:2px solid var(--border-color); background:var(--bg-secondary); object-fit:cover;" />
+          <img src="${avatarUrl}" title="${this.escapeHtml(m.username)} (@${m.userId})"
+               style="width:24px; height:24px; border-radius:50%; border:2px solid var(--bg-card); object-fit:cover; margin-left:-6px;" />
         `;
       }).join('');
 
       teamHtml = `
-        <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.6rem; padding-top:0.6rem; border-top:1px solid var(--border-color);">
-          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">チーム:</span>
-          <div style="display:flex; align-items:center; gap:0.3rem;">${avatars}</div>
+        <div style="display:flex; align-items:center; margin-left:8px;" title="共同開発メンバー">
+          ${avatars}
         </div>
       `;
     }
 
     return `
-      <div class="pdf-project-card ${isActive ? 'active' : ''}" data-room-id="${room.id}">
-        <div class="pdf-project-card-header">
-          <div>
-            <div class="pdf-project-title">
-              <i class="fa-solid fa-gamepad" style="color:var(--brand-primary); font-size:1.05rem;"></i>
-              <span>${this.escapeHtml(room.name)}</span>
-              ${isActive ? '<span style="font-size:0.7rem; background:rgba(26,115,232,0.15); color:var(--brand-primary); padding:2px 8px; border-radius:12px; font-weight:700;">現在アクティブ</span>' : ''}
+      <div class="project-card-modern ${isActive ? 'active' : ''}" data-room-id="${room.id}">
+        <div>
+          <div class="project-card-modern-header">
+            <div class="project-card-modern-title-wrap">
+              <div class="project-card-icon-box">
+                <i class="fa-solid fa-gamepad"></i>
+              </div>
+              <div>
+                <div class="project-card-modern-title">${this.escapeHtml(room.name)}</div>
+                <div class="project-card-meta-date">作成: ${formattedDate} ${isActive ? '• <span style="color:var(--wiz-accent); font-weight:700;">アクティブ</span>' : ''}</div>
+              </div>
             </div>
-            <div class="pdf-project-meta">作成日時: ${formattedDate}</div>
+            <div style="display:flex; gap:0.25rem;">
+              <button class="btn btn-ghost btn-sm" title="複製 (クローン)" onclick="window.projectManager.cloneRoom('${room.id}')">
+                <i class="fa-solid fa-copy"></i>
+              </button>
+              <button class="btn btn-ghost btn-sm" title="削除" onclick="window.projectManager.deleteRoom('${room.id}', event)" style="color:var(--danger);">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           </div>
-          <div style="display:flex; gap:0.4rem;">
-            <button class="btn btn-ghost btn-sm" title="複製 (クローン)" onclick="window.projectManager.cloneRoom('${room.id}')">
-              <i class="fa-solid fa-copy"></i>
-            </button>
-            <button class="btn btn-ghost btn-sm" title="削除" onclick="window.projectManager.deleteRoom('${room.id}', event)">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
+
+          <div class="project-card-modern-desc">
+            ${this.escapeHtml(truncatedDesc)}
           </div>
         </div>
 
-        <div class="pdf-project-desc">
-          ${this.escapeHtml(truncatedDesc)}
-        </div>
-
-        <!-- PDF Specification: <実行ビュー> Preview Section -->
-        <div class="pdf-project-preview-box" id="preview-box-${room.id}">
-          <div class="pdf-project-preview-placeholder" id="placeholder-${room.id}">
-            <div style="font-size:1.6rem; margin-bottom:0.4rem; color:var(--brand-primary);"><i class="fa-solid fa-play"></i></div>
-            <div style="font-weight:700; font-size:0.95rem; margin-bottom:0.2rem;">&lt;実行ビュー&gt;</div>
-            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.6rem;">クリックしてこのカード内で即座にゲームを実行</div>
-            <button class="btn btn-secondary btn-sm" onclick="window.projectManager.runCardPreview('${room.id}', event)">
-              <i class="fa-solid fa-play"></i> プレビュー起動
+        <div class="project-card-modern-footer">
+          <div style="display:flex; align-items:center;">
+            ${teamHtml}
+          </div>
+          <div class="project-card-actions-group">
+            <button class="btn btn-secondary btn-sm" onclick="window.projectManager.openInFullscreen('${room.id}')" title="全画面でプレイ">
+              <i class="fa-solid fa-play"></i> プレイ
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="window.projectManager.openInStudio('${room.id}')">
+              <i class="fa-solid fa-code"></i> スタジオで開く
             </button>
           </div>
-          <iframe class="pdf-project-preview-iframe" id="iframe-${room.id}" sandbox="allow-scripts allow-modals" style="display:none; width:100%; height:100%; border:none; border-radius:6px; background:#000;"></iframe>
-        </div>
-
-        ${teamHtml}
-
-        <div class="pdf-project-actions">
-          <button class="btn btn-primary btn-sm" style="flex:1;" onclick="window.projectManager.openInStudio('${room.id}')">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> スタジオで開く
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="window.projectManager.openInFullscreen('${room.id}')" title="全画面でプレイ">
-            <i class="fa-solid fa-expand"></i> 全画面プレイ
-          </button>
         </div>
       </div>
     `;
