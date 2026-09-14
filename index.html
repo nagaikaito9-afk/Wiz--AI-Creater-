@@ -979,7 +979,7 @@
     </div>
   </div>
 
-  <!-- AUTH GATE / LOGIN SCREEN (ログイン必須画面: ログイン後にスタジオが開きます) -->
+  <!-- AUTH GATE / LOGIN SCREEN (Auth0 認証画面: ログイン後にスタジオが開きます) -->
   <div class="modal-backdrop auth-gate-backdrop" id="auth-gate-modal">
     <div class="auth-gate-card">
       <div class="auth-gate-brand">
@@ -987,168 +987,66 @@
           <i class="fa-solid fa-hat-wizard"></i>
         </div>
         <h2>Wiz AI Studio</h2>
-        <p class="auth-gate-subtitle">AI賢者Wizとゲームを作るには、ログインしてください。</p>
+        <p class="auth-gate-subtitle">AI賢者Wizとゲームを作るには、Auth0でログインしてください。</p>
       </div>
 
-      <!-- 1. FEATURED: Big Prominent 1-Click Test Account Button -->
-      <div class="auth-gate-section auth-featured-test">
-        <button id="gate-mock-login-btn" class="btn-gate-test-account" type="button">
-          <div class="test-btn-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-          <div class="test-btn-text">
-            <span class="test-btn-title">テスト用アカウントでログイン</span>
-            <span class="test-btn-desc">登録不要・ワンクリックでスタジオの全機能が使えます</span>
+      <!-- Auth0 Primary Action -->
+      <div class="auth-gate-section">
+        <button id="gate-auth0-login-btn" class="btn-auth0-login" type="button">
+          <div class="auth0-icon-wrap">
+            <i class="fa-solid fa-shield-halved" style="color: #eb5424; font-size: 1.5rem;"></i>
+          </div>
+          <div class="auth0-btn-text">
+            <span class="auth0-btn-title">Auth0 でログイン / 新規登録</span>
+            <span class="auth0-btn-desc">Google・Email等で安全・迅速にログイン</span>
           </div>
           <div class="test-btn-arrow"><i class="fa-solid fa-arrow-right"></i></div>
         </button>
       </div>
 
-      <div class="auth-divider"><span>または メールアカウントでログイン / 新規登録</span></div>
-
-      <!-- 2. Pure Email Login & Registration Flow -->
-      <div class="auth-email-section">
-        <div class="auth-tabs">
-          <button id="tab-login-btn" class="auth-tab-btn active" type="button">ログイン</button>
-          <button id="tab-signup-btn" class="auth-tab-btn" type="button">新規登録</button>
-        </div>
-
-        <!-- LOGIN VIEW -->
-        <!-- LOGIN VIEW (2 Steps with Email Verification Code) -->
-        <div id="auth-view-login">
-          <form id="auth-login-form" onsubmit="return false;">
-            <!-- Login Step 1: Identifier + Password -->
-            <div id="login-step-1">
-              <div class="auth-field">
-                <label class="auth-field-label"><i class="fa-solid fa-envelope"></i> メールアドレス または ユーザーID</label>
-                <input type="text" id="gate-login-identifier" placeholder="example@email.com または @user_id" class="auth-input" required autocomplete="username">
-              </div>
-              <div class="auth-field">
-                <label class="auth-field-label"><i class="fa-solid fa-lock"></i> Emailのパスワード</label>
-                <input type="password" id="gate-login-password" placeholder="ご入力のEmailのパスワード" class="auth-input" required autocomplete="current-password">
-                <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">
-                  ※ ご入力いただいたメールアドレスのパスワードを入力してください
-                </span>
-              </div>
-              <button type="button" id="gate-login-submit-btn" class="btn btn-primary auth-submit-btn">
-                <span>認証コードを送信して次へ</span> <i class="fa-solid fa-arrow-right"></i>
-              </button>
-            </div>
-
-            <!-- Login Step 2: 6-Digit Email Code Verification -->
-            <div id="login-step-2" style="display:none;">
-              <div class="code-verify-banner">
-                <i class="fa-regular fa-paper-plane"></i>
-                <div>
-                  <p><strong id="login-verify-email-target">example@email.com</strong> 宛に</p>
-                  <p id="login-verify-email-status-text">6ケタのログイン認証コードを送信しました。</p>
-                </div>
-              </div>
-
-              <div class="auth-field">
-                <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
-                <input type="text" id="gate-login-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
-                <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block; line-height:1.4;">
-                  ※ メール内に記載された6ケタの確認コードを入力してください（迷惑メールフォルダもご確認ください）
-                </span>
-              </div>
-              <div class="code-timer-row">
-                <span id="login-code-countdown-text">残り有効時間: 60秒</span>
-                <button type="button" id="login-resend-code-btn" class="btn-text-subtle" disabled>コードを再送</button>
-              </div>
-
-              <div class="step-buttons-row">
-                <button type="button" id="gate-login-back-btn" class="btn btn-ghost">戻る</button>
-                <button type="button" id="gate-login-verify-btn" class="btn btn-primary">
-                  <span>ログインを完了する</span> <i class="fa-solid fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-
-        <!-- SIGNUP VIEW (3 Steps Flow) -->
-        <div id="auth-view-signup" style="display:none;">
-          <!-- Stepper Dots -->
-          <div class="signup-stepper">
-            <div class="step-item active" id="step-dot-1"><span>1</span><label>情報入力</label></div>
-            <div class="step-line" id="step-line-1"></div>
-            <div class="step-item" id="step-dot-2"><span>2</span><label>本人確認</label></div>
-            <div class="step-line" id="step-line-2"></div>
-            <div class="step-item" id="step-dot-3"><span>3</span><label>ID決定</label></div>
+      <!-- Auth0 Config Status & Setup Panel -->
+      <div class="auth0-config-status-card" id="auth0-config-card">
+        <div class="auth0-status-header">
+          <div class="auth0-status-badge" id="auth0-status-badge">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> <span id="auth0-status-text">Auth0 接続設定を確認中...</span>
           </div>
-
-          <!-- Step 1: Email & Password -->
-          <div id="signup-step-1" class="signup-step-container">
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-envelope"></i> メールアドレス</label>
-              <input type="email" id="gate-signup-email" placeholder="example@email.com" class="auth-input" required>
-            </div>
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-lock"></i> Emailのパスワード</label>
-              <input type="password" id="gate-signup-password" placeholder="ご入力のEmailのパスワード" class="auth-input" required>
-              <span class="auth-field-hint" style="font-size:0.75rem; color:var(--wiz-cyan); margin-top:4px; display:block;">
-                ※ ご入力いただいたメールアドレスのパスワードを入力してください
-              </span>
-            </div>
-            <button type="button" id="gate-signup-next-1-btn" class="btn btn-primary auth-submit-btn">
-              <span>認証コードを送信する</span> <i class="fa-solid fa-arrow-right"></i>
+          <button id="toggle-auth0-config-btn" class="btn btn-ghost auth0-cfg-toggle-btn" type="button" title="Auth0設定の変更">
+            <i class="fa-solid fa-gear"></i> <span>設定</span>
+          </button>
+        </div>
+        <div id="auth0-config-form" class="auth0-config-form" style="display: none;">
+          <p class="auth0-config-hint">
+            Auth0ダッシュボードの「Domain」と「Client ID」を入力してください。<br>
+            ※ 保存すると即座に有効になり、ブラウザに保持されます。
+          </p>
+          <div class="auth-field" style="margin-bottom: 0.8rem;">
+            <label class="auth-field-label"><i class="fa-solid fa-globe"></i> Auth0 Domain</label>
+            <input type="text" id="auth0-domain-input" placeholder="例: dev-xxxxxxxx.us.auth0.com" class="auth-input">
+          </div>
+          <div class="auth-field" style="margin-bottom: 0.8rem;">
+            <label class="auth-field-label"><i class="fa-solid fa-key"></i> Client ID</label>
+            <input type="text" id="auth0-client-id-input" placeholder="例: v7sK8x..." class="auth-input">
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="auth0-save-config-btn" class="btn btn-primary" type="button" style="padding: 0.45rem 1rem; font-size: 0.85rem;">
+              <i class="fa-solid fa-check"></i> 設定を保存して反映
             </button>
           </div>
-
-          <!-- Step 2: 6-Digit Email Code Verification -->
-          <div id="signup-step-2" class="signup-step-container" style="display:none;">
-            <div class="code-verify-banner">
-              <i class="fa-regular fa-paper-plane"></i>
-              <div>
-                <p><strong id="verify-email-target">example@email.com</strong> 宛に</p>
-                <p id="verify-email-status-text">6ケタの確認コードを送信しました。</p>
-              </div>
-            </div>
-
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-key"></i> 認証コード (6ケタ)</label>
-              <input type="text" id="gate-signup-code" maxlength="6" placeholder="000000" class="auth-input auth-code-input" autocomplete="one-time-code">
-              <span class="auth-field-hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block; line-height:1.4;">
-                ※ メール内に記載された6ケタの確認コードを入力してください（迷惑メールフォルダもご確認ください）
-              </span>
-            </div>
-            <div class="code-timer-row">
-              <span id="code-countdown-text">残り有効時間: 60秒</span>
-              <button type="button" id="resend-code-btn" class="btn-text-subtle" disabled>コードを再送</button>
-            </div>
-
-            <div class="step-buttons-row">
-              <button type="button" id="gate-signup-back-2-btn" class="btn btn-ghost">戻る</button>
-              <button type="button" id="gate-signup-next-2-btn" class="btn btn-primary">
-                <span>本人確認する</span> <i class="fa-solid fa-arrow-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Step 3: Username & Unique User ID -->
-          <div id="signup-step-3" class="signup-step-container" style="display:none;">
-            <div class="auth-verified-badge">
-              <i class="fa-solid fa-circle-check"></i> メール本人確認が完了しました！
-            </div>
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-user"></i> ユーザー名 (表示名)</label>
-              <input type="text" id="gate-signup-username" placeholder="魔導士タロウ" class="auth-input" required>
-            </div>
-            <div class="auth-field">
-              <label class="auth-field-label"><i class="fa-solid fa-at"></i> ユーザーID (半角英数字・変更不可)</label>
-              <div class="userid-input-wrapper">
-                <span class="userid-prefix">@</span>
-                <input type="text" id="gate-signup-userid" placeholder="taro_wiz" class="auth-input userid-field" required maxlength="20">
-              </div>
-              <p class="auth-field-hint" id="userid-status-hint">半角英数字・アンダースコア3〜20文字（※登録後の変更はできません）</p>
-            </div>
-            <div class="step-buttons-row">
-              <button type="button" id="gate-signup-back-3-btn" class="btn btn-ghost">戻る</button>
-              <button type="button" id="gate-signup-finish-btn" class="btn btn-primary">
-                <span>登録を完了してスタジオへ</span> <i class="fa-solid fa-wand-magic-sparkles"></i>
-              </button>
-            </div>
-          </div>
         </div>
+      </div>
+
+      <div class="auth-divider"><span>または</span></div>
+
+      <!-- Test / Mock Account 1-Click Login -->
+      <div class="auth-gate-section auth-featured-test">
+        <button id="gate-mock-login-btn" class="btn-gate-test-account" type="button">
+          <div class="test-btn-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <div class="test-btn-text">
+            <span class="test-btn-title">テスト用アカウントでログイン</span>
+            <span class="test-btn-desc">登録不要・ワンクリックでスタジオの全機能をテストできます</span>
+          </div>
+          <div class="test-btn-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+        </button>
       </div>
     </div>
   </div>
@@ -1614,6 +1512,7 @@
   </div>
 
   <!-- SCRIPTS -->
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/dialog.js"></script>
   <script src="js/fileSystem.js"></script>
@@ -1623,6 +1522,7 @@
   <script src="js/editor.js"></script>
   <script src="js/activityLogger.js"></script>
   <script src="js/notifications.js"></script>
+  <script src="js/auth0-config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/friendsManager.js"></script>
   <script src="js/projectManager.js"></script>
