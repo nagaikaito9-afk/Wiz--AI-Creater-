@@ -29,26 +29,19 @@ class Auth0AuthManager {
   }
 
   ensureSeedAccounts() {
-    const users = this.getLocalUsers();
-    let modified = false;
-
-    if (!users.some(u => u.userId === 'wiz_creator')) {
-      users.push({
-        id: 'usr_mock_001',
-        email: 'creator@wiz-game.dev',
-        username: 'Wiz Creator',
-        userId: 'wiz_creator',
-        user_metadata: {
-          full_name: 'Wiz Creator',
-          user_id: 'wiz_creator',
-          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator'
-        }
-      });
-      modified = true;
-    }
-
-    if (modified) {
+    // Remove any demo mock accounts from local storage
+    try {
+      const users = this.getLocalUsers().filter(u => u.id !== 'usr_mock_001' && u.userId !== 'wiz_creator');
       localStorage.setItem('wiz_local_users', JSON.stringify(users));
+      if (localStorage.getItem('wiz_mock_user')) {
+        const mock = JSON.parse(localStorage.getItem('wiz_mock_user') || '{}');
+        if (mock.id === 'usr_mock_001' || mock.userId === 'wiz_creator') {
+          // Reset mock user to clean empty user or null
+          localStorage.removeItem('wiz_mock_user');
+        }
+      }
+    } catch (e) {
+      console.warn('Seed cleanup error:', e);
     }
   }
 

@@ -65,7 +65,57 @@ class AppController {
     this.init();
   }
 
+  cleanLegacyDemoData() {
+    try {
+      // 1. Clean demo rooms (room_default, ネオン・ブロック崩し)
+      const rawRooms = localStorage.getItem('wiz_rooms');
+      if (rawRooms) {
+        const rooms = JSON.parse(rawRooms);
+        const filtered = rooms.filter(r => r.id !== 'room_default' && r.name !== 'ネオン・ブロック崩し');
+        if (filtered.length !== rooms.length) {
+          localStorage.setItem('wiz_rooms', JSON.stringify(filtered));
+        }
+      }
+
+      // 2. Clean demo friends keys
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('wiz_friends_')) {
+          try {
+            const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+            let modified = false;
+            if (parsed.friends) {
+              const before = parsed.friends.length;
+              parsed.friends = parsed.friends.filter(f => f.userId !== 'pixel_hero' && f.userId !== 'sound_mage');
+              if (parsed.friends.length !== before) modified = true;
+            }
+            if (parsed.incomingRequests) {
+              const before = parsed.incomingRequests.length;
+              parsed.incomingRequests = parsed.incomingRequests.filter(r => r.fromUserId !== 'retro_gamer');
+              if (parsed.incomingRequests.length !== before) modified = true;
+            }
+            if (modified) {
+              localStorage.setItem(key, JSON.stringify(parsed));
+            }
+          } catch (e) {}
+        }
+      });
+
+      // 3. Clean legacy mock user
+      const rawUsers = localStorage.getItem('wiz_local_users');
+      if (rawUsers) {
+        const users = JSON.parse(rawUsers);
+        const filtered = users.filter(u => u.id !== 'usr_mock_001' && u.userId !== 'wiz_creator');
+        if (filtered.length !== users.length) {
+          localStorage.setItem('wiz_local_users', JSON.stringify(filtered));
+        }
+      }
+    } catch (err) {
+      console.warn('cleanLegacyDemoData error:', err);
+    }
+  }
+
   init() {
+    this.cleanLegacyDemoData();
     this.applyTheme(this.currentTheme, false);
     this.updateAutoDebugBadge();
     this.initLayoutEvents();
@@ -87,16 +137,16 @@ class AppController {
   // Theme Management
   applyTheme(themeName, showToast = true) {
     this.currentTheme = themeName;
-    document.body.classList.remove('theme-dark', 'theme-white', 'theme-gray');
+    document.body.classList.remove('theme-dark', 'theme-white', 'theme-gray', 'theme-blue');
     document.body.classList.add(themeName);
     localStorage.setItem('wiz_theme', themeName);
 
-    this.themeCards.forEach(card => {
+    document.querySelectorAll('.settings-theme-card, .theme-card').forEach(card => {
       card.classList.toggle('active', card.getAttribute('data-theme') === themeName);
     });
 
     if (showToast && window.showToast) {
-      const names = { 'theme-dark': 'ダーク', 'theme-white': 'ホワイト', 'theme-gray': 'グレー' };
+      const names = { 'theme-white': 'ホワイト', 'theme-dark': 'ダーク', 'theme-gray': 'グレー', 'theme-blue': 'ブルー' };
       window.showToast(`テーマを「${names[themeName] || themeName}」に変更しました`, 'info');
     }
   }
@@ -1195,12 +1245,28 @@ class AppController {
   // ==========================================
   // 5P: Full-page Settings Logic
   // ==========================================
+  // ==========================================
+  // 5P: Full-page 2-Pane Settings Logic
+  // ==========================================
   initFullSettingsEvents() {
-    // Theme card clicks
+    // 1. Two-Pane Tab Navigation (Left Sidebar)
+    const tabButtons = document.querySelectorAll('.settings-sidebar .settings-nav-item');
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabKey = btn.getAttribute('data-tab');
+        tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.settings-content-area .settings-panel').forEach(panel => {
+          panel.classList.toggle('active', panel.id === `settings-panel-${tabKey}`);
+        });
+      });
+    });
+
+    // 2. Theme Cards (White, Dark, Gray, Blue)
     const themeCards = [
-      { id: 'settings-theme-dark', theme: 'theme-dark' },
-      { id: 'settings-theme-white', theme: 'theme-white' },
-      { id: 'settings-theme-gray', theme: 'theme-gray' }
+      { id: 'theme-opt-white', theme: 'theme-white' },
+      { id: 'theme-opt-dark', theme: 'theme-dark' },
+      { id: 'theme-opt-gray', theme: 'theme-gray' },
+      { id: 'theme-opt-blue', theme: 'theme-blue' }
     ];
 
     themeCards.forEach(tc => {
@@ -1210,17 +1276,18 @@ class AppController {
       });
     });
 
-    // Auto Debug checkbox
-    const autoDebugCheck = document.getElementById('full-settings-auto-debug');
+    // 3. Wiz Detailed Settings
+    // Auto Debug toggle
+    const autoDebugCheck = document.getElementById('setting-auto-debug');
     autoDebugCheck?.addEventListener('change', (e) => {
       this.autoDebugMode = e.target.checked;
       localStorage.setItem('wiz_auto_debug', this.autoDebugMode);
       this.updateAutoDebugBadge();
-      if (window.showToast) window.showToast(`自動デバッグモードを ${this.autoDebugMode ? 'ON' : 'OFF'} にしました`, 'info');
+      if (window.showToast) window.showToast(`自動デバッグを ${this.autoDebugMode ? 'ON' : 'OFF'} にしました`, 'info');
     });
 
-    // Cross-Room Memory checkbox
-    const crossMemCheck = document.getElementById('full-settings-cross-memory');
+    // Cross-Room Memory toggle
+    const crossMemCheck = document.getElementById('setting-cross-memory');
     crossMemCheck?.addEventListener('change', (e) => {
       if (window.projectManager) {
         window.projectManager.setCrossRoomMemory(e.target.checked);
@@ -1228,8 +1295,8 @@ class AppController {
       }
     });
 
-    // Preview Radios
-    document.querySelectorAll('input[name="full-preview-mode"]').forEach(radio => {
+    // Preview Display Mode Radios
+    document.querySelectorAll('input[name="preview-display-mode"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
         if (e.target.checked) {
           this.previewDisplayMode = e.target.value;
@@ -1239,25 +1306,79 @@ class AppController {
       });
     });
 
-    // Refresh Avatar
-    document.getElementById('full-settings-refresh-avatar-btn')?.addEventListener('click', () => {
-      const randomSeed = 'user_' + Math.random().toString(36).substring(2, 8);
-      const newAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${randomSeed}`;
-      const avatarImg = document.getElementById('full-settings-avatar-img');
-      if (avatarImg) {
-        avatarImg.src = newAvatar;
-        avatarImg.setAttribute('data-avatar-url', newAvatar);
+    // Personality Mode (Friendly vs Polite)
+    const friendlyCard = document.getElementById('personality-opt-friendly');
+    const politeCard = document.getElementById('personality-opt-polite');
+
+    friendlyCard?.addEventListener('click', () => {
+      friendlyCard.classList.add('active');
+      politeCard?.classList.remove('active');
+      localStorage.setItem('wiz_personality', 'friendly');
+      if (window.wizAI) window.wizAI.setPersonality('friendly');
+      if (window.showToast) window.showToast('Wizの性格を「親しみやすいモード」に変更しました', 'info');
+    });
+
+    politeCard?.addEventListener('click', () => {
+      politeCard.classList.add('active');
+      friendlyCard?.classList.remove('active');
+      localStorage.setItem('wiz_personality', 'polite');
+      if (window.wizAI) window.wizAI.setPersonality('polite');
+      if (window.showToast) window.showToast('Wizの性格を「敬語のモード」に変更しました', 'info');
+    });
+
+    // 4. Profile Management
+    const avatarImg = document.getElementById('profile-avatar-preview');
+    const avatarFileInput = document.getElementById('profile-avatar-file-input');
+    const avatarUrlInput = document.getElementById('profile-avatar-url-input');
+    const avatarRandomBtn = document.getElementById('profile-avatar-random-btn');
+
+    // Local Image File Upload
+    avatarFileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        if (window.showToast) window.showToast('画像ファイルを選択してください', 'warning');
+        return;
       }
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const dataUrl = loadEvt.target.result;
+        if (avatarImg) {
+          avatarImg.src = dataUrl;
+          avatarImg.setAttribute('data-avatar-url', dataUrl);
+        }
+        if (avatarUrlInput) avatarUrlInput.value = '';
+        if (window.showToast) window.showToast('画像ファイルを読み込みました。「保存」を押して確定してください。', 'info');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Image URL Input
+    avatarUrlInput?.addEventListener('input', (e) => {
+      const url = e.target.value.trim();
+      if (url && avatarImg) {
+        avatarImg.src = url;
+        avatarImg.setAttribute('data-avatar-url', url);
+      }
+    });
+
+    // Random Avatar Generator
+    avatarRandomBtn?.addEventListener('click', () => {
+      const seed = 'wiz_' + Math.random().toString(36).substring(2, 8);
+      const randomUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+      if (avatarImg) {
+        avatarImg.src = randomUrl;
+        avatarImg.setAttribute('data-avatar-url', randomUrl);
+      }
+      if (avatarUrlInput) avatarUrlInput.value = randomUrl;
       if (window.showToast) window.showToast('新しいアバターを生成しました。「保存」を押して確定してください。', 'info');
     });
 
-    // Save Profile
-    document.getElementById('full-settings-save-profile-btn')?.addEventListener('click', () => {
-      const usernameInput = document.getElementById('full-settings-username');
-      const bioInput = document.getElementById('full-settings-bio');
-      const avatarImg = document.getElementById('full-settings-avatar-img');
-
-      const updatedName = usernameInput?.value.trim() || 'Wizユーザー';
+    // Save Profile Button
+    document.getElementById('save-profile-btn')?.addEventListener('click', () => {
+      const nameInput = document.getElementById('profile-display-name');
+      const bioInput = document.getElementById('profile-bio');
+      const updatedName = nameInput?.value.trim() || '';
       const updatedBio = bioInput?.value.trim() || '';
       const updatedAvatar = avatarImg?.getAttribute('data-avatar-url') || avatarImg?.src;
 
@@ -1276,64 +1397,148 @@ class AppController {
       this.renderHomeView();
     });
 
-    // Export all projects
-    document.getElementById('full-settings-export-all-btn')?.addEventListener('click', () => {
-      const rooms = window.projectManager?.rooms || [];
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rooms, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `wiz_studio_backup_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      if (window.showToast) window.showToast('全プロジェクトデータをダウンロードしました', 'success');
+    // 5. Account Management
+    // Email Update
+    document.getElementById('account-email-update-btn')?.addEventListener('click', () => {
+      const emailInput = document.getElementById('account-email-input');
+      const newEmail = emailInput?.value.trim();
+      if (!newEmail || !newEmail.includes('@')) {
+        if (window.showToast) window.showToast('有効なメールアドレスを入力してください', 'warning');
+        return;
+      }
+      if (window.supabaseAuth && window.supabaseAuth.currentUser) {
+        window.supabaseAuth.currentUser.email = newEmail;
+        window.supabaseAuth.saveLocalUsers();
+        if (window.showToast) window.showToast('メールアドレスを更新しました', 'success');
+      }
     });
 
-    // Logout
-    document.getElementById('full-settings-logout-btn')?.addEventListener('click', () => {
+    // Account Logout
+    document.getElementById('account-logout-btn')?.addEventListener('click', () => {
       if (window.supabaseAuth && typeof window.supabaseAuth.signOut === 'function') {
         window.supabaseAuth.signOut();
       } else {
         window.location.reload();
       }
     });
+
+    // Account Deletion (Danger Zone with 6-Digit Code Verification)
+    let generatedVerificationCode = '';
+    const deleteBox = document.getElementById('delete-account-verification-box');
+    const codeDisplay = document.getElementById('delete-verification-code');
+    const confirmInput = document.getElementById('delete-confirm-input');
+    const executeBtn = document.getElementById('execute-delete-account-btn');
+    const cancelBtn = document.getElementById('cancel-delete-account-btn');
+
+    document.getElementById('initiate-delete-account-btn')?.addEventListener('click', () => {
+      generatedVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      if (codeDisplay) codeDisplay.textContent = generatedVerificationCode;
+      if (confirmInput) confirmInput.value = '';
+      if (executeBtn) executeBtn.disabled = true;
+      if (deleteBox) deleteBox.style.display = 'block';
+    });
+
+    confirmInput?.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (executeBtn) {
+        executeBtn.disabled = (val !== generatedVerificationCode);
+      }
+    });
+
+    cancelBtn?.addEventListener('click', () => {
+      if (deleteBox) deleteBox.style.display = 'none';
+      if (confirmInput) confirmInput.value = '';
+      generatedVerificationCode = '';
+    });
+
+    executeBtn?.addEventListener('click', async () => {
+      if (confirmInput?.value.trim() !== generatedVerificationCode) return;
+      const reallyDelete = await window.showConfirm(
+        '本当にアカウントを削除しますか？この操作は取り消せません。すべてのプロジェクトやデータが完全に削除されます。',
+        'アカウントの完全削除'
+      );
+      if (reallyDelete) {
+        localStorage.clear();
+        sessionStorage.clear();
+        alert('アカウントと全データが完全に削除されました。初期画面に戻ります。');
+        window.location.reload();
+      }
+    });
+
+    // 6. Notification Settings Toggles
+    const notifKeys = [
+      { id: 'notif-project-updates', key: 'wiz_notif_project_updates' },
+      { id: 'notif-wiz-advises', key: 'wiz_notif_wiz_advises' },
+      { id: 'notif-friend-requests', key: 'wiz_notif_friend_requests' },
+      { id: 'notif-soundfx', key: 'wiz_notif_soundfx' }
+    ];
+
+    notifKeys.forEach(nk => {
+      const el = document.getElementById(nk.id);
+      el?.addEventListener('change', (e) => {
+        localStorage.setItem(nk.key, e.target.checked);
+        if (window.showToast) window.showToast('通知設定を保存しました', 'info');
+      });
+    });
   }
 
   renderSettingsPageView() {
-    // Theme Card Active
-    ['theme-dark', 'theme-white', 'theme-gray'].forEach(themeName => {
-      const el = document.getElementById(`settings-${themeName}`);
-      if (el) el.classList.toggle('active', this.currentTheme === themeName);
+    // 1. Theme Selection Cards
+    ['theme-white', 'theme-dark', 'theme-gray', 'theme-blue'].forEach(t => {
+      const card = document.getElementById(`theme-opt-${t.replace('theme-', '')}`);
+      if (card) card.classList.toggle('active', this.currentTheme === t);
     });
 
-    // Checkboxes
-    const autoDebugCheck = document.getElementById('full-settings-auto-debug');
-    if (autoDebugCheck) autoDebugCheck.checked = this.autoDebugMode;
+    // 2. Wiz Details
+    const autoDebugEl = document.getElementById('setting-auto-debug');
+    if (autoDebugEl) autoDebugEl.checked = this.autoDebugMode;
 
-    const crossMemCheck = document.getElementById('full-settings-cross-memory');
-    if (crossMemCheck) crossMemCheck.checked = window.projectManager?.crossRoomMemoryEnabled || false;
+    const crossMemEl = document.getElementById('setting-cross-memory');
+    if (crossMemEl) crossMemEl.checked = window.projectManager?.crossRoomMemoryEnabled ?? true;
 
-    // Radios
-    document.querySelectorAll('input[name="full-preview-mode"]').forEach(radio => {
-      radio.checked = (radio.value === this.previewDisplayMode);
+    document.querySelectorAll('input[name="preview-display-mode"]').forEach(r => {
+      r.checked = (r.value === this.previewDisplayMode);
     });
 
-    // Profile Data
+    const currentPersonality = localStorage.getItem('wiz_personality') || 'friendly';
+    document.getElementById('personality-opt-friendly')?.classList.toggle('active', currentPersonality === 'friendly');
+    document.getElementById('personality-opt-polite')?.classList.toggle('active', currentPersonality === 'polite');
+
+    // 3. Profile (Default empty for new users)
     const currentUser = window.supabaseAuth?.currentUser;
-    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || 'wiz_user';
-    const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'Wizユーザー';
-    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || 'Wizのユーザーです。AI Game Creatorでゲームを制作しています。';
-    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || '';
+    const username = currentUser?.user_metadata?.full_name || currentUser?.username || '';
+    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || '';
+    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId || 'wiz'}`;
 
-    const avatarEl = document.getElementById('full-settings-avatar-img');
-    const nameEl = document.getElementById('full-settings-username');
-    const idEl = document.getElementById('full-settings-userid');
-    const bioEl = document.getElementById('full-settings-bio');
+    const avatarEl = document.getElementById('profile-avatar-preview');
+    const nameEl = document.getElementById('profile-display-name');
+    const idEl = document.getElementById('profile-user-id');
+    const bioEl = document.getElementById('profile-bio');
 
     if (avatarEl) avatarEl.src = avatarUrl;
     if (nameEl) nameEl.value = username;
-    if (idEl) idEl.value = `@${userId}`;
+    if (idEl) idEl.value = userId ? `@${userId}` : '';
     if (bioEl) bioEl.value = userBio;
+
+    // 4. Account
+    const emailEl = document.getElementById('account-email-input');
+    if (emailEl) emailEl.value = currentUser?.email || '';
+
+    // 5. Notifications
+    const notifKeys = [
+      { id: 'notif-project-updates', key: 'wiz_notif_project_updates' },
+      { id: 'notif-wiz-advises', key: 'wiz_notif_wiz_advises' },
+      { id: 'notif-friend-requests', key: 'wiz_notif_friend_requests' },
+      { id: 'notif-soundfx', key: 'wiz_notif_soundfx' }
+    ];
+    notifKeys.forEach(nk => {
+      const el = document.getElementById(nk.id);
+      if (el) {
+        const val = localStorage.getItem(nk.key);
+        el.checked = val !== null ? val === 'true' : true;
+      }
+    });
   }
 
   // ==========================================
@@ -1517,10 +1722,10 @@ class AppController {
   renderHomeView() {
     // 1. User Info (Top 4-column card)
     const currentUser = window.supabaseAuth?.currentUser;
-    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || 'wiz_user';
-    const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'Wizユーザー';
-    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || 'Wizのユーザーです。AI Game Creatorでゲームを制作しています。';
-    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || '';
+    const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'クリエイター';
+    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || '';
+    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId || 'creator'}`;
 
     const avatarEl = document.getElementById('home-user-avatar');
     const nameEl = document.getElementById('home-user-name');
@@ -1529,7 +1734,7 @@ class AppController {
 
     if (avatarEl) avatarEl.src = avatarUrl;
     if (nameEl) nameEl.textContent = username;
-    if (idEl) idEl.textContent = `@${userId}`;
+    if (idEl) idEl.textContent = userId ? `@${userId}` : '';
     if (bioEl) bioEl.textContent = userBio;
 
     // Stats

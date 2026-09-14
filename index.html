@@ -382,130 +382,323 @@
     </div>
   </section>
 
-  <!-- 5P: SETTINGS VIEW (フルページ: 設定) -->
+  <!-- 5P: SETTINGS VIEW (2-Pane Google Style Settings) -->
   <section id="view-settings" class="pdf-page-view" style="display: none;">
-    <div class="pdf-view-content" style="max-width: 960px;">
+    <div class="pdf-view-content" style="max-width: 1040px;">
       <div class="block-header-row">
         <div>
-          <h1 class="pdf-page-title"><i class="fa-solid fa-sliders" style="color:var(--brand-primary); margin-right:0.5rem;"></i>設定</h1>
-          <span class="pdf-block-desc">Google統一デザインテーマ、AI動作、プロフィール、アカウントの設定</span>
+          <h1 class="pdf-page-title"><i class="fa-solid fa-sliders" style="color:var(--wiz-accent); margin-right:0.5rem;"></i>設定</h1>
+          <span class="pdf-block-desc">テーマカラー、WizのAI詳細、プロフィール、アカウント、通知をカスタマイズ</span>
         </div>
       </div>
 
-      <!-- Settings Block 1: Theme Settings -->
-      <div class="settings-card-group">
-        <h2 class="settings-group-title"><i class="fa-solid fa-palette"></i> 外観・テーマ設定 (Googleデザイン準拠)</h2>
-        <div class="theme-selection-grid">
-          <div class="theme-card active" data-theme="theme-dark" id="settings-theme-dark">
-            <div class="theme-color-preview preview-dark"></div>
-            <div class="theme-card-info">
-              <strong>Google ダーク</strong>
-              <span>#202124 落ち着いた開発用ダークテーマ</span>
-            </div>
-          </div>
-          <div class="theme-card" data-theme="theme-white" id="settings-theme-white">
-            <div class="theme-color-preview preview-white"></div>
-            <div class="theme-card-info">
-              <strong>Google ホワイト</strong>
-              <span>#ffffff 明るくクリアな標準ホワイトテーマ</span>
-            </div>
-          </div>
-          <div class="theme-card" data-theme="theme-gray" id="settings-theme-gray">
-            <div class="theme-color-preview preview-gray"></div>
-            <div class="theme-card-info">
-              <strong>Google グレー</strong>
-              <span>#2f3336 目に優しいニュートラルグレー</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Settings Block 2: AI & Studio Development Settings -->
-      <div class="settings-card-group" style="margin-top: 2rem;">
-        <h2 class="settings-group-title"><i class="fa-solid fa-wand-magic-sparkles"></i> AI & 開発アシスタント設定</h2>
+      <!-- Two-Pane Container -->
+      <div class="settings-two-pane-container">
         
-        <div class="settings-item-row">
-          <div class="settings-item-text">
-            <strong>自動デバッグモード</strong>
-            <span>プログラム実行時にJavaScriptエラーを検知すると、Wizが自動でコードを解析して自己修復します。</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="full-settings-auto-debug">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
+        <!-- Left Sidebar Navigation (5 Categories) -->
+        <nav class="settings-sidebar">
+          <button class="settings-nav-item active" data-tab="theme" id="tab-btn-theme" type="button">
+            <i class="fa-solid fa-palette"></i>
+            <span>テーマカラー</span>
+          </button>
+          <button class="settings-nav-item" data-tab="wiz" id="tab-btn-wiz" type="button">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Wizの詳細設定</span>
+          </button>
+          <button class="settings-nav-item" data-tab="profile" id="tab-btn-profile" type="button">
+            <i class="fa-solid fa-user"></i>
+            <span>プロフィール</span>
+          </button>
+          <button class="settings-nav-item" data-tab="account" id="tab-btn-account" type="button">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>アカウント</span>
+          </button>
+          <button class="settings-nav-item" data-tab="notifications" id="tab-btn-notifications" type="button">
+            <i class="fa-solid fa-bell"></i>
+            <span>通知設定</span>
+          </button>
+        </nav>
 
-        <div class="settings-item-row">
-          <div class="settings-item-text">
-            <strong>プロジェクト間メモリ (Cross-Room Memory)</strong>
-            <span>他のプロジェクト部屋で得たコードパターンやルールをWizが学習し、全部屋で知識を共有します。</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="full-settings-cross-memory">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
+        <!-- Right Content Area -->
+        <div class="settings-content-area">
+          
+          <!-- TAB 1: テーマカラー -->
+          <div class="settings-panel active" id="settings-panel-theme">
+            <div class="settings-panel-header">
+              <h2 class="settings-panel-title"><i class="fa-solid fa-palette"></i> テーマカラー</h2>
+              <p class="settings-panel-desc">お好みのカラーテーマを選択してください。瞬時に画面全体に反映されます。</p>
+            </div>
+            
+            <div class="settings-theme-grid">
+              <!-- ホワイト -->
+              <div class="settings-theme-card" data-theme="theme-white" id="theme-opt-white">
+                <div class="settings-theme-swatch swatch-white"></div>
+                <span class="settings-theme-name">ホワイト</span>
+              </div>
+              
+              <!-- ダーク -->
+              <div class="settings-theme-card active" data-theme="theme-dark" id="theme-opt-dark">
+                <div class="settings-theme-swatch swatch-dark"></div>
+                <span class="settings-theme-name">ダーク</span>
+              </div>
+              
+              <!-- グレー -->
+              <div class="settings-theme-card" data-theme="theme-gray" id="theme-opt-gray">
+                <div class="settings-theme-swatch swatch-gray"></div>
+                <span class="settings-theme-name">グレー</span>
+              </div>
 
-        <div class="settings-item-row">
-          <div class="settings-item-text">
-            <strong>プレビュー表示方式</strong>
-            <span>「実行」ボタンを押したときのゲーム表示画面を選択します。</span>
+              <!-- ブルー -->
+              <div class="settings-theme-card" data-theme="theme-blue" id="theme-opt-blue">
+                <div class="settings-theme-swatch swatch-blue"></div>
+                <span class="settings-theme-name">ブルー</span>
+              </div>
+            </div>
           </div>
-          <div style="display: flex; gap: 1rem;">
-            <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
-              <input type="radio" name="full-preview-mode" value="panel" checked> 右側パネル
-            </label>
-            <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
-              <input type="radio" name="full-preview-mode" value="modal"> 全画面モーダル
-            </label>
-          </div>
-        </div>
-      </div>
 
-      <!-- Settings Block 3: Profile Settings -->
-      <div class="settings-card-group" style="margin-top: 2rem;">
-        <h2 class="settings-group-title"><i class="fa-solid fa-user-gear"></i> プロフィール設定</h2>
-        <div style="display: flex; gap: 1.5rem; align-items: flex-start; margin-top: 1rem;">
-          <div style="text-align: center;">
-            <img id="full-settings-avatar-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--border-color); background: var(--bg-secondary); margin-bottom: 0.5rem;" />
-            <div>
-              <button class="btn btn-secondary btn-sm" id="full-settings-refresh-avatar-btn" type="button" style="font-size:0.75rem;">
-                <i class="fa-solid fa-shuffle"></i> アバター変更
+          <!-- TAB 2: Wizの詳細設定 -->
+          <div class="settings-panel" id="settings-panel-wiz">
+            <div class="settings-panel-header">
+              <h2 class="settings-panel-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Wizの詳細設定</h2>
+              <p class="settings-panel-desc">賢者AI「Wiz」のデバッグ動作、メモリ共有、性格モードを設定します。</p>
+            </div>
+
+            <!-- 自動デバッグ -->
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>自動デバッグ</strong>
+                <span>ゲーム実行中にエラーが発生した際、Wizが自動で原因を解析してコード修正をアシストします。</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="setting-auto-debug" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- プロジェクト間メモリ -->
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>プロジェクト間メモリ</strong>
+                <span>異なるプロジェクト部屋での学習や開発ルールを横断して共有し、一貫したサポートを提供します。</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="setting-cross-memory" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- プレビュー表示方式 -->
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>プレビュー表示方式</strong>
+                <span>「実行」ボタンを押したときのゲーム描画エリアのレイアウトを選択します。</span>
+              </div>
+              <div style="display: flex; gap: 1rem;">
+                <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
+                  <input type="radio" name="preview-display-mode" value="panel" checked> 右側パネル
+                </label>
+                <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.9rem;">
+                  <input type="radio" name="preview-display-mode" value="modal"> 全画面モーダル
+                </label>
+              </div>
+            </div>
+
+            <!-- Wizの性格 -->
+            <div style="margin-top: 1.5rem;">
+              <strong style="font-size: 0.98rem; display: block; margin-bottom: 0.25rem;">Wizの性格</strong>
+              <span style="font-size: 0.84rem; color: var(--text-secondary); display: block; margin-bottom: 0.75rem;">
+                チャット時のWizの口調や応答スタイルを切り替えます。
+              </span>
+              <div class="personality-options-grid">
+                <div class="personality-card active" data-personality="friendly" id="personality-opt-friendly">
+                  <span class="personality-badge">🧙‍♂️</span>
+                  <div class="personality-info">
+                    <strong>親しみやすいモード</strong>
+                    <p>気さくで親しみやすい賢者口調。「〜じゃ！」「任せておけ！」と楽しくサポートします。</p>
+                  </div>
+                </div>
+                <div class="personality-card" data-personality="polite" id="personality-opt-polite">
+                  <span class="personality-badge">🎩</span>
+                  <div class="personality-info">
+                    <strong>敬語のモード</strong>
+                    <p>丁寧で正確な敬語アシスタント。「承知いたしました」「コードを修正しました」と誠実に応答します。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: プロフィール -->
+          <div class="settings-panel" id="settings-panel-profile">
+            <div class="settings-panel-header">
+              <h2 class="settings-panel-title"><i class="fa-solid fa-user"></i> プロフィール</h2>
+              <p class="settings-panel-desc">あなたの公開プロフィール情報を設定します。（初期値は空欄です）</p>
+            </div>
+
+            <!-- アバター画像 -->
+            <div class="profile-avatar-box">
+              <img id="profile-avatar-preview" class="profile-avatar-preview" src="https://api.dicebear.com/7.x/bottts/svg?seed=wiz" alt="ユーザーアイコン">
+              <div class="profile-avatar-controls">
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                  <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0;">
+                    <i class="fa-solid fa-upload"></i> 画像を読み込む
+                    <input type="file" id="profile-avatar-file-input" accept="image/*" style="display: none;">
+                  </label>
+                  <button class="btn btn-ghost btn-sm" id="profile-avatar-random-btn" type="button">
+                    <i class="fa-solid fa-shuffle"></i> ランダム生成
+                  </button>
+                </div>
+                <div>
+                  <input type="url" id="profile-avatar-url-input" class="settings-input" placeholder="または画像URLを入力 (https://...)" style="font-size: 0.82rem; padding: 0.45rem 0.75rem;">
+                </div>
+              </div>
+            </div>
+
+            <!-- 入力フォーム -->
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+              <div>
+                <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:0.4rem;">表示名</label>
+                <input type="text" id="profile-display-name" class="settings-input" placeholder="表示名を入力してください">
+              </div>
+
+              <div>
+                <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:0.4rem;">ユーザーID (変更不可)</label>
+                <input type="text" id="profile-user-id" class="settings-input" readonly style="opacity: 0.7; cursor: not-allowed; background: var(--bg-tertiary);">
+              </div>
+
+              <div>
+                <label style="display:block; font-size:0.88rem; font-weight:600; margin-bottom:0.4rem;">自己紹介</label>
+                <textarea id="profile-bio" class="settings-textarea" rows="3" placeholder="自己紹介を入力してください"></textarea>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary" id="save-profile-btn" type="button" style="padding: 0.65rem 1.5rem;">
+                  <i class="fa-solid fa-floppy-disk"></i> プロフィールを保存
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: アカウント -->
+          <div class="settings-panel" id="settings-panel-account">
+            <div class="settings-panel-header">
+              <h2 class="settings-panel-title"><i class="fa-solid fa-shield-halved"></i> アカウント</h2>
+              <p class="settings-panel-desc">ログイン情報の管理、端末確認、アカウントのログアウトや完全削除を行えます。</p>
+            </div>
+
+            <!-- Email変更 -->
+            <div style="margin-bottom: 1.5rem;">
+              <strong style="display:block; font-size:0.98rem; margin-bottom:0.35rem;">メールアドレス</strong>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="email" id="account-email-input" class="settings-input" placeholder="user@example.com">
+                <button class="btn btn-secondary" id="account-email-update-btn" type="button" style="white-space: nowrap;">
+                  変更
+                </button>
+              </div>
+            </div>
+
+            <!-- ログインデバイス確認 -->
+            <div style="margin-bottom: 1.5rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 1rem;">
+              <strong style="display:block; font-size:0.95rem; margin-bottom:0.5rem;"><i class="fa-solid fa-laptop"></i> ログイン中のデバイス</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                <div>
+                  <div style="font-weight: 600; color: var(--text-primary);" id="account-current-device">現在のブラウザ / Windows</div>
+                  <div style="color: var(--text-secondary); font-size: 0.8rem;">アクティブなセッション • 認証済み</div>
+                </div>
+                <span class="badge" style="background: rgba(52, 168, 83, 0.15); color: var(--success); font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 6px;">接続中</span>
+              </div>
+            </div>
+
+            <!-- ログアウト -->
+            <div style="padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle);">
+              <button class="btn btn-secondary" id="account-logout-btn" type="button">
+                <i class="fa-solid fa-right-from-bracket"></i> ログアウト
               </button>
             </div>
-          </div>
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 1rem;">
-            <div>
-              <label class="setting-label">表示名 (ユーザー名)</label>
-              <input type="text" id="full-settings-username" class="form-input" placeholder="Wizユーザー">
-            </div>
-            <div>
-              <label class="setting-label">ユーザーID (@ID)</label>
-              <input type="text" id="full-settings-userid" class="form-input" placeholder="wiz_user" readonly style="opacity: 0.7; cursor: not-allowed;">
-            </div>
-            <div>
-              <label class="setting-label">自己紹介・プロフィール</label>
-              <textarea id="full-settings-bio" class="form-input" rows="3" placeholder="Wiz AI Game Creatorでゲームを制作しています。"></textarea>
-            </div>
-            <div>
-              <button class="btn btn-primary" id="full-settings-save-profile-btn" type="button">
-                <i class="fa-solid fa-floppy-disk"></i> プロフィールを保存
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Settings Block 4: Data & Account Management -->
-      <div class="settings-card-group" style="margin-top: 2rem; margin-bottom: 3rem;">
-        <h2 class="settings-group-title"><i class="fa-solid fa-shield-halved"></i> データ & アカウント</h2>
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-          <button class="btn btn-secondary" id="full-settings-export-all-btn" type="button">
-            <i class="fa-solid fa-file-export"></i> 全プロジェクトデータをエクスポート
-          </button>
-          <button class="btn btn-danger" id="full-settings-logout-btn" type="button">
-            <i class="fa-solid fa-right-from-bracket"></i> ログアウト
-          </button>
+            <!-- 危険ゾーン: アカウント削除 -->
+            <div class="account-danger-zone">
+              <div class="account-danger-title">
+                <i class="fa-solid fa-triangle-exclamation"></i> 危険ゾーン: アカウント削除
+              </div>
+              <p class="account-danger-desc">
+                アカウントを削除すると、作成したすべてのプロジェクト、チャット履歴、フレンド情報が恒久的に消去され、復旧することはできません。
+              </p>
+              
+              <button class="btn btn-danger" id="initiate-delete-account-btn" type="button">
+                <i class="fa-solid fa-trash-can"></i> アカウント削除の手続きを開始
+              </button>
+
+              <!-- 6桁コード確認エリア (初期非表示) -->
+              <div id="delete-account-verification-box" class="delete-account-box" style="display: none;">
+                <p style="font-size: 0.86rem; color: var(--danger); font-weight: 600; margin-bottom: 0.5rem;">
+                  確認のため、以下の6桁の認証コードを入力してください: <span id="delete-verification-code" style="letter-spacing: 2px; font-weight: 800; font-family: var(--font-mono); background: rgba(234, 67, 53, 0.1); padding: 2px 6px; border-radius: 4px;"></span>
+                </p>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <input type="text" id="delete-confirm-input" class="settings-input" placeholder="6桁のコードを入力" maxlength="6" style="max-width: 180px; text-align: center; font-family: var(--font-mono); font-size: 1.1rem; letter-spacing: 3px;">
+                  <button class="btn btn-danger" id="execute-delete-account-btn" type="button" disabled>
+                    完全に削除する
+                  </button>
+                  <button class="btn btn-ghost" id="cancel-delete-account-btn" type="button">
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: 通知設定 -->
+          <div class="settings-panel" id="settings-panel-notifications">
+            <div class="settings-panel-header">
+              <h2 class="settings-panel-title"><i class="fa-solid fa-bell"></i> 通知設定</h2>
+              <p class="settings-panel-desc">システムからの通知やサウンドの有効/無効を個別に切り替えられます。</p>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>プロジェクト更新・保存通知</strong>
+                <span>プロジェクトの自動保存やファイル作成時のトースト通知を受け取ります。</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-project-updates" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>Wizのアドバイス・アシスト通知</strong>
+                <span>Wizがデバッグを完了した時や提案がある際のポップアップ通知を表示します。</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-wiz-advises" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>フレンド申請・メッセージ通知</strong>
+                <span>フレンド申請や共同プロジェクトの招待があった際に通知します。</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-friend-requests" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-text">
+                <strong>効果音・システムサウンド</strong>
+                <span>ボタンクリックや通知時の8-bit風レトロ効果音を再生します。</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-soundfx" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

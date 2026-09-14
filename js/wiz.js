@@ -13,6 +13,7 @@ class WizAIEngine {
     this.fallbackApiKey = atob('QVEuQWI4Uk42S2JCSXBXc2NGT1pmUXJSSG56QUw5U3Nqa1U1cDhRMzlMMGlOSUtMeXVCS1E=');
     this.modelName = 'gemini-3.6-flash';
     this.mode = 'code'; // Dedicated Project Development Mode only
+    this.personality = localStorage.getItem('wiz_personality') || 'friendly';
     this.chatHistory = [];
     
     this.initSystemPrompts();
@@ -22,15 +23,33 @@ class WizAIEngine {
     this.mode = 'code'; // Always fixed to dedicated code/project mode
   }
 
+  setPersonality(personality) {
+    this.personality = personality === 'polite' ? 'polite' : 'friendly';
+    localStorage.setItem('wiz_personality', this.personality);
+    this.initSystemPrompts();
+  }
+
   initSystemPrompts() {
-    // Shared persona for Wiz
-    this.basePersona = `
+    // Personality-based persona for Wiz
+    if (this.personality === 'polite') {
+      this.basePersona = `
+あなたの名前は「Wiz (ウィズ)」です。名前の由来は「Wizard（魔法使い・賢者）」です。
+ゲーム開発やプログラミング、デザイン、数学、演出、シナリオ作りの深い知識を持つ賢者であり、Google Geminiのように誠実で親身な開発パートナーです。
+口調は常に礼儀正しく丁寧な敬語（「〜です」「〜ます」「承知いたしました」「コードを修正いたしました」など）で、的確かつ誠実に応答します。
+`;
+    } else {
+      this.basePersona = `
 あなたの名前は「Wiz (ウィズ)」です。名前の由来は「Wizard（魔法使い・賢者）」です。
 ゲーム開発やプログラミング、デザイン、数学、演出、シナリオ作りの深い知識を持つ賢者ですが、決して偉ぶることはなく、Google Geminiのようにとても親身で気さく、フレンドリーな開発アシスタントです。
 語尾は親切で柔らかな口調（「〜だよ！」「〜してみようか！」「任せて！」など）で、相手を歓迎し楽しく対話します。
 `;
+    }
 
     // Dedicated Active Project Development Engine Prompt
+    const fallbackResponse = this.personality === 'polite'
+      ? '「私はこのプロジェクト専属の開発AIです。本ゲームのプログラム作成やファイル編集・削除、実行テストのことなら何でもお申し付けください。次はどのような機能や演出を実装いたしましょうか？」'
+      : '「私はこのプロジェクトの開発専属AIだよ！このゲームのプログラム作成やファイル編集・削除、実行テストのことなら何でも任せてね！次はどんな機能や演出を作ってみる？」';
+
     this.codePrompt = `${this.basePersona}
 あなたは【現在開いているプロジェクト専属の開発AI】です。
 
@@ -38,7 +57,8 @@ class WizAIEngine {
 あなたができること・行うべきことは、「今開いているプロジェクトの開発・ファイル作成・編集・削除・フォルダ操作・プログラム実行・デバッグ・画像生成」に限定されます。
 通常の世間話、関係のない日常会話、一般的な雑談（天気、無関係な質問など）は行いません。
 もしユーザーからプロジェクトと関係のない雑談や質問をされた場合は、
-「私はこのプロジェクトの開発専属AIだよ！このゲームのプログラム作成やファイル編集・削除、実行テストのことなら何でも任せてね！次はどんな機能や演出を作ってみる？」
+${fallbackResponse}
+のように案内し、現在開いているプロジェクトの開発に集中してください。
 のように優しく案内し、現在開いているプロジェクトの開発に集中してください。
 
 【実行可能な操作タグ（wiz_action）】：

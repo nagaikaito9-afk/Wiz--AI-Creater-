@@ -20,49 +20,20 @@ class FriendsManager {
     const raw = localStorage.getItem(this.storageKey);
     if (raw) {
       try {
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        // Clean out any legacy demo friends (pixel_hero, sound_mage, retro_gamer)
+        if (parsed.friends) {
+          parsed.friends = parsed.friends.filter(f => f.userId !== 'pixel_hero' && f.userId !== 'sound_mage');
+        }
+        if (parsed.incomingRequests) {
+          parsed.incomingRequests = parsed.incomingRequests.filter(r => r.fromUserId !== 'retro_gamer');
+        }
+        return parsed;
       } catch (e) {
         console.warn('Failed to parse friends data, resetting:', e);
       }
     }
-    const currentId = this.getCurrentUserId();
-    // Default seed with preset friendly creators ONLY for instant testing on mock account
-    if (currentId === 'wiz_creator') {
-      return {
-        friends: [
-          {
-            userId: 'pixel_hero',
-            username: 'ドット勇者',
-            email: 'hero@pixel.dev',
-            avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero',
-            online: true,
-            statusText: 'ドット絵制作中 🎨'
-          },
-          {
-            userId: 'sound_mage',
-            username: '音響魔術師',
-            email: 'sound@synth.dev',
-            avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sound_mage',
-            online: false,
-            statusText: '8bit BGM作曲中 🎵'
-          }
-        ],
-        incomingRequests: [
-          {
-            fromUserId: 'retro_gamer',
-            fromUsername: 'レトロゲーマー',
-            sentAt: new Date(Date.now() - 3600000).toISOString()
-          }
-        ],
-        outgoingRequests: [],
-        directMessages: {
-          'pixel_hero': [
-            { sender: 'pixel_hero', text: 'こんにちは！Wiz Studioへようこそ！✨ 一緒に面白いゲームを作ろう！', time: '12:00' }
-          ]
-        }
-      };
-    }
-    // Clean slate for regular registered users (0 demo friends)
+    // Clean slate for all users (0 demo friends)
     return {
       friends: [],
       incomingRequests: [],
@@ -731,8 +702,6 @@ class FriendsManager {
       if (sharedRooms.length > 0) {
         const roomNames = sharedRooms.map(r => `「${this.escapeHtml(r.name)}」`).join('、');
         sharedProjectText = `共同プロジェクト ${roomNames} のチームメンバー`;
-      } else if (friend.userId === 'pixel_hero') {
-        sharedProjectText = '共同プロジェクト「ブロック崩し」のチームメンバー';
       }
 
       const avatarUrl = friend.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${friend.userId}`;

@@ -176,31 +176,21 @@ class ProjectManager {
     const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
     const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
 
-    if (!this.rooms || this.rooms.length === 0) {
-      if (myId === 'wiz_creator') {
-        const initialRoom = {
-          id: 'room_default',
-          name: 'ネオン・ブロック崩し',
-          rules: 'このゲームはすべてドット絵風ネオン調で制作する。\nレトロアーケードスタイル。',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          chatHistory: [],
-          ownerId: myId,
-          ownerUsername: myName,
-          team: [
-            { userId: myId, username: myName, role: 'admin', joinedAt: new Date().toISOString() }
-          ],
-          pendingInvites: [],
-          joinRequests: [],
-          vfsRoot: null
-        };
-        this.rooms = [initialRoom];
-        this.activeRoomId = initialRoom.id;
+    // Clean out legacy demo project (room_default / ネオン・ブロック崩し)
+    if (this.rooms && this.rooms.length > 0) {
+      const beforeCount = this.rooms.length;
+      this.rooms = this.rooms.filter(r => r.id !== 'room_default' && r.name !== 'ネオン・ブロック崩し');
+      if (this.rooms.length !== beforeCount) {
+        if (this.activeRoomId === 'room_default') {
+          this.activeRoomId = this.rooms.length > 0 ? this.rooms[0].id : null;
+        }
         this.saveRooms();
-      } else {
-        this.rooms = [];
-        this.activeRoomId = null;
       }
+    }
+
+    if (!this.rooms) {
+      this.rooms = [];
+      this.activeRoomId = null;
     } else {
       this.rooms.forEach(r => {
         if (!r.team) {
