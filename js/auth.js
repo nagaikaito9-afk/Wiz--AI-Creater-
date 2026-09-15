@@ -123,6 +123,12 @@ class Auth0AuthManager {
   }
 
   bindGateUI() {
+    // Show Desktop Mode hint card if running in Electron
+    if (window.electronAPI?.isElectron) {
+      const hintCard = document.getElementById('electron-desktop-hint-card');
+      if (hintCard) hintCard.style.display = 'block';
+    }
+
     // Auth0 Login Button
     const auth0LoginBtn = document.getElementById('gate-auth0-login-btn');
     auth0LoginBtn?.addEventListener('click', () => this.loginWithAuth0());
@@ -171,6 +177,12 @@ class Auth0AuthManager {
 
     if (typeof auth0 === 'undefined') {
       console.warn('Auth0 SPA SDK is not loaded yet.');
+      this.checkLocalSessions();
+      return;
+    }
+
+    // In Electron Desktop mode, Auth0 uses native OAuth PKCE loopback via window.electronAPI
+    if (window.electronAPI?.isElectron) {
       this.checkLocalSessions();
       return;
     }
@@ -336,6 +348,48 @@ class Auth0AuthManager {
       return;
     }
 
+    // 1. Electron Desktop Native Flow (Authorization Code + PKCE + Loopback Server on 127.0.0.1:42813)
+    if (window.electronAPI?.isElectron && typeof window.electronAPI.loginWithAuth0Native === 'function') {
+      try {
+        if (window.showToast) {
+          window.showToast('ブラウザでAuth0ログイン画面を開いています...', 'info');
+        }
+        const res = await window.electronAPI.loginWithAuth0Native({
+          domain: window.AUTH0_CONFIG.domain,
+          clientId: window.AUTH0_CONFIG.clientId
+        });
+
+        if (res && res.success && res.user) {
+          const authUser = {
+            id: res.user.sub || `auth0_${Date.now()}`,
+            username: res.user.name || res.user.nickname || res.user.email?.split('@')[0] || 'Wizユーザー',
+            userId: res.user.nickname || res.user.email?.split('@')[0] || `user_${Math.random().toString(36).slice(2, 6)}`,
+            email: res.user.email || '',
+            avatar: res.user.picture || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat',
+            auth0_profile: res.user,
+            isProfileConfigured: true
+          };
+          this.updateUserInStore(authUser);
+          this.currentUser = authUser;
+          if (window.showToast) window.showToast('Auth0 ログインが完了しました！', 'success');
+          this.onLoginSuccess();
+          return;
+        } else if (res?.error) {
+          if (res.error.includes('redirect_uri') || res.error.includes('Callback URL')) {
+            alert('【Auth0 設定のお願い】\nデスクトップアプリからAuth0でログインするには、Auth0ダッシュボードの「Allowed Callback URLs」に以下を追加してください：\n\nhttp://127.0.0.1:42813/callback\n\n※ すぐにゲーム制作を始める場合は、下の「テスト用アカウントでログイン」をご利用いただけます。');
+          }
+          throw new Error(res.error);
+        }
+      } catch (err) {
+        console.error('Desktop Auth0 error:', err);
+        if (window.showToast) {
+          window.showToast('Auth0ログインに失敗しました: ' + err.message, 'error');
+        }
+      }
+      return;
+    }
+
+    // 2. Web Browser Mode (loginWithRedirect)
     if (!this.auth0Client) {
       await this.initAuth0Client();
     }

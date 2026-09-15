@@ -26,5 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Native Windows File Dialogs (For Desktop File Adapter)
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:save', options),
-  showOpenDialog: (options) => ipcRenderer.invoke('dialog:open', options)
+  showOpenDialog: (options) => ipcRenderer.invoke('dialog:open', options),
+
+  // Native Auth0 OAuth 2.0 PKCE Loopback Login
+  loginWithAuth0Native: (config) => ipcRenderer.invoke('auth:login-auth0', config)
 });

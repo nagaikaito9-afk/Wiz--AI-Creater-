@@ -1885,6 +1885,15 @@
         <p class="auth-gate-subtitle">AI賢者Wizとゲームを作るには、Auth0でログインしてください。</p>
       </div>
 
+      <!-- Desktop Mode Notice (Visible when in Electron) -->
+      <div id="electron-desktop-hint-card" style="display: none; background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.4); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.82rem; color: #c9d1d9; line-height: 1.5;">
+        <div style="font-weight: 700; color: #58a6ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-desktop"></i> <span>Windows デスクトップ版で起動中</span>
+        </div>
+        下の「テスト用アカウントでログイン」を押すと、登録不要・ワンクリックで今すぐスタジオ全機能（AI対話・コード編集・ゲーム実行など）をご利用いただけます。<br>
+        <span style="font-size: 0.76rem; color: #8b949e; display: inline-block; margin-top: 4px;">※ Auth0でログインする場合は、Auth0ダッシュボードの Allowed Callback URLs に <code>http://127.0.0.1:42813/callback</code> を追加してください。</span>
+      </div>
+
       <!-- Auth0 Primary Action -->
       <div class="auth-gate-section">
         <button id="gate-auth0-login-btn" class="btn-auth0-login" type="button">
