@@ -254,14 +254,30 @@ ipcMain.handle('auth:login-auth0', async (event, { domain, clientId }) => {
 
         const tokens = await tokenRes.json();
 
-        // Fetch User Profile
+        // Fetch / Decode User Profile
         let userInfo = null;
-        if (tokens.access_token) {
-          const userRes = await fetch(`https://${domain}/userinfo`, {
-            headers: { Authorization: `Bearer ${tokens.access_token}` }
-          });
-          if (userRes.ok) {
-            userInfo = await userRes.json();
+
+        // 1. Decode ID Token (JWT) directly for instant, guaranteed profile
+        if (tokens.id_token) {
+          try {
+            const payloadBase64 = tokens.id_token.split('.')[1];
+            userInfo = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
+          } catch (e) {
+            console.warn('[Electron Main] Failed to parse id_token payload:', e);
+          }
+        }
+
+        // 2. Fallback to /userinfo endpoint if needed
+        if (!userInfo && tokens.access_token) {
+          try {
+            const userRes = await fetch(`https://${domain}/userinfo`, {
+              headers: { Authorization: `Bearer ${tokens.access_token}` }
+            });
+            if (userRes.ok) {
+              userInfo = await userRes.json();
+            }
+          } catch (e) {
+            console.warn('[Electron Main] /userinfo fetch error:', e);
           }
         }
 

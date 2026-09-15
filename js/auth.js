@@ -359,20 +359,12 @@ class Auth0AuthManager {
           clientId: window.AUTH0_CONFIG.clientId
         });
 
-        if (res && res.success && res.user) {
-          const authUser = {
-            id: res.user.sub || `auth0_${Date.now()}`,
-            username: res.user.name || res.user.nickname || res.user.email?.split('@')[0] || 'Wizユーザー',
-            userId: res.user.nickname || res.user.email?.split('@')[0] || `user_${Math.random().toString(36).slice(2, 6)}`,
-            email: res.user.email || '',
-            avatar: res.user.picture || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat',
-            auth0_profile: res.user,
-            isProfileConfigured: true
-          };
-          this.updateUserInStore(authUser);
-          this.currentUser = authUser;
-          if (window.showToast) window.showToast('Auth0 ログインが完了しました！', 'success');
-          this.onLoginSuccess();
+        if (res && res.success && (res.user || res.tokens)) {
+          const auth0Profile = res.user || {};
+          if (window.showToast) {
+            window.showToast('Auth0 ログインが完了しました！🎉', 'success');
+          }
+          this.processAuth0UserLogin(auth0Profile);
           return;
         } else if (res?.error) {
           if (res.error.includes('redirect_uri') || res.error.includes('Callback URL')) {
