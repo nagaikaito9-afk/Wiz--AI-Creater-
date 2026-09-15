@@ -1,0 +1,64 @@
+{
+  "name": "wiz-ai-creater",
+  "version": "1.0.0",
+  "description": "Wiz AI Game Creator - AI-Powered Game Development Studio for Windows & Web",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "build:win": "electron-builder --win"
+  },
+  "keywords": [
+    "game-engine",
+    "ai",
+    "gemini",
+    "electron",
+    "game-creator"
+  ],
+  "author": "nagaikaito",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.wiz.aigamecreator",
+    "productName": "Wiz AI Creater",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Wiz AI Creater"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.exe"
+    },
+    "files": [
+      "index.html",
+      "css/**/*",
+      "js/**/*",
+      "electron/**/*",
+      "assets/**/*",
+      "!api/**/*"
+    ]
+  }
+}

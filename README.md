@@ -88,10 +88,41 @@ ai-game-creator/
 │   ├── projectManager.js   # プロジェクト管理・複製・カード内プレビュー
 │   ├── marketplace.js      # マーケットプレイス
 │   └── agentActions.js     # Wizのアクション自動実行エンジン
+├── electron/
+│   ├── main.js             # Electron メインプロセス (セキュアウィンドウ、IPC)
+│   └── preload.js          # contextBridge によるセキュアブリッジ (window.electronAPI)
+├── assets/
+│   └── icon.png            # アプリアイコン (Geminiマジカルスター)
+├── package.json            # Electron / electron-builder 定義
 ├── cpp/
 │   └── game_logic.cpp      # C++ゲームロジック・物理演算コア
 └── README.md               # プロジェクト概要ドキュメント
 ```
+
+---
+
+## 🖥️ Windows デスクトップアプリ (Electron)
+
+本プロジェクトは **Web版（Vercel）とWindowsデスクトップ版（.exe）の両立構造** を採用しています。
+
+### 1. デスクトップ版の起動 (開発モード)
+```bash
+npm install
+npm start
+```
+
+### 2. Windows 用インストーラー & ポータブル版のビルド (.exe)
+```bash
+npm run build:win
+```
+ビルド完了後、`dist/` フォルダ配下に以下が自動生成されます：
+- **`Wiz AI Creater Setup 1.0.0.exe`**: Windows用標準インストーラー (NSIS)
+- **`Wiz AI Creater-1.0.0-Portable.exe`**: インストール不要で即起動できるポータブル実行ファイル
+
+### 3. セキュリティアーキテクチャ
+- **完全サンドボックス**: `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true` を徹底。
+- **秘密鍵秘匿**: Gemini APIおよびResendのAPIキーはクライアント（Electron）内に一切含めず、Vercel Serverless API（`https://wiz-ai-creater.vercel.app/api/chat`）経由で安全に通信。
+- **安全なゲーム実行**: ユーザーやAIが生成したプログラムは、既存のChromium内サンドボックス（`iframe`）で安全に隔離実行されます。
 
 ---
 

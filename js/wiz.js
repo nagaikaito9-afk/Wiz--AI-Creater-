@@ -230,24 +230,40 @@ ${fallbackResponse}
 
     let resData = null;
 
-    // 1. Try Vercel Serverless API (/api/chat) first
-    try {
-      const serverlessRes = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
-      });
-
-      if (serverlessRes.ok) {
-        resData = await serverlessRes.json();
-      } else if (serverlessRes.status !== 404) {
-        // If serverless exists but returned error (e.g. 500)
-        const errJson = await serverlessRes.json().catch(() => ({}));
-        throw new Error(errJson.error || `Serverless Error ${serverlessRes.status}`);
+    // 1. Electron Desktop Mode: Relay through secure main process to Vercel Serverless API
+    if (window.electronAPI && typeof window.electronAPI.sendWizChat === 'function') {
+      try {
+        const electronRes = await window.electronAPI.sendWizChat(requestPayload);
+        if (electronRes && !electronRes.error) {
+          resData = electronRes;
+        } else if (electronRes?.error) {
+          console.warn('[Wiz Desktop] Serverless response error:', electronRes.error);
+        }
+      } catch (err) {
+        console.warn('[Wiz Desktop] IPC chat call failed:', err);
       }
-    } catch (e) {
-      // If network failure or not on Vercel, fallback to direct client call
-      console.info('Vercel serverless /api/chat not available, switching to direct client call:', e.message);
+    }
+
+    // 2. Web Browser Mode: Try Vercel Serverless API (/api/chat)
+    if (!resData) {
+      try {
+        const serverlessRes = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload)
+        });
+
+        if (serverlessRes.ok) {
+          resData = await serverlessRes.json();
+        } else if (serverlessRes.status !== 404) {
+          // If serverless exists but returned error (e.g. 500)
+          const errJson = await serverlessRes.json().catch(() => ({}));
+          throw new Error(errJson.error || `Serverless Error ${serverlessRes.status}`);
+        }
+      } catch (e) {
+        // If network failure or not on Vercel, fallback to direct client call
+        console.info('Vercel serverless /api/chat not available, switching to direct client call:', e.message);
+      }
     }
 
     // 2. Fallback: Direct call to Google Gemini API (Browser CORS requires ?key= query parameter)
