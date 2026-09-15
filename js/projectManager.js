@@ -322,14 +322,20 @@ class ProjectManager {
     }
 
     this.renderRoomsList();
+    this.renderProjectsView();
     this.updateActiveRoomHeader();
 
     if (window.showToast) {
-      window.showToast(`新しいチャット部屋「${name}」を作成しました！`, 'success');
+      window.showToast(`新しいプロジェクト「${name}」を作成しました！エディタに移動します`, 'success');
     }
 
     if (window.supabaseAuth) {
       window.supabaseAuth.saveRoomToCloud?.(newRoom);
+    }
+
+    // 即座にそのプロジェクトのエディタ（スタジオ）へ移動
+    if (window.app && typeof window.app.switchPageView === 'function') {
+      window.app.switchPageView('studio');
     }
 
     return newRoom;

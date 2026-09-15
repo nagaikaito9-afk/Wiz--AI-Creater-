@@ -136,19 +136,26 @@
         <div class="user-card-divider"></div>
 
         <!-- Col 2: Friends Count -->
-        <div class="user-card-col col-friends" id="home-friends-box-btn" style="cursor: pointer;" title="フレンド画面を開く">
-          <div class="stat-header-text">フレンド</div>
+        <div class="user-card-col col-friends clickable-col" id="home-friends-box-btn" title="クリックしてフレンド画面を開く">
+          <div class="stat-header-row">
+            <div class="stat-header-text"><i class="fa-solid fa-users" style="color: var(--wiz-accent); font-size: 0.85rem;"></i> フレンド</div>
+            <span class="col-action-arrow" title="フレンド一覧を見る"><i class="fa-solid fa-arrow-right"></i></span>
+          </div>
           <div class="stat-number-row">
             <span id="home-friends-count" class="stat-number">0</span><span class="stat-unit">人</span>
           </div>
           <div class="stat-sub-text" id="home-friends-online-desc">オンライン: 0人</div>
+          <div class="stat-action-hint">フレンド一覧へ <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i></div>
         </div>
 
         <div class="user-card-divider"></div>
 
         <!-- Col 3: Projects Count & Active Project Preview -->
-        <div class="user-card-col col-projects" id="home-projects-box-btn" style="cursor: pointer;" title="プロジェクト画面を開く">
-          <div class="stat-header-text">プロジェクト数</div>
+        <div class="user-card-col col-projects clickable-col" id="home-projects-box-btn" title="クリックしてプロジェクト一覧を開く">
+          <div class="stat-header-row">
+            <div class="stat-header-text"><i class="fa-solid fa-folder-closed" style="color: var(--brand-primary); font-size: 0.85rem;"></i> プロジェクト数</div>
+            <span class="col-action-arrow" title="プロジェクト一覧へ"><i class="fa-solid fa-arrow-right"></i></span>
+          </div>
           <div class="stat-number-row">
             <span id="home-projects-count" class="stat-number">1</span>
           </div>
@@ -156,18 +163,23 @@
             <div class="mini-proj-title" id="home-mini-proj-name">ネオン・ブロック崩し</div>
             <div class="mini-proj-desc" id="home-mini-proj-desc">レトロフューチャー・ブロック崩し</div>
           </div>
+          <div class="stat-action-hint">プロジェクト一覧へ <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i></div>
         </div>
 
         <div class="user-card-divider"></div>
 
         <!-- Col 4: Other Info -->
-        <div class="user-card-col col-other">
-          <div class="stat-header-text">その他の情報</div>
+        <div class="user-card-col col-other clickable-col" id="home-other-info-box-btn" title="クリックして詳細情報を開く">
+          <div class="stat-header-row">
+            <div class="stat-header-text"><i class="fa-solid fa-chart-pie" style="color: var(--wiz-accent); font-size: 0.85rem;"></i> その他の情報</div>
+            <span class="col-action-arrow" title="詳細情報を見る"><i class="fa-solid fa-arrow-right"></i></span>
+          </div>
           <div class="other-info-rows">
             <div class="info-row"><i class="fa-solid fa-code"></i> <span>累計コード: <strong id="home-total-lines">1,450</strong> 行</span></div>
             <div class="info-row"><i class="fa-solid fa-wand-magic-sparkles"></i> <span>Wiz開発対話: <strong id="home-total-prompts">24</strong> 回</span></div>
-            <div class="info-row"><i class="fa-solid fa-circle-check text-success"></i> <span>ステータス: <strong>正常 (Google Cloud)</strong></span></div>
+            <div class="info-row"><i class="fa-solid fa-circle-check text-success"></i> <span>ステータス: <strong>正常稼働中</strong></span></div>
           </div>
+          <div class="stat-action-hint">詳細ページを見る <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i></div>
         </div>
       </div>
 
@@ -223,6 +235,213 @@
         </div>
 
       </div>
+    </div>
+  </section>
+
+  <!-- SYSTEM & OTHER INFO DETAIL VIEW (その他の情報・アクティビティ統計) -->
+  <section id="view-system-info" class="pdf-page-view system-info-view" style="display: none;">
+    <div class="pdf-view-content" style="max-width: 1100px;">
+      
+      <!-- Header Row with Back Button -->
+      <div class="system-header-row">
+        <div class="system-header-left">
+          <button id="btn-back-to-home-from-info" class="system-back-btn" type="button">
+            <i class="fa-solid fa-arrow-left"></i> <span>ホームに戻る</span>
+          </button>
+          <div>
+            <h1 class="pdf-page-title" style="margin-bottom: 0.2rem; font-size: 1.45rem;">
+              <i class="fa-solid fa-chart-pie" style="color:var(--wiz-accent); margin-right:0.5rem;"></i>その他の情報・システム詳細
+            </h1>
+            <span class="pdf-block-desc">累計コード行数、Wiz対話回数、サービス稼働状況、使用技術スタックの詳細サマリー</span>
+          </div>
+        </div>
+        <div class="block-tools-row">
+          <button id="info-view-open-projects-btn" class="btn btn-secondary" type="button">
+            <i class="fa-solid fa-folder-closed"></i> <span>プロジェクト一覧</span>
+          </button>
+          <button id="info-view-open-studio-btn" class="btn btn-primary" type="button">
+            <i class="fa-solid fa-code"></i> <span>スタジオを開く</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4-Metric Highlights Grid -->
+      <div class="system-metrics-grid">
+        <!-- Metric 1: 累計コード行数 -->
+        <div class="system-metric-card">
+          <div class="system-metric-top">
+            <span class="system-metric-title">累計コード行数</span>
+            <div class="system-metric-icon-wrap"><i class="fa-solid fa-code"></i></div>
+          </div>
+          <div class="system-metric-value-row">
+            <span id="detail-total-lines-count" class="system-metric-num">0</span>
+            <span class="system-metric-unit">行</span>
+          </div>
+          <div class="system-metric-desc" id="detail-total-files-desc">全プロジェクト合計 / 0 ファイル</div>
+          
+          <div class="code-lang-bar-wrap">
+            <div class="code-multi-bar">
+              <div id="code-bar-js" class="code-bar-seg" style="width: 50%; background: #f7df1e;" title="JavaScript"></div>
+              <div id="code-bar-html" class="code-bar-seg" style="width: 30%; background: #e34f26;" title="HTML"></div>
+              <div id="code-bar-css" class="code-bar-seg" style="width: 20%; background: #264de4;" title="CSS"></div>
+            </div>
+            <div class="code-lang-legend">
+              <span class="code-legend-item"><span class="code-legend-dot" style="background: #f7df1e;"></span> JS</span>
+              <span class="code-legend-item"><span class="code-legend-dot" style="background: #e34f26;"></span> HTML</span>
+              <span class="code-legend-item"><span class="code-legend-dot" style="background: #264de4;"></span> CSS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric 2: Wiz対話回数 -->
+        <div class="system-metric-card">
+          <div class="system-metric-top">
+            <span class="system-metric-title">Wiz開発対話回数</span>
+            <div class="system-metric-icon-wrap"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          </div>
+          <div class="system-metric-value-row">
+            <span id="detail-wiz-prompts-count" class="system-metric-num">24</span>
+            <span class="system-metric-unit">回</span>
+          </div>
+          <div class="system-metric-desc">コード生成・編集・デバッグ支援</div>
+          <div style="margin-top: 0.8rem; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-circle-check" style="color: #22c55e;"></i>
+            <span>Gemini AI エンジン連携中</span>
+          </div>
+        </div>
+
+        <!-- Metric 3: システム稼働ステータス -->
+        <div class="system-metric-card">
+          <div class="system-metric-top">
+            <span class="system-metric-title">サービスステータス</span>
+            <div class="system-metric-icon-wrap"><i class="fa-solid fa-server"></i></div>
+          </div>
+          <div class="system-metric-value-row">
+            <span class="system-metric-num" style="color: #4ade80; font-size: 2.2rem;">正常</span>
+            <span class="system-metric-unit" style="color: #4ade80;">(100%)</span>
+          </div>
+          <div class="system-metric-desc">全リージョン・サービス正常稼働</div>
+          <div style="margin-top: 0.8rem; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+            <span class="pulse-dot"></span>
+            <span>Google Cloud CDN 接続完了</span>
+          </div>
+        </div>
+
+        <!-- Metric 4: アカウント・プロジェクト規模 -->
+        <div class="system-metric-card">
+          <div class="system-metric-top">
+            <span class="system-metric-title">プロジェクト & プラン</span>
+            <div class="system-metric-icon-wrap"><i class="fa-solid fa-cubes"></i></div>
+          </div>
+          <div class="system-metric-value-row">
+            <span id="detail-projects-count" class="system-metric-num">1</span>
+            <span class="system-metric-unit">個</span>
+          </div>
+          <div class="system-metric-desc" id="detail-storage-desc">仮想ストレージ: 良好 (高速同期)</div>
+          <div style="margin-top: 0.8rem; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--wiz-accent);"></i>
+            <span>プラン: Wiz Creator Pro (Free)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two Large Panels: Project Breakdown & Services / Tech Stack -->
+      <div class="system-sections-grid">
+        <!-- Panel 1: 各プロジェクトのコード詳細 -->
+        <div class="system-panel-card">
+          <div class="system-panel-header">
+            <h2 class="system-panel-title">
+              <i class="fa-solid fa-folder-tree"></i>
+              <span>プロジェクト別コード内訳</span>
+            </h2>
+            <span class="system-proj-badge" id="detail-projects-total-badge">1 プロジェクト</span>
+          </div>
+          
+          <div class="system-proj-list" id="detail-projects-list-container">
+            <!-- Dynamically populated per-room stats -->
+          </div>
+        </div>
+
+        <!-- Panel 2: サービス・AI技術スタック & 稼働健全性 -->
+        <div class="system-panel-card">
+          <div class="system-panel-header">
+            <h2 class="system-panel-title">
+              <i class="fa-solid fa-microchip"></i>
+              <span>稼働サービス & AIエンジン仕様</span>
+            </h2>
+            <span class="system-status-pill success"><span class="pulse-dot"></span> 全システム正常</span>
+          </div>
+
+          <!-- Service Status Cards -->
+          <div class="system-service-grid">
+            <div class="system-service-card">
+              <div class="system-service-top">
+                <span class="system-service-name"><i class="fa-brands fa-google" style="color:#4285F4;"></i> Google Cloud</span>
+                <span class="system-status-pill success">正常</span>
+              </div>
+              <div class="system-service-meta">
+                <span>ホスティング & API</span>
+                <span>レイテンシ ~24ms</span>
+              </div>
+            </div>
+
+            <div class="system-service-card">
+              <div class="system-service-top">
+                <span class="system-service-name"><i class="fa-solid fa-bolt" style="color:#3ECF8E;"></i> Supabase</span>
+                <span class="system-status-pill success">接続済</span>
+              </div>
+              <div class="system-service-meta">
+                <span>リアルタイム同期 & DB</span>
+                <span>健全</span>
+              </div>
+            </div>
+
+            <div class="system-service-card">
+              <div class="system-service-top">
+                <span class="system-service-name"><i class="fa-solid fa-wand-sparkles" style="color:var(--wiz-accent);"></i> Gemini 3.6</span>
+                <span class="system-status-pill success">稼働中</span>
+              </div>
+              <div class="system-service-meta">
+                <span>Wiz AI コーディング</span>
+                <span>Flash Engine</span>
+              </div>
+            </div>
+
+            <div class="system-service-card">
+              <div class="system-service-top">
+                <span class="system-service-name"><i class="fa-solid fa-hard-drive" style="color:#f59e0b;"></i> VFS Virtual FS</span>
+                <span class="system-status-pill success">高速</span>
+              </div>
+              <div class="system-service-meta">
+                <span>仮想ストレージ</span>
+                <span>即時セーブ</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specifications List -->
+          <div class="system-spec-grid">
+            <div class="system-spec-row">
+              <span class="system-spec-label"><i class="fa-solid fa-robot"></i> AIモデル・パーソナリティ</span>
+              <span class="system-spec-val" id="detail-ai-personality">Gemini 3.6 Flash / フレンドリー (Wiz)</span>
+            </div>
+            <div class="system-spec-row">
+              <span class="system-spec-label"><i class="fa-solid fa-play"></i> 実行環境サンドボックス</span>
+              <span class="system-spec-val">HTML5 Canvas / Web Audio / JS Sandbox</span>
+            </div>
+            <div class="system-spec-row">
+              <span class="system-spec-label"><i class="fa-solid fa-user-shield"></i> セキュリティ・認証</span>
+              <span class="system-spec-val">x-goog-api-key 暗号化 / Row Level Security</span>
+            </div>
+            <div class="system-spec-row">
+              <span class="system-spec-label"><i class="fa-solid fa-cloud-arrow-up"></i> クラウドバックアップ</span>
+              <span class="system-spec-val">有効 (Local + Supabase 自動同期)</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </section>
 

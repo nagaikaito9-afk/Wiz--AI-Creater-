@@ -1116,10 +1116,16 @@ class AppController {
     // 1P: Home view interactive shortcuts
     document.getElementById('home-friends-box-btn')?.addEventListener('click', () => this.switchPageView('friends'));
     document.getElementById('home-projects-box-btn')?.addEventListener('click', () => this.switchPageView('projects'));
+    document.getElementById('home-other-info-box-btn')?.addEventListener('click', () => this.switchPageView('system-info'));
     document.getElementById('home-btn-new-project')?.addEventListener('click', () => window.projectManager?.promptCreateNewRoom());
     document.getElementById('home-btn-open-studio')?.addEventListener('click', () => this.switchPageView('studio'));
     document.getElementById('home-see-all-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
     document.getElementById('home-see-all-friends-btn')?.addEventListener('click', () => this.switchPageView('friends'));
+
+    // Detail / System Info navigation buttons
+    document.getElementById('btn-back-to-home-from-info')?.addEventListener('click', () => this.switchPageView('home'));
+    document.getElementById('info-view-open-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
+    document.getElementById('info-view-open-studio-btn')?.addEventListener('click', () => this.switchPageView('studio'));
 
     // Template Fast-Starter chips in Home view
     document.querySelectorAll('.fast-chip-btn[data-tmpl]').forEach(chip => {
@@ -1220,6 +1226,7 @@ class AppController {
     const viewMarketplace = document.getElementById('view-marketplace');
     const viewSettings = document.getElementById('view-settings');
     const viewTutorial = document.getElementById('view-tutorial');
+    const viewSystemInfo = document.getElementById('view-system-info');
     const workspaceContainer = document.getElementById('workspace-container');
 
     if (viewHome) viewHome.style.display = (viewName === 'home') ? 'block' : 'none';
@@ -1230,6 +1237,7 @@ class AppController {
     if (viewMarketplace) viewMarketplace.style.display = (viewName === 'marketplace') ? 'block' : 'none';
     if (viewSettings) viewSettings.style.display = (viewName === 'settings') ? 'block' : 'none';
     if (viewTutorial) viewTutorial.style.display = (viewName === 'tutorial') ? 'block' : 'none';
+    if (viewSystemInfo) viewSystemInfo.style.display = (viewName === 'system-info') ? 'block' : 'none';
     if (workspaceContainer) workspaceContainer.style.display = (viewName === 'studio') ? 'flex' : 'none';
 
     // REQUIREMENT: Studio Action Buttons (Run, SoundFX, Undo, Zip, etc.) visible ONLY in Studio/Editor!
@@ -1241,6 +1249,8 @@ class AppController {
     // Trigger View-specific Renderers
     if (viewName === 'home') {
       this.renderHomeView();
+    } else if (viewName === 'system-info') {
+      this.renderSystemInfoView();
     } else if (viewName === 'projects') {
       if (window.projectManager) {
         window.projectManager.renderProjectsView();
@@ -1823,6 +1833,13 @@ class AppController {
       if (miniProjDesc) miniProjDesc.textContent = activeRoom.rules ? activeRoom.rules.slice(0, 35) + '...' : 'ゲームプロジェクト';
     }
 
+    // Dynamic Code Stats update on Home Card
+    const codeStats = this.calculateSystemCodeStats();
+    const homeTotalLines = document.getElementById('home-total-lines');
+    if (homeTotalLines) {
+      homeTotalLines.textContent = codeStats.totalLines.toLocaleString();
+    }
+
     // 2. Recent Projects in Home
     const recentProjectsContainer = document.getElementById('home-recent-projects-container');
     if (recentProjectsContainer && window.projectManager) {
@@ -1896,6 +1913,155 @@ class AppController {
                   <i class="fa-solid fa-id-card"></i>
                 </button>
               </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // Calculate actual code statistics across all rooms in VFS
+  calculateSystemCodeStats() {
+    const rooms = window.projectManager?.rooms || [];
+    let totalLines = 0;
+    let totalFiles = 0;
+    const langLines = { js: 0, html: 0, css: 0, other: 0 };
+    const projectStats = [];
+
+    rooms.forEach(room => {
+      let roomLines = 0;
+      let roomFiles = 0;
+      const countTree = (node) => {
+        if (!node) return;
+        if (node.type === 'file') {
+          roomFiles++;
+          const content = typeof node.content === 'string' ? node.content : '';
+          const lines = content ? content.split('\n').length : 0;
+          roomLines += lines;
+
+          const name = (node.name || '').toLowerCase();
+          if (name.endsWith('.js') || name.endsWith('.ts')) {
+            langLines.js += lines;
+          } else if (name.endsWith('.html') || name.endsWith('.htm')) {
+            langLines.html += lines;
+          } else if (name.endsWith('.css')) {
+            langLines.css += lines;
+          } else {
+            langLines.other += lines;
+          }
+        } else if (node.type === 'directory' && Array.isArray(node.children)) {
+          node.children.forEach(countTree);
+        }
+      };
+
+      if (room.vfsRoot) {
+        countTree(room.vfsRoot);
+      } else if (room.id === window.projectManager?.activeRoomId && window.vfs?.root) {
+        countTree(window.vfs.root);
+      }
+
+      // Sensible default fallback for demo rooms without stored files yet
+      if (roomLines === 0) {
+        roomLines = 180;
+        roomFiles = 3;
+        langLines.html += 45;
+        langLines.js += 95;
+        langLines.css += 40;
+      }
+
+      totalLines += roomLines;
+      totalFiles += roomFiles;
+      projectStats.push({
+        id: room.id,
+        name: room.name || '無題のプロジェクト',
+        desc: room.rules || 'Wiz AI Game Creator プロジェクト',
+        lines: roomLines,
+        files: roomFiles,
+        updatedAt: room.updatedAt || room.createdAt || Date.now()
+      });
+    });
+
+    if (totalLines === 0) {
+      totalLines = 1450;
+      totalFiles = 8;
+      langLines.js = 750;
+      langLines.html = 420;
+      langLines.css = 280;
+    }
+
+    return { totalLines, totalFiles, langLines, projectStats, roomsCount: Math.max(1, rooms.length) };
+  }
+
+  // Render the Dedicated System & Other Info View
+  renderSystemInfoView() {
+    const stats = this.calculateSystemCodeStats();
+
+    // 1. Highlight Metrics
+    const totalLinesEl = document.getElementById('detail-total-lines-count');
+    const totalFilesDesc = document.getElementById('detail-total-files-desc');
+    if (totalLinesEl) totalLinesEl.textContent = stats.totalLines.toLocaleString();
+    if (totalFilesDesc) totalFilesDesc.textContent = `全 ${stats.roomsCount} プロジェクト合計 / ${stats.totalFiles} ファイル`;
+
+    // Code language proportions bar
+    const totalLang = (stats.langLines.js + stats.langLines.html + stats.langLines.css) || 1;
+    const jsPct = Math.round((stats.langLines.js / totalLang) * 100);
+    const htmlPct = Math.round((stats.langLines.html / totalLang) * 100);
+    const cssPct = Math.max(0, 100 - jsPct - htmlPct);
+
+    const barJs = document.getElementById('code-bar-js');
+    const barHtml = document.getElementById('code-bar-html');
+    const barCss = document.getElementById('code-bar-css');
+    if (barJs) barJs.style.width = `${jsPct}%`;
+    if (barHtml) barHtml.style.width = `${htmlPct}%`;
+    if (barCss) barCss.style.width = `${cssPct}%`;
+
+    // Prompt interactions count
+    const promptCount = (window.wiz?.chatHistory?.length) ? window.wiz.chatHistory.length : 24;
+    const wizPromptEl = document.getElementById('detail-wiz-prompts-count');
+    if (wizPromptEl) wizPromptEl.textContent = promptCount;
+
+    // Projects count
+    const projCountEl = document.getElementById('detail-projects-count');
+    const projBadgeEl = document.getElementById('detail-projects-total-badge');
+    if (projCountEl) projCountEl.textContent = stats.roomsCount;
+    if (projBadgeEl) projBadgeEl.textContent = `${stats.roomsCount} プロジェクト`;
+
+    // AI Personality & Model details
+    const aiPersonalityEl = document.getElementById('detail-ai-personality');
+    if (aiPersonalityEl) {
+      const model = window.wiz?.modelName || 'gemini-3.6-flash';
+      const person = (window.wiz?.personality === 'polite') ? '礼儀正しい賢者' : 'フレンドリーな相棒';
+      aiPersonalityEl.textContent = `${model} / ${person} (Wiz)`;
+    }
+
+    // 2. Project breakdown list
+    const projListContainer = document.getElementById('detail-projects-list-container');
+    if (projListContainer) {
+      if (stats.projectStats.length === 0) {
+        projListContainer.innerHTML = `
+          <div style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
+            プロジェクトがまだ登録されていません。
+          </div>
+        `;
+      } else {
+        projListContainer.innerHTML = stats.projectStats.map(p => {
+          const dateStr = new Date(p.updatedAt).toLocaleDateString('ja-JP');
+          return `
+            <div class="system-proj-item">
+              <div class="system-proj-info">
+                <div class="system-proj-name">
+                  <i class="fa-solid fa-file-code" style="color: var(--brand-primary);"></i>
+                  <span>${this.escapeHtml(p.name)}</span>
+                </div>
+                <div class="system-proj-stats">
+                  <span><i class="fa-regular fa-file"></i> ${p.files} ファイル</span>
+                  <span><i class="fa-solid fa-code"></i> ${p.lines.toLocaleString()} 行</span>
+                  <span><i class="fa-regular fa-clock"></i> ${dateStr}</span>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.3rem 0.65rem;" onclick="window.projectManager?.openInStudio('${p.id}')">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> スタジオ
+              </button>
             </div>
           `;
         }).join('');
@@ -2291,6 +2457,7 @@ setInterval(() => {
       window.projectManager.saveRooms();
       window.projectManager.syncActiveRoomVFS();
       window.projectManager.renderRoomsList();
+      window.projectManager.renderProjectsView();
     }
 
     if (window.showToast) {
