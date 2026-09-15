@@ -1114,6 +1114,7 @@ class AppController {
     });
 
     // 1P: Home view interactive shortcuts
+    document.getElementById('home-account-box-btn')?.addEventListener('click', () => this.openSettingsTab('profile'));
     document.getElementById('home-friends-box-btn')?.addEventListener('click', () => this.switchPageView('friends'));
     document.getElementById('home-projects-box-btn')?.addEventListener('click', () => this.switchPageView('projects'));
     document.getElementById('home-other-info-box-btn')?.addEventListener('click', () => this.switchPageView('system-info'));
@@ -1312,8 +1313,47 @@ class AppController {
   // 5P: Full-page Settings Logic
   // ==========================================
   // ==========================================
-  // 5P: Full-page 2-Pane Settings Logic
-  // ==========================================
+  // Fallback persistent pixel-art SVG data URI (permanently preserved offline or on network error)
+  getFallbackPixelAvatar() {
+    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges" width="128" height="128"><rect width="16" height="16" fill="%23202124"/><rect x="4" y="2" width="8" height="2" fill="%231a73e8"/><rect x="3" y="4" width="10" height="2" fill="%238ab4f8"/><rect x="4" y="6" width="8" height="5" fill="%23fed7aa"/><rect x="5" y="7" width="2" height="2" fill="%231e293b"/><rect x="9" y="7" width="2" height="2" fill="%231e293b"/><rect x="7" y="9" width="2" height="1" fill="%23ea580c"/><rect x="5" y="10" width="6" height="1" fill="%23f97316"/><rect x="3" y="11" width="10" height="4" fill="%231a73e8"/><rect x="2" y="12" width="2" height="3" fill="%238ab4f8"/><rect x="12" y="12" width="2" height="3" fill="%238ab4f8"/></svg>`;
+  }
+
+  // Get user avatar ensuring pixel-art styling and permanent persistence
+  getUserAvatar() {
+    const saved = localStorage.getItem('wiz_custom_avatar');
+    if (saved) return saved;
+    const currentUser = window.supabaseAuth?.currentUser;
+    const currentAvatar = currentUser?.user_metadata?.avatar_url || currentUser?.avatar;
+    if (currentAvatar && !currentAvatar.includes('bottts')) {
+      return currentAvatar;
+    }
+    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || 'wiz_creator';
+    return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(userId)}`;
+  }
+
+  // Seamlessly open settings view with specified category tab (e.g. 'profile')
+  openSettingsTab(tabKey = 'profile') {
+    this.switchPageView('settings');
+    const tabButtons = document.querySelectorAll('.settings-sidebar .settings-nav-item');
+    tabButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === tabKey));
+    document.querySelectorAll('.settings-content-area .settings-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === `settings-panel-${tabKey}`);
+    });
+
+    if (tabKey === 'profile') {
+      const avatarEl = document.getElementById('profile-avatar-preview');
+      const avatarUrl = this.getUserAvatar();
+      if (avatarEl) {
+        avatarEl.src = avatarUrl;
+        avatarEl.setAttribute('data-avatar-url', avatarUrl);
+      }
+      const profilePanel = document.getElementById('settings-panel-profile');
+      if (profilePanel) {
+        profilePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
   initFullSettingsEvents() {
     // 1. Two-Pane Tab Navigation (Left Sidebar)
     const tabButtons = document.querySelectorAll('.settings-sidebar .settings-nav-item');
@@ -1428,16 +1468,19 @@ class AppController {
       }
     });
 
-    // Random Avatar Generator
+    // Random Avatar Generator (Pixel-Art collection)
     avatarRandomBtn?.addEventListener('click', () => {
-      const seed = 'wiz_' + Math.random().toString(36).substring(2, 8);
-      const randomUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+      const seed = 'pixel_' + Math.random().toString(36).substring(2, 8);
+      const randomUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
       if (avatarImg) {
         avatarImg.src = randomUrl;
         avatarImg.setAttribute('data-avatar-url', randomUrl);
+        avatarImg.onerror = () => {
+          avatarImg.src = this.getFallbackPixelAvatar();
+        };
       }
       if (avatarUrlInput) avatarUrlInput.value = randomUrl;
-      if (window.showToast) window.showToast('新しいアバターを生成しました。「保存」を押して確定してください。', 'info');
+      if (window.showToast) window.showToast('ドット絵アバターを生成しました。「保存」を押して確定してください。', 'info');
     });
 
     // Save Profile Button
@@ -1446,7 +1489,14 @@ class AppController {
       const bioInput = document.getElementById('profile-bio');
       const updatedName = nameInput?.value.trim() || '';
       const updatedBio = bioInput?.value.trim() || '';
-      const updatedAvatar = avatarImg?.getAttribute('data-avatar-url') || avatarImg?.src;
+      const updatedAvatar = avatarImg?.getAttribute('data-avatar-url') || avatarImg?.src || this.getUserAvatar();
+
+      // Permanent persistence in LocalStorage
+      try {
+        localStorage.setItem('wiz_custom_avatar', updatedAvatar);
+      } catch (e) {
+        console.warn('Failed to save avatar to localStorage:', e);
+      }
 
       if (window.supabaseAuth && window.supabaseAuth.currentUser) {
         window.supabaseAuth.currentUser.username = updatedName;
@@ -1574,15 +1624,20 @@ class AppController {
     const currentUser = window.supabaseAuth?.currentUser;
     const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || '';
     const username = currentUser?.user_metadata?.full_name || currentUser?.username || '';
-    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || '';
-    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId || 'wiz'}`;
+    const avatarUrl = this.getUserAvatar();
 
     const avatarEl = document.getElementById('profile-avatar-preview');
     const nameEl = document.getElementById('profile-display-name');
     const idEl = document.getElementById('profile-user-id');
     const bioEl = document.getElementById('profile-bio');
 
-    if (avatarEl) avatarEl.src = avatarUrl;
+    if (avatarEl) {
+      avatarEl.src = avatarUrl;
+      avatarEl.setAttribute('data-avatar-url', avatarUrl);
+      avatarEl.onerror = () => {
+        avatarEl.src = this.getFallbackPixelAvatar();
+      };
+    }
     if (nameEl) nameEl.value = username;
     if (idEl) idEl.value = userId ? `@${userId}` : '';
     if (bioEl) bioEl.value = userBio;
@@ -1797,15 +1852,19 @@ class AppController {
     const currentUser = window.supabaseAuth?.currentUser;
     const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || '';
     const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'クリエイター';
-    const userBio = currentUser?.bio || currentUser?.user_metadata?.bio || '';
-    const avatarUrl = currentUser?.user_metadata?.avatar_url || currentUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId || 'creator'}`;
+    const avatarUrl = this.getUserAvatar();
 
     const avatarEl = document.getElementById('home-user-avatar');
     const nameEl = document.getElementById('home-user-name');
     const idEl = document.getElementById('home-user-id');
     const bioEl = document.getElementById('home-user-bio');
 
-    if (avatarEl) avatarEl.src = avatarUrl;
+    if (avatarEl) {
+      avatarEl.src = avatarUrl;
+      avatarEl.onerror = () => {
+        avatarEl.src = this.getFallbackPixelAvatar();
+      };
+    }
     if (nameEl) nameEl.textContent = username;
     if (idEl) idEl.textContent = userId ? `@${userId}` : '';
     if (bioEl) bioEl.textContent = userBio;

@@ -4344,6 +4344,15 @@ body.theme-white .pdf-nav-link.active {
   border: 3px solid var(--border-medium);
   object-fit: cover;
   background: var(--bg-tertiary);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.user-card-col.col-account.clickable-col:hover .account-avatar-img {
+  border-color: var(--wiz-accent);
+  transform: scale(1.04);
+  box-shadow: 0 0 14px rgba(138, 180, 248, 0.4);
 }
 .account-details {
   display: flex;
@@ -5518,6 +5527,9 @@ body.theme-white .personality-card.active {
   object-fit: cover;
   border: 3px solid var(--border-medium);
   background: var(--bg-tertiary);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 .profile-avatar-controls {
   flex: 1;

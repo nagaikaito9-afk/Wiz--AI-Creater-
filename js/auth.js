@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Wiz AI Game Creator - Auth0 Authentication & Settings Manager
  * 
  * Fully manages:
@@ -253,7 +253,7 @@ class Auth0AuthManager {
     const defaultName = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : 'クリエイター');
     const rawId = auth0User.nickname || (email ? email.split('@')[0] : 'creator');
     const defaultUserId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20) || 'creator_' + Math.floor(Math.random() * 1000);
-    const defaultAvatar = auth0User.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${defaultUserId}`;
+    const defaultAvatar = auth0User.picture || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${defaultUserId}`;
 
     const isFirstTime = !existing || !existing.isProfileConfigured;
 
@@ -338,12 +338,12 @@ class Auth0AuthManager {
         email: 'creator@wiz-game.dev',
         username: 'Wiz Creator',
         userId: 'wiz_creator',
-        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator',
+        avatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=wiz_creator',
         isProfileConfigured: true,
         user_metadata: {
           full_name: 'Wiz Creator',
           user_id: 'wiz_creator',
-          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=wiz_creator'
+          avatar_url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=wiz_creator'
         }
       };
     }
@@ -397,7 +397,7 @@ class Auth0AuthManager {
       }
 
       const selectedAvatar = document.querySelector('#init-avatar-select-grid .avatar-option.selected');
-      const avatarUrl = selectedAvatar?.getAttribute('data-avatar-url') || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+      const avatarUrl = selectedAvatar?.getAttribute('data-avatar-url') || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${userId}`;
 
       this.currentUser.username = username;
       this.currentUser.userId = userId;
@@ -434,7 +434,7 @@ class Auth0AuthManager {
     if (avatarGrid) {
       const seeds = [user.userId || 'gamer', 'wizard', 'cyber_hero', 'sound_mage', 'pixel_art', 'neon_cat', 'retro_bot'];
       avatarGrid.innerHTML = seeds.map((seed, idx) => {
-        const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+        const url = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
         const isSelected = idx === 0;
         return `
           <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
@@ -662,7 +662,7 @@ class Auth0AuthManager {
       const currentAvatar = this.currentUser.avatar || this.currentUser.user_metadata?.avatar_url || '';
 
       avatarGrid.innerHTML = seeds.map(seed => {
-        const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+        const url = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
         const isSelected = (currentAvatar === url) || (!currentAvatar && seed === currentId);
         return `
           <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
@@ -719,7 +719,7 @@ class Auth0AuthManager {
     this.currentUser.user_metadata = {
       full_name: newName,
       user_id: newUserId,
-      avatar_url: this.currentUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${newUserId}`
+      avatar_url: this.currentUser.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${newUserId}`
     };
 
     this.updateUserInStore(this.currentUser);
@@ -801,7 +801,7 @@ class Auth0AuthManager {
     if (user) {
       const name = user.username || user.user_metadata?.full_name || user.email?.split('@')[0] || 'クリエイター';
       const userId = user.userId || user.user_metadata?.user_id || 'wiz_user';
-      const avatarUrl = user.avatar || user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${userId}`;
+      const avatarUrl = user.avatar || user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${userId}`;
 
       userContainer.innerHTML = `
         <div class="user-profile-card">
