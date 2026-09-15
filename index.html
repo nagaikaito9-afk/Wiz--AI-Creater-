@@ -1988,12 +1988,27 @@
       </div>
 
       <!-- Desktop Mode Notice (Visible when in Electron) -->
-      <div id="electron-desktop-hint-card" style="display: none; background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.4); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.82rem; color: #c9d1d9; line-height: 1.5;">
-        <div style="font-weight: 700; color: #58a6ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-desktop"></i> <span>Windows デスクトップ版で起動中</span>
+      <div id="electron-desktop-hint-card" style="display: none; background: rgba(56, 139, 253, 0.08); border: 1px solid rgba(56, 139, 253, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 0.82rem; color: #c9d1d9; line-height: 1.5;">
+        <div style="font-weight: 700; color: #58a6ff; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-desktop"></i> <span>Windows デスクトップ版で起動中</span>
+          </div>
+          <span style="font-size: 0.72rem; background: rgba(56, 139, 253, 0.2); color: #58a6ff; padding: 2px 8px; border-radius: 12px;">Port 42813</span>
         </div>
-        下の「テスト用アカウントでログイン」を押すと、登録不要・ワンクリックで今すぐスタジオ全機能（AI対話・コード編集・ゲーム実行など）をご利用いただけます。<br>
-        <span style="font-size: 0.76rem; color: #8b949e; display: inline-block; margin-top: 4px;">※ Auth0でログインする場合は、Auth0ダッシュボードの Allowed Callback URLs に <code>http://127.0.0.1:42813/callback</code> を追加してください。</span>
+        <p style="margin: 0 0 10px 0; color: var(--text-secondary);">
+          下の<strong>「テスト用アカウントでログイン」</strong>を押すと、登録不要・ワンクリックで今すぐスタジオ全機能（AI対話・コード編集・ゲーム実行など）をご利用いただけます！
+        </p>
+        <div style="background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; font-size: 0.78rem; color: #79c0ff;" id="callback-url-text">
+            http://127.0.0.1:42813/callback
+          </div>
+          <button type="button" id="copy-callback-url-btn" class="btn btn-secondary btn-sm" style="padding: 3px 10px; font-size: 0.75rem; white-space: nowrap;">
+            <i class="fa-solid fa-copy"></i> <span>URLをコピー</span>
+          </button>
+        </div>
+        <div style="font-size: 0.74rem; color: #8b949e; margin-top: 6px; line-height: 1.4;">
+          ※ Auth0で新規登録/ログインする場合は、Auth0ダッシュボードの <strong>Allowed Callback URLs</strong> に上記URLを追加してください。
+        </div>
       </div>
 
       <!-- Web Mode App Download Banner (Visible only on Web, hidden in Electron) -->

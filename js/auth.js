@@ -129,13 +129,20 @@ class Auth0AuthManager {
       if (hintCard) hintCard.style.display = 'block';
       const webDownloadCard = document.getElementById('web-download-gate-card');
       if (webDownloadCard) webDownloadCard.style.display = 'none';
+
+      document.getElementById('copy-callback-url-btn')?.addEventListener('click', () => {
+        const url = document.getElementById('callback-url-text')?.textContent.trim() || 'http://127.0.0.1:42813/callback';
+        navigator.clipboard.writeText(url).then(() => {
+          if (window.showToast) window.showToast('📋 コールバックURLをコピーしました！Auth0設定に貼り付けてください', 'success');
+        });
+      });
     } else {
       const gateDownloadBtn = document.getElementById('gate-download-app-btn');
       gateDownloadBtn?.addEventListener('click', () => {
         if (typeof window.downloadWindowsApp === 'function') {
           window.downloadWindowsApp('setup');
         } else {
-          window.open('https://github.com/nagaikaito9-afk/Wiz--AI-Creater-/releases', '_blank');
+          window.open('https://github.com/nagaikaito9-afk/Wiz--AI-Creater-', '_blank');
         }
       });
     }
