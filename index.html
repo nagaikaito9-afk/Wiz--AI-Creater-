@@ -98,6 +98,13 @@
           <i class="fa-solid fa-table-columns"></i>
         </button>
       </div>
+      <!-- Web Install Desktop App Button (Visible only on Web, hidden in Electron desktop app) -->
+      <button id="web-install-app-btn" class="btn-install-app" type="button" title="Windowsデスクトップ版アプリをインストール (setup.exeをダウンロード)">
+        <i class="fa-brands fa-windows" style="color: #00a4ef;"></i>
+        <span>アプリをインストール</span>
+        <span class="btn-install-badge">setup.exe</span>
+      </button>
+
       <button id="notification-center-btn" class="btn btn-icon notif-bell-btn" title="通知センター">
         <i class="fa-solid fa-bell"></i>
         <span id="notification-badge" class="nav-badge" style="display:none;">0</span>
@@ -121,6 +128,9 @@
           </button>
           <button type="button" class="dropdown-item" id="dropdown-btn-settings">
             <i class="fa-solid fa-sliders"></i> <span>スタジオ設定</span>
+          </button>
+          <button type="button" class="dropdown-item dropdown-item-highlight" id="dropdown-btn-download-app">
+            <i class="fa-brands fa-windows" style="color: #00a4ef;"></i> <span>Windows版アプリをインストール</span>
           </button>
           <button type="button" class="dropdown-item" id="dropdown-btn-notifs">
             <i class="fa-solid fa-bell"></i> <span>通知センター</span>
@@ -243,7 +253,13 @@
         <!-- Header with colored important button -->
         <div class="home-main-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
           <h1 class="pdf-main-heading" style="margin: 0; font-size: 1.45rem; font-weight: 700;">フレンドやプロジェクト一覧＆詳細</h1>
-          <div class="home-header-actions" style="display: flex; gap: 12px; align-items: center;">
+          <div class="home-header-actions" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <!-- Install Desktop App (Web only) -->
+            <button id="home-btn-install-app" class="btn-home-install-app" type="button" title="Windowsデスクトップ版アプリをインストール (setup.exe)">
+              <i class="fa-brands fa-windows" style="color: #00a4ef;"></i>
+              <span>アプリをインストール</span>
+              <span class="install-tag">setup.exe</span>
+            </button>
             <!-- 重要なボタンは色を付ける: High-Contrast Green Button -->
             <button id="home-btn-new-project" class="btn-github-green" type="button" style="width: auto; padding: 9px 20px;">
               <i class="fa-solid fa-plus"></i> <span>新しいプロジェクト</span>
@@ -1831,6 +1847,81 @@
     </div>
   </div>
 
+  <!-- APP INSTALL MODAL (Windows版 setup.exe ダウンロード & インストール案内ダイアログ) -->
+  <div class="modal-backdrop" id="app-install-modal" style="display: none; z-index: 100004;">
+    <div class="modal-card modal-card-md" style="max-width: 560px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.15rem;">
+          <i class="fa-brands fa-windows" style="color: #00a4ef;"></i>
+          <span>Wiz AI Creater for Windows</span>
+        </h3>
+        <button type="button" class="btn btn-icon" id="close-install-modal-btn" title="閉じる" style="background: transparent; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="padding-top: 1.2rem;">
+        <!-- Download Status Card -->
+        <div class="install-status-box" style="background: linear-gradient(135deg, rgba(0, 164, 239, 0.12) 0%, rgba(52, 211, 153, 0.1) 100%); border: 1px solid rgba(0, 164, 239, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 14px;">
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #00a4ef; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.4rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0, 164, 239, 0.35);">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 0.96rem; color: var(--text-primary); margin-bottom: 2px;">
+              setup.exe のダウンロードを開始しました！
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+              自動で始まらない場合は、下の「再ダウンロード」を押してください。
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Buttons Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.2rem;">
+          <button id="modal-download-setup-btn" type="button" class="btn btn-primary" style="padding: 10px 14px; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; background: linear-gradient(135deg, #0078d4 0%, #00a4ef 100%); border: none;">
+            <i class="fa-solid fa-download"></i> <span>インストーラー (setup.exe)</span>
+          </button>
+          <button id="modal-download-portable-btn" type="button" class="btn btn-secondary" style="padding: 10px 14px; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-box-archive"></i> <span>ポータブル版 (.exe)</span>
+          </button>
+        </div>
+
+        <!-- Installation 3-Step Guide -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px 16px; margin-bottom: 1.2rem;">
+          <div style="font-size: 0.86rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-list-check" style="color: var(--wiz-accent);"></i> <span>インストール手順（かんたん3ステップ）</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem; color: var(--text-secondary);">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="background: var(--bg-tertiary); color: var(--text-primary); font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.76rem;">1</span>
+              <div>ダウンロードした <strong>Wiz AI Creater Setup 1.0.0.exe</strong> をクリックして起動します。</div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="background: var(--bg-tertiary); color: var(--text-primary); font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.76rem;">2</span>
+              <div>Windowsの青い保護画面が出た場合は<strong>「詳細情報」</strong>→<strong>「実行」</strong>をクリックします。</div>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="background: var(--bg-tertiary); color: var(--text-primary); font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.76rem;">3</span>
+              <div>自動でインストールが完了し、デスクトップからすぐにローカル高速版をお楽しみいただけます！</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Release Notes Link -->
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+          <span>GitHub Releases で全バージョン公開中</span>
+          <a href="https://github.com/nagaikaito9-afk/Wiz--AI-Creater-/releases" target="_blank" rel="noopener" style="color: var(--wiz-accent); text-decoration: none; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+            <i class="fa-brands fa-github"></i> Releases を見る <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem;"></i>
+          </a>
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid var(--border-subtle); justify-content: flex-end; padding-top: 0.8rem;">
+        <button id="modal-close-install-btn" class="btn btn-secondary" type="button" style="padding: 0.5rem 1.4rem;">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- INITIAL CREATOR PROFILE SETUP MODAL (新規登録・初回ログイン時のプロフィール決定画面) -->
   <div class="modal-backdrop" id="initial-profile-modal" style="display: none; z-index: 100002;">
     <div class="modal-card modal-card-md" style="max-width: 520px;">
@@ -1895,6 +1986,20 @@
         </div>
         下の「テスト用アカウントでログイン」を押すと、登録不要・ワンクリックで今すぐスタジオ全機能（AI対話・コード編集・ゲーム実行など）をご利用いただけます。<br>
         <span style="font-size: 0.76rem; color: #8b949e; display: inline-block; margin-top: 4px;">※ Auth0でログインする場合は、Auth0ダッシュボードの Allowed Callback URLs に <code>http://127.0.0.1:42813/callback</code> を追加してください。</span>
+      </div>
+
+      <!-- Web Mode App Download Banner (Visible only on Web, hidden in Electron) -->
+      <div id="web-download-gate-card" class="web-gate-download-banner" style="background: linear-gradient(135deg, rgba(0, 164, 239, 0.08) 0%, rgba(132, 48, 206, 0.08) 100%); border: 1px solid rgba(0, 164, 239, 0.3); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <i class="fa-brands fa-windows" style="color: #00a4ef; font-size: 1.3rem;"></i>
+          <div style="text-align: left;">
+            <div style="font-size: 0.84rem; font-weight: 700; color: var(--text-primary);">Windowsアプリ版でさらに快適に！</div>
+            <div style="font-size: 0.74rem; color: var(--text-secondary);">高速動作・オフライン＆ファイル直接連携</div>
+          </div>
+        </div>
+        <button id="gate-download-app-btn" type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 5px 12px; border-radius: 6px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 6px; background: rgba(0, 164, 239, 0.15); border-color: rgba(0, 164, 239, 0.4); color: #00a4ef;">
+          <i class="fa-solid fa-download"></i> <span>setup.exe</span>
+        </button>
       </div>
 
       <!-- Auth0 Primary Action -->

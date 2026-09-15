@@ -123,10 +123,21 @@ class Auth0AuthManager {
   }
 
   bindGateUI() {
-    // Show Desktop Mode hint card if running in Electron
+    // Show Desktop Mode hint card if running in Electron, or Web Download Card if in Browser
     if (window.electronAPI?.isElectron) {
       const hintCard = document.getElementById('electron-desktop-hint-card');
       if (hintCard) hintCard.style.display = 'block';
+      const webDownloadCard = document.getElementById('web-download-gate-card');
+      if (webDownloadCard) webDownloadCard.style.display = 'none';
+    } else {
+      const gateDownloadBtn = document.getElementById('gate-download-app-btn');
+      gateDownloadBtn?.addEventListener('click', () => {
+        if (typeof window.downloadWindowsApp === 'function') {
+          window.downloadWindowsApp('setup');
+        } else {
+          window.open('https://github.com/nagaikaito9-afk/Wiz--AI-Creater-/releases', '_blank');
+        }
+      });
     }
 
     // Auth0 Login Button

@@ -6997,6 +6997,97 @@ body.theme-white .community-msg-row.mine .community-msg-bubble {
   background: rgba(248, 81, 73, 0.1) !important;
 }
 
+/* --------------------------------------------------------------------------
+   App Installation (setup.exe) Buttons & Modal Styles
+   -------------------------------------------------------------------------- */
+.btn-install-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(0, 164, 239, 0.12) 0%, rgba(132, 48, 206, 0.15) 100%);
+  border: 1px solid rgba(0, 164, 239, 0.35);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 164, 239, 0.1);
+  text-decoration: none;
+}
+
+.btn-install-app:hover {
+  background: linear-gradient(135deg, rgba(0, 164, 239, 0.22) 0%, rgba(132, 48, 206, 0.25) 100%);
+  border-color: rgba(0, 164, 239, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 164, 239, 0.25);
+  color: #00a4ef;
+}
+
+.btn-install-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(0, 164, 239, 0.2);
+  color: #00a4ef;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.btn-home-install-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 164, 239, 0.12) 0%, rgba(132, 48, 206, 0.12) 100%);
+  border: 1px solid rgba(0, 164, 239, 0.35);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 164, 239, 0.12);
+}
+
+.btn-home-install-app:hover {
+  background: linear-gradient(135deg, rgba(0, 164, 239, 0.2) 0%, rgba(132, 48, 206, 0.2) 100%);
+  border-color: #00a4ef;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 164, 239, 0.25);
+  color: #00a4ef;
+}
+
+.btn-home-install-app .install-tag {
+  font-size: 0.72rem;
+  background: rgba(0, 164, 239, 0.2);
+  color: #00a4ef;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.dropdown-item-highlight {
+  background: rgba(0, 164, 239, 0.06);
+  color: #00a4ef !important;
+  font-weight: 600;
+}
+
+.dropdown-item-highlight:hover {
+  background: rgba(0, 164, 239, 0.14) !important;
+}
+
+@media (max-width: 768px) {
+  .btn-install-app span:not(.btn-install-badge) {
+    display: none;
+  }
+  .btn-install-app {
+    padding: 5px 10px;
+  }
+}
+
+
 
 
 

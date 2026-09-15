@@ -1179,6 +1179,9 @@ class AppController {
       }
     });
 
+    // Windows Desktop App Install & Download (setup.exe) Manager
+    this.setupAppInstallFeatures();
+
     // Home View Search Input Live Filter
     const homeSearch = document.getElementById('home-projects-search-input');
     if (homeSearch) {
@@ -1277,6 +1280,89 @@ class AppController {
 
     // Default to Home View on initial launch
     this.switchPageView('home');
+  }
+
+  setupAppInstallFeatures() {
+    const isElectron = Boolean(window.electronAPI?.isElectron);
+
+    // If running inside Electron desktop app, hide install buttons
+    if (isElectron) {
+      const installEls = [
+        document.getElementById('web-install-app-btn'),
+        document.getElementById('home-btn-install-app'),
+        document.getElementById('dropdown-btn-download-app'),
+        document.getElementById('web-download-gate-card')
+      ];
+      installEls.forEach(el => {
+        if (el) el.style.display = 'none';
+      });
+      return;
+    }
+
+    const GITHUB_REPO = 'nagaikaito9-afk/Wiz--AI-Creater-';
+    const SETUP_EXE_NAME = 'Wiz AI Creater Setup 1.0.0.exe';
+    const PORTABLE_EXE_NAME = 'Wiz AI Creater-1.0.0-Portable.exe';
+    // Direct GitHub Releases download links
+    const SETUP_DOWNLOAD_URL = `https://github.com/${GITHUB_REPO}/releases/latest/download/Wiz.AI.Creater.Setup.1.0.0.exe`;
+    const PORTABLE_DOWNLOAD_URL = `https://github.com/${GITHUB_REPO}/releases/latest/download/Wiz.AI.Creater-1.0.0-Portable.exe`;
+    const RELEASES_PAGE_URL = `https://github.com/${GITHUB_REPO}/releases`;
+
+    const modal = document.getElementById('app-install-modal');
+
+    const triggerDownload = (type = 'setup') => {
+      const targetUrl = type === 'portable' ? PORTABLE_DOWNLOAD_URL : SETUP_DOWNLOAD_URL;
+      const filename = type === 'portable' ? PORTABLE_EXE_NAME : SETUP_EXE_NAME;
+
+      // 1. Trigger browser download via hidden link
+      try {
+        const a = document.createElement('a');
+        a.href = targetUrl;
+        a.download = filename;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          if (document.body.contains(a)) document.body.removeChild(a);
+        }, 100);
+      } catch (err) {
+        console.warn('Direct download trigger error:', err);
+        window.open(targetUrl, '_blank');
+      }
+
+      // 2. Open Install Guide Modal
+      if (modal) modal.style.display = 'flex';
+
+      if (window.showToast) {
+        window.showToast(`🎉 ${filename} のダウンロードを開始しました！`, 'success');
+      }
+    };
+
+    window.downloadWindowsApp = triggerDownload;
+
+    // Bind Web action buttons
+    document.getElementById('web-install-app-btn')?.addEventListener('click', () => triggerDownload('setup'));
+    document.getElementById('home-btn-install-app')?.addEventListener('click', () => triggerDownload('setup'));
+    document.getElementById('gate-download-app-btn')?.addEventListener('click', () => triggerDownload('setup'));
+    document.getElementById('dropdown-btn-download-app')?.addEventListener('click', () => {
+      const dropdown = document.getElementById('header-user-dropdown-menu');
+      if (dropdown) dropdown.style.display = 'none';
+      triggerDownload('setup');
+    });
+
+    // Modal action buttons
+    document.getElementById('modal-download-setup-btn')?.addEventListener('click', () => triggerDownload('setup'));
+    document.getElementById('modal-download-portable-btn')?.addEventListener('click', () => triggerDownload('portable'));
+
+    const closeModal = () => {
+      if (modal) modal.style.display = 'none';
+    };
+
+    document.getElementById('close-install-modal-btn')?.addEventListener('click', closeModal);
+    document.getElementById('modal-close-install-btn')?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
   }
 
   switchPageView(viewName) {
