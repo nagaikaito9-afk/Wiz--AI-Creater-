@@ -1317,7 +1317,10 @@ class AppController {
   // ==========================================
   // Fallback persistent pixel-art SVG data URI (permanently preserved offline or on network error)
   getFallbackPixelAvatar() {
-    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges" width="128" height="128"><rect width="16" height="16" fill="%23202124"/><rect x="4" y="2" width="8" height="2" fill="%231a73e8"/><rect x="3" y="4" width="10" height="2" fill="%238ab4f8"/><rect x="4" y="6" width="8" height="5" fill="%23fed7aa"/><rect x="5" y="7" width="2" height="2" fill="%231e293b"/><rect x="9" y="7" width="2" height="2" fill="%231e293b"/><rect x="7" y="9" width="2" height="1" fill="%23ea580c"/><rect x="5" y="10" width="6" height="1" fill="%23f97316"/><rect x="3" y="11" width="10" height="4" fill="%231a73e8"/><rect x="2" y="12" width="2" height="3" fill="%238ab4f8"/><rect x="12" y="12" width="2" height="3" fill="%238ab4f8"/></svg>`;
+    if (window.WIZ_PIXEL_AVATARS && window.WIZ_PIXEL_AVATARS[0]) {
+      return window.WIZ_PIXEL_AVATARS[0].svg;
+    }
+    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges" width="128" height="128"><rect width="16" height="16" fill="%231e1e2e"/><rect x="3" y="2" width="3" height="3" fill="%23f59e0b"/><rect x="10" y="2" width="3" height="3" fill="%23f59e0b"/><rect x="4" y="3" width="1" height="1" fill="%23f472b6"/><rect x="11" y="3" width="1" height="1" fill="%23f472b6"/><rect x="3" y="5" width="10" height="7" fill="%23fbbf24"/><rect x="2" y="6" width="12" height="5" fill="%23fbbf24"/><rect x="4" y="7" width="2" height="2" fill="%231e293b"/><rect x="10" y="7" width="2" height="2" fill="%231e293b"/><rect x="5" y="7" width="1" height="1" fill="%23ffffff"/><rect x="11" y="7" width="1" height="1" fill="%23ffffff"/><rect x="7" y="9" width="2" height="1" fill="%23f43f5e"/><rect x="6" y="10" width="4" height="1" fill="%23f43f5e"/><rect x="1" y="8" width="2" height="1" fill="%23e2e8f0"/><rect x="1" y="10" width="2" height="1" fill="%23e2e8f0"/><rect x="13" y="8" width="2" height="1" fill="%23e2e8f0"/><rect x="13" y="10" width="2" height="1" fill="%23e2e8f0"/><rect x="5" y="12" width="6" height="2" fill="%23f59e0b"/></svg>`;
   }
 
   // Get user avatar ensuring pixel-art styling and permanent persistence
@@ -1329,8 +1332,10 @@ class AppController {
     if (currentAvatar && !currentAvatar.includes('bottts')) {
       return currentAvatar;
     }
-    const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || 'wiz_creator';
-    return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(userId)}`;
+    if (window.WIZ_PIXEL_AVATARS && window.WIZ_PIXEL_AVATARS[0]) {
+      return window.WIZ_PIXEL_AVATARS[0].svg;
+    }
+    return `https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat`;
   }
 
   // Seamlessly open settings view with specified category tab (e.g. 'profile')
@@ -1470,19 +1475,26 @@ class AppController {
       }
     });
 
-    // Random Avatar Generator (Pixel-Art collection)
+    // Random Avatar Generator (Cute Pixel-Art: Cat, Dog, Ice Cream, etc.)
     avatarRandomBtn?.addEventListener('click', () => {
-      const seed = 'pixel_' + Math.random().toString(36).substring(2, 8);
-      const randomUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
+      let chosenUrl;
+      if (window.WIZ_PIXEL_AVATARS && window.WIZ_PIXEL_AVATARS.length > 0) {
+        const pick = window.WIZ_PIXEL_AVATARS[Math.floor(Math.random() * window.WIZ_PIXEL_AVATARS.length)];
+        chosenUrl = pick.svg;
+      } else {
+        const cuteSeeds = ['pixel_cat', 'pixel_dog', 'pixel_icecream', 'shiba_inu', 'calico_kitty', 'sweet_icepop', 'cute_panda', 'sweet_strawberry'];
+        const seed = cuteSeeds[Math.floor(Math.random() * cuteSeeds.length)];
+        chosenUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
+      }
       if (avatarImg) {
-        avatarImg.src = randomUrl;
-        avatarImg.setAttribute('data-avatar-url', randomUrl);
+        avatarImg.src = chosenUrl;
+        avatarImg.setAttribute('data-avatar-url', chosenUrl);
         avatarImg.onerror = () => {
           avatarImg.src = this.getFallbackPixelAvatar();
         };
       }
-      if (avatarUrlInput) avatarUrlInput.value = randomUrl;
-      if (window.showToast) window.showToast('ドット絵アバターを生成しました。「保存」を押して確定してください。', 'info');
+      if (avatarUrlInput) avatarUrlInput.value = chosenUrl;
+      if (window.showToast) window.showToast('かわいいドット絵アバター（猫・犬・アイス等）をセットしました。「保存」を押して確定してください。', 'info');
     });
 
     // Save Profile Button
@@ -1504,11 +1516,14 @@ class AppController {
         window.supabaseAuth.currentUser.username = updatedName;
         window.supabaseAuth.currentUser.bio = updatedBio;
         window.supabaseAuth.currentUser.avatar = updatedAvatar;
+        window.supabaseAuth.currentUser.isProfileConfigured = true;
         if (!window.supabaseAuth.currentUser.user_metadata) window.supabaseAuth.currentUser.user_metadata = {};
         window.supabaseAuth.currentUser.user_metadata.full_name = updatedName;
         window.supabaseAuth.currentUser.user_metadata.bio = updatedBio;
         window.supabaseAuth.currentUser.user_metadata.avatar_url = updatedAvatar;
-        window.supabaseAuth.saveLocalUsers();
+        window.supabaseAuth.updateUserInStore(window.supabaseAuth.currentUser);
+        localStorage.setItem('wiz_active_user', JSON.stringify(window.supabaseAuth.currentUser));
+        localStorage.setItem('wiz_custom_username', updatedName);
       }
 
       if (window.showToast) window.showToast('プロフィールを保存しました！', 'success');
@@ -1526,7 +1541,8 @@ class AppController {
       }
       if (window.supabaseAuth && window.supabaseAuth.currentUser) {
         window.supabaseAuth.currentUser.email = newEmail;
-        window.supabaseAuth.saveLocalUsers();
+        window.supabaseAuth.updateUserInStore(window.supabaseAuth.currentUser);
+        localStorage.setItem('wiz_active_user', JSON.stringify(window.supabaseAuth.currentUser));
         if (window.showToast) window.showToast('メールアドレスを更新しました', 'success');
       }
     });

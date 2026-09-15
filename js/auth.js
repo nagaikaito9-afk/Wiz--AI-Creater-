@@ -1,15 +1,19 @@
-﻿/**
+/**
  * Wiz AI Game Creator - Auth0 Authentication & Settings Manager
- * 
- * Fully manages:
- * - Auth0 SPA SDK Login / Sign Up / Redirect Handling / Logout
- * - Initial Creator Profile Setup Modal (Username, User ID @..., Avatar selection)
- * - Settings Modal Navigation Tabs (General, Notifications, Security, Profile)
- * - Profile Editing (Username, User ID, Bio, Avatar selection)
- * - Security Actions (2FA, Touch ID, Password & Email change, Danger Account Deletion)
- * - Notifications Sync
- * - Backward Compatibility for Studio Workspace, Marketplace, and Friends Manager
  */
+
+const WIZ_PIXEL_AVATARS = [
+  { id: 'cat', name: 'ねこ (Cat)', icon: '🐱', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='3' y='2' width='3' height='3' fill='%23f59e0b'/><rect x='10' y='2' width='3' height='3' fill='%23f59e0b'/><rect x='4' y='3' width='1' height='1' fill='%23f472b6'/><rect x='11' y='3' width='1' height='1' fill='%23f472b6'/><rect x='3' y='5' width='10' height='7' fill='%23fbbf24'/><rect x='2' y='6' width='12' height='5' fill='%23fbbf24'/><rect x='4' y='7' width='2' height='2' fill='%231e293b'/><rect x='10' y='7' width='2' height='2' fill='%231e293b'/><rect x='5' y='7' width='1' height='1' fill='%23ffffff'/><rect x='11' y='7' width='1' height='1' fill='%23ffffff'/><rect x='7' y='9' width='2' height='1' fill='%23f43f5e'/><rect x='6' y='10' width='4' height='1' fill='%23f43f5e'/><rect x='1' y='8' width='2' height='1' fill='%23e2e8f0'/><rect x='1' y='10' width='2' height='1' fill='%23e2e8f0'/><rect x='13' y='8' width='2' height='1' fill='%23e2e8f0'/><rect x='13' y='10' width='2' height='1' fill='%23e2e8f0'/><rect x='5' y='12' width='6' height='2' fill='%23f59e0b'/></svg>` },
+  { id: 'dog', name: 'いぬ (Dog)', icon: '🐶', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='2' y='4' width='3' height='4' fill='%2378350f'/><rect x='11' y='4' width='3' height='4' fill='%2378350f'/><rect x='4' y='3' width='8' height='8' fill='%23d97706'/><rect x='3' y='5' width='10' height='6' fill='%23d97706'/><rect x='4' y='6' width='2' height='2' fill='%230f172a'/><rect x='10' y='6' width='2' height='2' fill='%230f172a'/><rect x='5' y='6' width='1' height='1' fill='%23ffffff'/><rect x='11' y='6' width='1' height='1' fill='%23ffffff'/><rect x='6' y='8' width='4' height='3' fill='%23fef3c7'/><rect x='7' y='8' width='2' height='1' fill='%230f172a'/><rect x='7' y='10' width='2' height='2' fill='%23f43f5e'/><rect x='5' y='12' width='6' height='2' fill='%23b45309'/></svg>` },
+  { id: 'icecream', name: 'アイス (Ice Cream)', icon: '🍦', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='7' y='1' width='2' height='2' fill='%23dc2626'/><rect x='5' y='3' width='6' height='4' fill='%23f472b6'/><rect x='4' y='4' width='8' height='3' fill='%23f472b6'/><rect x='6' y='4' width='1' height='1' fill='%2338bdf8'/><rect x='9' y='5' width='1' height='1' fill='%23facc15'/><rect x='4' y='7' width='8' height='3' fill='%2338bdf8'/><rect x='3' y='8' width='10' height='2' fill='%2338bdf8'/><rect x='5' y='8' width='1' height='1' fill='%23ec4899'/><rect x='8' y='7' width='1' height='1' fill='%23facc15'/><rect x='5' y='10' width='6' height='2' fill='%23d97706'/><rect x='6' y='12' width='4' height='2' fill='%23b45309'/><rect x='7' y='14' width='2' height='1' fill='%2392400e'/><rect x='6' y='10' width='1' height='1' fill='%23fcd34d'/><rect x='8' y='11' width='1' height='1' fill='%23fcd34d'/><rect x='7' y='13' width='1' height='1' fill='%23fcd34d'/></svg>` },
+  { id: 'shiba', name: '柴犬 (Shiba)', icon: '🐕', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='3' y='2' width='3' height='3' fill='%23b45309'/><rect x='10' y='2' width='3' height='3' fill='%23b45309'/><rect x='4' y='4' width='8' height='8' fill='%23f59e0b'/><rect x='3' y='5' width='10' height='6' fill='%23f59e0b'/><rect x='4' y='5' width='1' height='1' fill='%23ffffff'/><rect x='11' y='5' width='1' height='1' fill='%23ffffff'/><rect x='5' y='6' width='2' height='2' fill='%23111827'/><rect x='9' y='6' width='2' height='2' fill='%23111827'/><rect x='3' y='7' width='2' height='4' fill='%23fffbeb'/><rect x='11' y='7' width='2' height='4' fill='%23fffbeb'/><rect x='5' y='8' width='6' height='4' fill='%23fffbeb'/><rect x='7' y='8' width='2' height='1' fill='%23111827'/><rect x='7' y='10' width='2' height='2' fill='%23f43f5e'/></svg>` },
+  { id: 'black_cat', name: '黒猫 (Black Cat)', icon: '🐈‍⬛', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='3' y='2' width='3' height='3' fill='%23111827'/><rect x='10' y='2' width='3' height='3' fill='%23111827'/><rect x='4' y='3' width='1' height='1' fill='%23ec4899'/><rect x='11' y='3' width='1' height='1' fill='%23ec4899'/><rect x='3' y='5' width='10' height='7' fill='%231f2937'/><rect x='2' y='6' width='12' height='5' fill='%231f2937'/><rect x='4' y='7' width='2' height='2' fill='%2310b981'/><rect x='10' y='7' width='2' height='2' fill='%2310b981'/><rect x='5' y='7' width='1' height='1' fill='%23ffffff'/><rect x='11' y='7' width='1' height='1' fill='%23ffffff'/><rect x='7' y='9' width='2' height='1' fill='%23f472b6'/><rect x='1' y='8' width='2' height='1' fill='%239ca3af'/><rect x='13' y='8' width='2' height='1' fill='%239ca3af'/></svg>` },
+  { id: 'icepop', name: 'アイスキャンディ (Ice Pop)', icon: '🍧', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='5' y='1' width='6' height='1' fill='%2338bdf8'/><rect x='4' y='2' width='8' height='4' fill='%2338bdf8'/><rect x='4' y='6' width='8' height='4' fill='%23f472b6'/><rect x='5' y='3' width='1' height='5' fill='%23ffffff' opacity='0.6'/><rect x='7' y='10' width='2' height='5' fill='%23d97706'/></svg>` },
+  { id: 'panda', name: 'パンダ (Panda)', icon: '🐼', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='2' y='2' width='4' height='3' fill='%23111827'/><rect x='10' y='2' width='4' height='3' fill='%23111827'/><rect x='4' y='4' width='8' height='8' fill='%23f8fafc'/><rect x='3' y='5' width='10' height='6' fill='%23f8fafc'/><rect x='4' y='6' width='2' height='3' fill='%23111827'/><rect x='10' y='6' width='2' height='3' fill='%23111827'/><rect x='5' y='7' width='1' height='1' fill='%23ffffff'/><rect x='11' y='7' width='1' height='1' fill='%23ffffff'/><rect x='7' y='9' width='2' height='1' fill='%23111827'/><rect x='3' y='9' width='2' height='1' fill='%23f472b6'/><rect x='11' y='9' width='2' height='1' fill='%23f472b6'/></svg>` },
+  { id: 'strawberry', name: 'いちご (Berry)', icon: '🍓', svg: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges' width='128' height='128'><rect width='16' height='16' fill='%231e1e2e'/><rect x='7' y='1' width='2' height='2' fill='%2315803d'/><rect x='5' y='2' width='6' height='1' fill='%2322c55e'/><rect x='4' y='3' width='8' height='2' fill='%2322c55e'/><rect x='3' y='5' width='10' height='5' fill='%23ef4444'/><rect x='4' y='10' width='8' height='3' fill='%23ef4444'/><rect x='6' y='13' width='4' height='2' fill='%23ef4444'/><rect x='5' y='6' width='1' height='1' fill='%23fef08a'/><rect x='9' y='6' width='1' height='1' fill='%23fef08a'/><rect x='7' y='8' width='1' height='1' fill='%23fef08a'/><rect x='5' y='10' width='1' height='1' fill='%23fef08a'/><rect x='9' y='10' width='1' height='1' fill='%23fef08a'/></svg>` }
+];
+
+window.WIZ_PIXEL_AVATARS = WIZ_PIXEL_AVATARS;
 
 class Auth0AuthManager {
   constructor() {
@@ -17,7 +21,7 @@ class Auth0AuthManager {
     this.currentUser = null;
     this.isOnline = navigator.onLine;
 
-    // Default demo accounts for testing
+    // Safety: ensure default accounts exist without wiping user customizations
     this.ensureSeedAccounts();
 
     // DOM Ready hook
@@ -29,20 +33,7 @@ class Auth0AuthManager {
   }
 
   ensureSeedAccounts() {
-    // Remove any demo mock accounts from local storage
-    try {
-      const users = this.getLocalUsers().filter(u => u.id !== 'usr_mock_001' && u.userId !== 'wiz_creator');
-      localStorage.setItem('wiz_local_users', JSON.stringify(users));
-      if (localStorage.getItem('wiz_mock_user')) {
-        const mock = JSON.parse(localStorage.getItem('wiz_mock_user') || '{}');
-        if (mock.id === 'usr_mock_001' || mock.userId === 'wiz_creator') {
-          // Reset mock user to clean empty user or null
-          localStorage.removeItem('wiz_mock_user');
-        }
-      }
-    } catch (e) {
-      console.warn('Seed cleanup error:', e);
-    }
+    // Keep user's configured accounts safe and never wipe on page refresh!
   }
 
   getLocalUsers() {
@@ -55,7 +46,8 @@ class Auth0AuthManager {
 
   saveLocalUsers(users) {
     try {
-      localStorage.setItem('wiz_local_users', JSON.stringify(users));
+      const toSave = Array.isArray(users) ? users : this.getLocalUsers();
+      localStorage.setItem('wiz_local_users', JSON.stringify(toSave));
     } catch (e) {
       console.error('Error saving local users:', e);
     }
@@ -64,7 +56,7 @@ class Auth0AuthManager {
   updateUserInStore(user) {
     if (!user) return;
     const users = this.getLocalUsers();
-    const idx = users.findIndex(u => u.id === user.id || u.userId === user.userId || (u.email && u.email === user.email));
+    const idx = users.findIndex(u => (u.id && user.id && u.id === user.id) || (u.userId && user.userId && u.userId.toLowerCase() === user.userId.toLowerCase()) || (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase()));
     if (idx !== -1) {
       users[idx] = { ...users[idx], ...user };
     } else {
@@ -72,11 +64,16 @@ class Auth0AuthManager {
     }
     this.saveLocalUsers(users);
 
+    // Completely save into all persistent storage keys
+    localStorage.setItem('wiz_active_user', JSON.stringify(user));
     if (user.auth0_profile || localStorage.getItem('wiz_auth0_user')) {
       localStorage.setItem('wiz_auth0_user', JSON.stringify(user));
     } else {
       localStorage.setItem('wiz_mock_user', JSON.stringify(user));
     }
+    if (user.avatar) localStorage.setItem('wiz_custom_avatar', user.avatar);
+    if (user.username) localStorage.setItem('wiz_custom_username', user.username);
+    if (user.userId) localStorage.setItem('wiz_custom_userid', user.userId);
   }
 
   async init() {
@@ -218,50 +215,93 @@ class Auth0AuthManager {
   }
 
   checkLocalSessions() {
-    // 1. Check Auth0 saved user
-    const savedAuth0 = localStorage.getItem('wiz_auth0_user');
-    if (savedAuth0) {
+    // 1. Check Active user session
+    const savedActive = localStorage.getItem('wiz_active_user');
+    if (savedActive) {
       try {
-        this.currentUser = JSON.parse(savedAuth0);
-        this.completeLoginProcess(this.currentUser);
-        return;
+        const u = JSON.parse(savedActive);
+        if (u && (u.userId || u.username)) {
+          this.currentUser = u;
+          this.completeLoginProcess(this.currentUser);
+          return true;
+        }
       } catch (e) {}
     }
 
-    // 2. Check Mock user
+    // 2. Check Auth0 saved user
+    const savedAuth0 = localStorage.getItem('wiz_auth0_user');
+    if (savedAuth0) {
+      try {
+        const u = JSON.parse(savedAuth0);
+        if (u && (u.userId || u.username)) {
+          this.currentUser = u;
+          this.completeLoginProcess(this.currentUser);
+          return true;
+        }
+      } catch (e) {}
+    }
+
+    // 3. Check Mock user
     const savedMock = localStorage.getItem('wiz_mock_user');
     if (savedMock) {
       try {
-        this.currentUser = JSON.parse(savedMock);
-        this.completeLoginProcess(this.currentUser);
-        return;
+        const u = JSON.parse(savedMock);
+        if (u && (u.userId || u.username)) {
+          this.currentUser = u;
+          this.completeLoginProcess(this.currentUser);
+          return true;
+        }
       } catch (e) {}
+    }
+
+    // 4. Check Local users
+    const localUsers = this.getLocalUsers();
+    if (localUsers && localUsers.length > 0) {
+      const configured = localUsers.find(u => u.isProfileConfigured) || localUsers[0];
+      if (configured && (configured.userId || configured.username)) {
+        this.currentUser = configured;
+        this.completeLoginProcess(this.currentUser);
+        return true;
+      }
     }
 
     this.updateGateVisibility();
     this.updateUserUI(null);
+    return false;
   }
 
   processAuth0UserLogin(auth0User) {
     if (!auth0User) return;
 
-    // Check if we already have this user customized in local store
+    // Check if we already have this user customized in active, auth0, or local store
+    const savedActive = localStorage.getItem('wiz_active_user') ? JSON.parse(localStorage.getItem('wiz_active_user')) : null;
+    const savedAuth0 = localStorage.getItem('wiz_auth0_user') ? JSON.parse(localStorage.getItem('wiz_auth0_user')) : null;
     const localUsers = this.getLocalUsers();
-    const existing = localUsers.find(u => u.id === auth0User.sub || (u.email && u.email === auth0User.email));
+    const existing = (savedActive && savedActive.isProfileConfigured ? savedActive : null) ||
+                     (savedAuth0 && savedAuth0.isProfileConfigured ? savedAuth0 : null) ||
+                     localUsers.find(u => (u.id && u.id === auth0User.sub) || (u.email && u.email === auth0User.email)) ||
+                     savedAuth0;
 
     const email = auth0User.email || '';
-    const defaultName = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : 'クリエイター');
-    const rawId = auth0User.nickname || (email ? email.split('@')[0] : 'creator');
-    const defaultUserId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20) || 'creator_' + Math.floor(Math.random() * 1000);
-    const defaultAvatar = auth0User.picture || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${defaultUserId}`;
+    const defaultName = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : 'ねこクリエイター');
+    const rawId = auth0User.nickname || (email ? email.split('@')[0] : 'cat_creator');
+    const defaultUserId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20) || 'cat_' + Math.floor(Math.random() * 1000);
+    const defaultAvatar = WIZ_PIXEL_AVATARS[0].svg;
 
-    const isFirstTime = !existing || !existing.isProfileConfigured;
+    // CRITICAL: If an account already exists or was configured, KEEP IT PERMANENTLY! Never ask for ID again on reload!
+    if (existing && existing.isProfileConfigured) {
+      this.currentUser = {
+        ...existing,
+        email: email || existing.email,
+        auth0_profile: auth0User,
+        isProfileConfigured: true
+      };
+      this.updateUserInStore(this.currentUser);
+      this.completeLoginProcess(this.currentUser);
+      return;
+    }
 
-    this.currentUser = existing ? {
-      ...existing,
-      email: email || existing.email,
-      auth0_profile: auth0User
-    } : {
+    this.currentUser = {
       id: auth0User.sub,
       email: email,
       username: defaultName,
@@ -277,14 +317,7 @@ class Auth0AuthManager {
     };
 
     this.updateUserInStore(this.currentUser);
-    localStorage.removeItem('wiz_mock_user');
-
-    if (isFirstTime) {
-      // Show Initial Creator Setup Modal so user can choose custom name & ID
-      this.openInitialProfileModal(this.currentUser);
-    } else {
-      this.completeLoginProcess(this.currentUser);
-    }
+    this.openInitialProfileModal(this.currentUser);
   }
 
   completeLoginProcess(user) {
@@ -330,30 +363,33 @@ class Auth0AuthManager {
   }
 
   loginAsMockUser() {
+    const savedActive = localStorage.getItem('wiz_active_user') ? JSON.parse(localStorage.getItem('wiz_active_user')) : null;
+    const savedMock = localStorage.getItem('wiz_mock_user') ? JSON.parse(localStorage.getItem('wiz_mock_user')) : null;
     const localUsers = this.getLocalUsers();
-    let user = localUsers.find(u => u.userId === 'wiz_creator');
-    if (!user) {
-      user = {
+    const existing = savedActive || savedMock || localUsers.find(u => u.isProfileConfigured) || localUsers[0];
+
+    if (existing) {
+      this.currentUser = existing;
+    } else {
+      this.currentUser = {
         id: 'usr_mock_001',
-        email: 'creator@wiz-game.dev',
-        username: 'Wiz Creator',
-        userId: 'wiz_creator',
-        avatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=wiz_creator',
+        email: 'cat_creator@wiz-game.dev',
+        username: 'ねこクリエイター',
+        userId: 'cat_creator',
+        avatar: WIZ_PIXEL_AVATARS[0].svg,
         isProfileConfigured: true,
         user_metadata: {
-          full_name: 'Wiz Creator',
-          user_id: 'wiz_creator',
-          avatar_url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=wiz_creator'
+          full_name: 'ねこクリエイター',
+          user_id: 'cat_creator',
+          avatar_url: WIZ_PIXEL_AVATARS[0].svg
         }
       };
     }
 
-    this.currentUser = user;
-    localStorage.setItem('wiz_mock_user', JSON.stringify(this.currentUser));
-    localStorage.removeItem('wiz_auth0_user');
+    this.updateUserInStore(this.currentUser);
 
     if (window.showToast) {
-      window.showToast('テストアカウントでログインしました', 'success');
+      window.showToast(`「${this.currentUser.username}」としてログインしました！🐾`, 'success');
     }
 
     this.completeLoginProcess(this.currentUser);
@@ -397,7 +433,7 @@ class Auth0AuthManager {
       }
 
       const selectedAvatar = document.querySelector('#init-avatar-select-grid .avatar-option.selected');
-      const avatarUrl = selectedAvatar?.getAttribute('data-avatar-url') || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${userId}`;
+      const avatarUrl = selectedAvatar?.getAttribute('data-avatar-url') || WIZ_PIXEL_AVATARS[0].svg;
 
       this.currentUser.username = username;
       this.currentUser.userId = userId;
@@ -410,6 +446,10 @@ class Auth0AuthManager {
       };
 
       this.updateUserInStore(this.currentUser);
+      localStorage.setItem('wiz_active_user', JSON.stringify(this.currentUser));
+      localStorage.setItem('wiz_custom_avatar', avatarUrl);
+      localStorage.setItem('wiz_custom_username', username);
+      localStorage.setItem('wiz_custom_userid', userId);
 
       const initModal = document.getElementById('initial-profile-modal');
       if (initModal) initModal.style.display = 'none';
@@ -428,17 +468,16 @@ class Auth0AuthManager {
 
     if (!initModal) return;
 
-    if (nameInput) nameInput.value = user.username || '';
-    if (idInput) idInput.value = user.userId || '';
+    if (nameInput) nameInput.value = user.username || 'ねこクリエイター';
+    if (idInput) idInput.value = user.userId || 'cat_creator';
 
     if (avatarGrid) {
-      const seeds = [user.userId || 'gamer', 'wizard', 'cyber_hero', 'sound_mage', 'pixel_art', 'neon_cat', 'retro_bot'];
-      avatarGrid.innerHTML = seeds.map((seed, idx) => {
-        const url = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
+      avatarGrid.innerHTML = WIZ_PIXEL_AVATARS.map((preset, idx) => {
         const isSelected = idx === 0;
         return `
-          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
-            <img src="${url}" alt="${seed}">
+          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${preset.svg}" title="${preset.name}">
+            <img src="${preset.svg}" alt="${preset.name}" style="image-rendering: pixelated; width: 44px; height: 44px; border-radius: 8px;">
+            <span style="font-size: 0.72rem; display: block; margin-top: 4px; color: var(--text-secondary); text-align: center;">${preset.name.split(' ')[0]}</span>
           </div>
         `;
       }).join('');
@@ -657,16 +696,15 @@ class Auth0AuthManager {
 
     // Render Avatar selection
     if (avatarGrid) {
-      const currentId = this.currentUser.userId || 'user';
-      const seeds = [currentId, 'wiz_creator', 'pixel_hero', 'sound_mage', 'retro_gamer', 'neon_cat', 'bot_99', 'star_pilot'];
       const currentAvatar = this.currentUser.avatar || this.currentUser.user_metadata?.avatar_url || '';
 
-      avatarGrid.innerHTML = seeds.map(seed => {
-        const url = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
-        const isSelected = (currentAvatar === url) || (!currentAvatar && seed === currentId);
+      avatarGrid.innerHTML = WIZ_PIXEL_AVATARS.map((preset, idx) => {
+        const url = preset.svg;
+        const isSelected = (currentAvatar === url) || (!currentAvatar && idx === 0);
         return `
-          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}">
-            <img src="${url}" alt="${seed}">
+          <div class="avatar-option ${isSelected ? 'selected' : ''}" data-avatar-url="${url}" title="${preset.name}">
+            <img src="${url}" alt="${preset.name}" style="image-rendering: pixelated; width: 44px; height: 44px; border-radius: 8px;">
+            <span style="font-size: 0.72rem; display: block; margin-top: 4px; color: var(--text-secondary); text-align: center;">${preset.name.split(' ')[0]}</span>
           </div>
         `;
       }).join('');
@@ -716,13 +754,19 @@ class Auth0AuthManager {
       this.currentUser.avatar = selectedAvatar.getAttribute('data-avatar-url');
     }
 
+    this.currentUser.isProfileConfigured = true;
     this.currentUser.user_metadata = {
       full_name: newName,
       user_id: newUserId,
-      avatar_url: this.currentUser.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${newUserId}`
+      avatar_url: this.currentUser.avatar || WIZ_PIXEL_AVATARS[0].svg
     };
 
     this.updateUserInStore(this.currentUser);
+    localStorage.setItem('wiz_active_user', JSON.stringify(this.currentUser));
+    localStorage.setItem('wiz_custom_avatar', this.currentUser.avatar);
+    localStorage.setItem('wiz_custom_username', newName);
+    localStorage.setItem('wiz_custom_userid', newUserId);
+
     this.updateUserUI(this.currentUser);
 
     if (window.showToast) window.showToast('🎉 プロフィール設定を保存しました！', 'success');
