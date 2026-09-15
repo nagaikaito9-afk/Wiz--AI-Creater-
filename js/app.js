@@ -1123,16 +1123,6 @@ class AppController {
     document.getElementById('home-see-all-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
     document.getElementById('home-see-all-friends-btn')?.addEventListener('click', () => this.switchPageView('friends'));
 
-    // Header Run-Program Button (Quick Studio & Execute)
-    document.getElementById('header-run-program-btn')?.addEventListener('click', () => {
-      const activeRoom = window.projectManager?.getActiveRoom();
-      if (activeRoom) {
-        window.projectManager.openInStudio(activeRoom.id);
-      } else {
-        this.switchPageView('studio');
-      }
-    });
-
     // Top-Right User Account Dropdown Toggle & Actions (Profile, Settings, Logout, etc.)
     const userPill = document.getElementById('header-user-profile-pill');
     const userDropdown = document.getElementById('header-user-dropdown-menu');
@@ -2361,13 +2351,28 @@ class AppController {
       return;
     }
 
-    recentProjectsContainer.innerHTML = rooms.map(room => {
+    // 最近のプロジェクトは最大5個まで表示
+    const maxHomeProjects = 5;
+    const displayRooms = rooms.slice(0, maxHomeProjects);
+    let projectsHtml = displayRooms.map(room => {
       return window.projectManager.buildPdfProjectCardHtml(room, false);
     }).join('');
+
+    if (rooms.length > maxHomeProjects) {
+      projectsHtml += `
+        <div style="text-align: center; padding: 10px 0 2px 0;">
+          <button type="button" class="btn btn-ghost" style="font-size: 0.85rem; color: #58a6ff; font-weight: 600; width: 100%; border: 1px dashed var(--border-subtle); border-radius: 8px; padding: 8px;" onclick="window.app.switchPageView('projects')">
+            すべてのプロジェクトを見る (全 ${rooms.length} 件中 残り ${rooms.length - maxHomeProjects} 件) <i class="fa-solid fa-arrow-right" style="margin-left: 6px;"></i>
+          </button>
+        </div>
+      `;
+    }
+    recentProjectsContainer.innerHTML = projectsHtml;
 
     // 3. Recent Friends in Home
     const recentFriendsContainer = document.getElementById('home-recent-friends-container');
     if (recentFriendsContainer && window.friendsManager) {
+      const friends = window.friendsManager.friends || [];
       if (friends.length === 0) {
         recentFriendsContainer.innerHTML = `
           <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 8px;">
