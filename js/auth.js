@@ -129,13 +129,6 @@ class Auth0AuthManager {
       if (hintCard) hintCard.style.display = 'block';
       const webDownloadCard = document.getElementById('web-download-gate-card');
       if (webDownloadCard) webDownloadCard.style.display = 'none';
-
-      document.getElementById('copy-callback-url-btn')?.addEventListener('click', () => {
-        const url = document.getElementById('callback-url-text')?.textContent.trim() || 'http://127.0.0.1:42813/callback';
-        navigator.clipboard.writeText(url).then(() => {
-          if (window.showToast) window.showToast('📋 コールバックURLをコピーしました！Auth0設定に貼り付けてください', 'success');
-        });
-      });
     } else {
       const gateDownloadBtn = document.getElementById('gate-download-app-btn');
       gateDownloadBtn?.addEventListener('click', () => {
@@ -389,11 +382,11 @@ class Auth0AuthManager {
       return;
     }
 
-    // 1. Electron Desktop Native Flow (Authorization Code + PKCE + Loopback Server on 127.0.0.1:42813)
+    // 1. Electron Desktop Native Flow (In-App BrowserWindow PKCE Modal using Web Callback)
     if (window.electronAPI?.isElectron && typeof window.electronAPI.loginWithAuth0Native === 'function') {
       try {
         if (window.showToast) {
-          window.showToast('ブラウザでAuth0ログイン画面を開いています...', 'info');
+          window.showToast('Auth0 ログイン画面を開いています...', 'info');
         }
         const res = await window.electronAPI.loginWithAuth0Native({
           domain: window.AUTH0_CONFIG.domain,
@@ -408,9 +401,6 @@ class Auth0AuthManager {
           this.processAuth0UserLogin(auth0Profile);
           return;
         } else if (res?.error) {
-          if (res.error.includes('redirect_uri') || res.error.includes('Callback URL')) {
-            alert('【Auth0 設定のお願い】\nデスクトップアプリからAuth0でログインするには、Auth0ダッシュボードの「Allowed Callback URLs」に以下を追加してください：\n\nhttp://127.0.0.1:42813/callback\n\n※ すぐにゲーム制作を始める場合は、下の「テスト用アカウントでログイン」をご利用いただけます。');
-          }
           throw new Error(res.error);
         }
       } catch (err) {

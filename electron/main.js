@@ -18,8 +18,6 @@ const crypto = require('crypto');
 const VERCEL_BACKEND_URL = 'https://wiz-ai-creater.vercel.app';
 
 let mainWindow = null;
-let activeAuthServer = null;
-let activeAuthTimeout = null;
 
 function base64URLEncode(buffer) {
   return buffer.toString('base64')
@@ -168,180 +166,169 @@ ipcMain.handle('dialog:open', async (event, options) => {
   return await dialog.showOpenDialog(mainWindow, options || {});
 });
 
-// IPC: Native Auth0 OAuth 2.0 PKCE Loopback Flow
+// IPC: Native Auth0 OAuth 2.0 In-App Modal Flow (Zero dashboard config needed, uses registered Web callback URL)
 ipcMain.handle('auth:login-auth0', async (event, { domain, clientId }) => {
   if (!domain || !clientId) {
     return { error: 'Auth0 Domain と Client ID が指定されていません。' };
   }
 
-  // Cleanup existing auth server if any
-  if (activeAuthServer) {
-    try { activeAuthServer.close(); } catch (e) {}
-    activeAuthServer = null;
-  }
-  if (activeAuthTimeout) {
-    clearTimeout(activeAuthTimeout);
-    activeAuthTimeout = null;
-  }
+  // Use the registered Vercel Callback URL already allowed in Auth0 dashboard
+  // This completely eliminates "Callback URL mismatch" without requiring ANY changes to Auth0 dashboard!
+  const redirectUri = `${VERCEL_BACKEND_URL}/`;
 
   return new Promise((resolve) => {
-    const port = 42813;
-    const redirectUri = `http://127.0.0.1:${port}/callback`;
-
-    // Generate PKCE parameters
+    // Generate PKCE parameters (RFC 7636)
     const codeVerifier = base64URLEncode(crypto.randomBytes(32));
     const codeChallenge = base64URLEncode(sha256(Buffer.from(codeVerifier)));
     const state = base64URLEncode(crypto.randomBytes(16));
 
-    const server = http.createServer(async (req, res) => {
-      const reqUrl = new URL(req.url, `http://127.0.0.1:${port}`);
-      if (reqUrl.pathname !== '/callback') {
-        res.writeHead(404);
-        res.end('Not Found');
-        return;
+    let isResolved = false;
+    let authWindow = new BrowserWindow({
+      width: 540,
+      height: 720,
+      parent: mainWindow || undefined,
+      modal: Boolean(mainWindow),
+      title: 'Wiz AI Creater - Auth0 ログイン / 新規登録',
+      autoHideMenuBar: true,
+      backgroundColor: '#0d1117',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true
       }
+    });
 
-      const returnedCode = reqUrl.searchParams.get('code');
-      const returnedState = reqUrl.searchParams.get('state');
-      const returnedError = reqUrl.searchParams.get('error');
-      const returnedErrorDesc = reqUrl.searchParams.get('error_description');
-
-      if (returnedError) {
-        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`
-          <div style="font-family: sans-serif; text-align: center; padding: 40px; background: #0d1117; color: #f85149;">
-            <h2>認証エラー</h2>
-            <p>${returnedErrorDesc || returnedError}</p>
-            <p style="color:#8b949e;">このタブを閉じてアプリに戻ってください。</p>
-          </div>
-        `);
-        cleanup();
-        resolve({ error: returnedErrorDesc || returnedError });
-        return;
+    const safeResolve = (data) => {
+      if (isResolved) return;
+      isResolved = true;
+      if (authWindow && !authWindow.isDestroyed()) {
+        try { authWindow.destroy(); } catch (e) {}
       }
-
-      if (returnedState !== state || !returnedCode) {
-        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`
-          <div style="font-family: sans-serif; text-align: center; padding: 40px; background: #0d1117; color: #f85149;">
-            <h2>state検証エラー</h2>
-            <p>無効な認証レスポンスです。</p>
-          </div>
-        `);
-        cleanup();
-        resolve({ error: 'OAuth state 不一致または認証コードが見つかりません。' });
-        return;
+      authWindow = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
       }
+      resolve(data);
+    };
 
+    const handleCallbackUrl = async (rawUrl) => {
+      if (!rawUrl) return false;
+      let urlObj;
       try {
-        // Exchange authorization code for tokens
-        const tokenRes = await fetch(`https://${domain}/oauth/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            client_id: clientId,
-            code_verifier: codeVerifier,
-            code: returnedCode,
-            redirect_uri: redirectUri
-          })
-        });
+        urlObj = new URL(rawUrl);
+      } catch (e) {
+        return false;
+      }
 
-        if (!tokenRes.ok) {
-          const errData = await tokenRes.json().catch(() => ({}));
-          throw new Error(errData.error_description || errData.error || `Token Exchange Failed: ${tokenRes.status}`);
+      // Check if redirected to our callback domain or contains auth code/error
+      const isCallbackHost = urlObj.origin === VERCEL_BACKEND_URL || urlObj.hostname.includes('wiz-ai-creater.vercel.app');
+      const hasCodeOrError = urlObj.searchParams.has('code') || urlObj.searchParams.has('error');
+
+      if (isCallbackHost && hasCodeOrError) {
+        const error = urlObj.searchParams.get('error');
+        const errorDesc = urlObj.searchParams.get('error_description');
+        const code = urlObj.searchParams.get('code');
+        const returnedState = urlObj.searchParams.get('state');
+
+        if (error) {
+          safeResolve({ error: errorDesc || error });
+          return true;
         }
 
-        const tokens = await tokenRes.json();
+        if (returnedState !== state || !code) {
+          safeResolve({ error: 'OAuth state検証エラーまたは認証コードがありません。' });
+          return true;
+        }
 
-        // Fetch / Decode User Profile
-        let userInfo = null;
+        try {
+          // Exchange authorization code for tokens
+          const tokenRes = await fetch(`https://${domain}/oauth/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              grant_type: 'authorization_code',
+              client_id: clientId,
+              code_verifier: codeVerifier,
+              code: code,
+              redirect_uri: redirectUri
+            })
+          });
 
-        // 1. Decode ID Token (JWT) directly for instant, guaranteed profile
-        if (tokens.id_token) {
-          try {
-            const payloadBase64 = tokens.id_token.split('.')[1];
-            userInfo = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
-          } catch (e) {
-            console.warn('[Electron Main] Failed to parse id_token payload:', e);
+          if (!tokenRes.ok) {
+            const errData = await tokenRes.json().catch(() => ({}));
+            throw new Error(errData.error_description || errData.error || `Token Exchange Failed: ${tokenRes.status}`);
           }
-        }
 
-        // 2. Fallback to /userinfo endpoint if needed
-        if (!userInfo && tokens.access_token) {
-          try {
-            const userRes = await fetch(`https://${domain}/userinfo`, {
-              headers: { Authorization: `Bearer ${tokens.access_token}` }
-            });
-            if (userRes.ok) {
-              userInfo = await userRes.json();
+          const tokens = await tokenRes.json();
+
+          // Fetch / Decode User Profile
+          let userInfo = null;
+          if (tokens.id_token) {
+            try {
+              const payloadBase64 = tokens.id_token.split('.')[1];
+              userInfo = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf-8'));
+            } catch (e) {
+              console.warn('[Electron Main] Failed to parse id_token payload:', e);
             }
-          } catch (e) {
-            console.warn('[Electron Main] /userinfo fetch error:', e);
           }
+
+          if (!userInfo && tokens.access_token) {
+            try {
+              const userRes = await fetch(`https://${domain}/userinfo`, {
+                headers: { Authorization: `Bearer ${tokens.access_token}` }
+              });
+              if (userRes.ok) {
+                userInfo = await userRes.json();
+              }
+            } catch (e) {
+              console.warn('[Electron Main] /userinfo fetch error:', e);
+            }
+          }
+
+          safeResolve({ success: true, user: userInfo, tokens });
+          return true;
+        } catch (err) {
+          safeResolve({ error: `認証トークン取得エラー: ${err.message}` });
+          return true;
         }
+      }
+      return false;
+    };
 
-        // HTML Response to default browser
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`
-          <div style="font-family: sans-serif; text-align: center; padding: 50px; background: #0d1117; color: #c9d1d9;">
-            <h2 style="color: #58a6ff;">🧙 Wiz AI Creater</h2>
-            <h3 style="color: #3fb950; margin: 15px 0;">🎉 ログインに成功しました！</h3>
-            <p style="color: #8b949e; line-height: 1.6;">このブラウザタブを閉じて、Wiz AI Creater アプリへお戻りください。</p>
-          </div>
-        `);
-
-        cleanup();
-
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-        }
-
-        resolve({ success: true, user: userInfo, tokens });
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`
-          <div style="font-family: sans-serif; text-align: center; padding: 40px; background: #0d1117; color: #f85149;">
-            <h2>トークン取得エラー</h2>
-            <p>${err.message}</p>
-          </div>
-        `);
-        cleanup();
-        resolve({ error: err.message });
+    // Intercept redirect navigation before it actually loads the web page
+    authWindow.webContents.on('will-redirect', (event, navigationUrl) => {
+      if (navigationUrl.includes(VERCEL_BACKEND_URL) || navigationUrl.includes('code=')) {
+        event.preventDefault();
+        handleCallbackUrl(navigationUrl);
       }
     });
 
-    server.on('error', (err) => {
-      cleanup();
-      resolve({ error: `ローカル認証ポート (${port}) の起動に失敗しました: ${err.message}` });
+    authWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+      if (navigationUrl.includes(VERCEL_BACKEND_URL) || navigationUrl.includes('code=')) {
+        event.preventDefault();
+        handleCallbackUrl(navigationUrl);
+      }
     });
 
-    server.listen(port, '127.0.0.1', () => {
-      activeAuthServer = server;
-
-      // 3-minute timeout
-      activeAuthTimeout = setTimeout(() => {
-        cleanup();
-        resolve({ error: 'Auth0 ログインがタイムアウトしました (3分)' });
-      }, 180000);
-
-      // Construct Auth0 authorization URL
-      const authUrl = `https://${domain}/authorize?client_id=${encodeURIComponent(clientId)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20email&code_challenge=${codeChallenge}&code_challenge_method=S256&state=${state}`;
-
-      // Open in OS default browser
-      shell.openExternal(authUrl);
+    authWindow.on('closed', () => {
+      if (!isResolved) {
+        safeResolve({ error: '認証ウィンドウが閉じられました。' });
+      }
     });
 
-    function cleanup() {
-      if (server) {
-        try { server.close(); } catch (e) {}
+    // 3-minute timeout
+    setTimeout(() => {
+      if (!isResolved) {
+        safeResolve({ error: 'ログインがタイムアウトしました。' });
       }
-      activeAuthServer = null;
-      if (activeAuthTimeout) {
-        clearTimeout(activeAuthTimeout);
-        activeAuthTimeout = null;
-      }
-    }
+    }, 180000);
+
+    // Construct Auth0 authorization URL
+    const authUrl = `https://${domain}/authorize?client_id=${encodeURIComponent(clientId)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20email&code_challenge=${codeChallenge}&code_challenge_method=S256&state=${state}`;
+
+    authWindow.loadURL(authUrl).catch(err => {
+      safeResolve({ error: `Auth0 画面の読み込みに失敗しました: ${err.message}` });
+    });
   });
 });
