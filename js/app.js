@@ -1123,13 +1123,69 @@ class AppController {
     document.getElementById('home-see-all-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
     document.getElementById('home-see-all-friends-btn')?.addEventListener('click', () => this.switchPageView('friends'));
 
-    // Header Run-Program Button (Screenshot Match)
+    // Header Run-Program Button (Quick Studio & Execute)
     document.getElementById('header-run-program-btn')?.addEventListener('click', () => {
       const activeRoom = window.projectManager?.getActiveRoom();
       if (activeRoom) {
         window.projectManager.openInStudio(activeRoom.id);
       } else {
         this.switchPageView('studio');
+      }
+    });
+
+    // Top-Right User Account Dropdown Toggle & Actions (Profile, Settings, Logout, etc.)
+    const userPill = document.getElementById('header-user-profile-pill');
+    const userDropdown = document.getElementById('header-user-dropdown-menu');
+
+    userPill?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!userDropdown) return;
+      const isShowing = userDropdown.style.display === 'block';
+      userDropdown.style.display = isShowing ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (userDropdown && !e.target.closest('#header-user-menu-wrap')) {
+        userDropdown.style.display = 'none';
+      }
+    });
+
+    document.getElementById('dropdown-btn-profile')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      this.openSettingsTab('profile');
+    });
+
+    document.getElementById('dropdown-btn-settings')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      this.openSettingsTab('general');
+    });
+
+    document.getElementById('dropdown-btn-notifs')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      this.switchPageView('notifications');
+    });
+
+    document.getElementById('dropdown-btn-info')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      this.switchPageView('system-info');
+    });
+
+    document.getElementById('dropdown-btn-projects')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      this.switchPageView('projects');
+    });
+
+    document.getElementById('dropdown-btn-friends')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      this.switchPageView('friends');
+    });
+
+    document.getElementById('dropdown-btn-logout')?.addEventListener('click', () => {
+      if (userDropdown) userDropdown.style.display = 'none';
+      if (window.supabaseAuth && typeof window.supabaseAuth.signOut === 'function') {
+        window.supabaseAuth.signOut();
+      } else {
+        window.location.reload();
       }
     });
 
@@ -2244,11 +2300,15 @@ class AppController {
       if (miniProjDesc) miniProjDesc.textContent = '新規作成して開発を始めましょう';
     }
 
-    // Header Avatar & Username Sync
+    // Header Avatar & Username Sync (Pill and Dropdown)
     const headerAvatar = document.getElementById('header-nav-avatar');
     const headerName = document.getElementById('header-nav-username');
+    const dropdownName = document.getElementById('dropdown-user-name');
+    const dropdownId = document.getElementById('dropdown-user-id');
     if (headerAvatar) headerAvatar.src = avatarUrl;
     if (headerName) headerName.textContent = username;
+    if (dropdownName) dropdownName.textContent = username;
+    if (dropdownId) dropdownId.textContent = userId ? `@${userId}` : '';
 
     // Dynamic Code & Prompt Stats update on Home Card
     const codeStats = this.calculateSystemCodeStats();

@@ -105,10 +105,43 @@
         <i class="fa-solid fa-bell"></i>
         <span id="notification-badge" class="nav-badge" style="display:none;">0</span>
       </button>
-      <div id="header-user-profile-pill" class="header-user-pill" style="cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle);" onclick="window.app?.openSettingsTab('profile')" title="プロフィール設定を開く">
-        <img id="header-nav-avatar" src="https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat" alt="Avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; image-rendering: pixelated;">
-        <span id="header-nav-username" style="font-size: 0.84rem; font-weight: 600; color: var(--text-primary);">Wizユーザー</span>
-        <i class="fa-solid fa-caret-down" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+      <div class="header-user-menu-wrap" id="header-user-menu-wrap">
+        <div id="header-user-profile-pill" class="header-user-pill" style="cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); transition: all 0.2s ease;" title="アカウントメニューを開く">
+          <img id="header-nav-avatar" src="https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat" alt="Avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; image-rendering: pixelated;">
+          <span id="header-nav-username" style="font-size: 0.84rem; font-weight: 600; color: var(--text-primary);">Wizユーザー</span>
+          <i class="fa-solid fa-caret-down" style="font-size: 0.72rem; color: var(--text-muted);"></i>
+        </div>
+
+        <!-- Dropdown Menu (プロフィール・設定・ログアウトなど) -->
+        <div id="header-user-dropdown-menu" class="header-dropdown-menu" style="display: none;">
+          <div class="dropdown-header-userinfo">
+            <strong id="dropdown-user-name">Wizユーザー</strong>
+            <span id="dropdown-user-id">@cat_creator</span>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" id="dropdown-btn-profile">
+            <i class="fa-solid fa-user"></i> <span>プロフィール設定</span>
+          </button>
+          <button type="button" class="dropdown-item" id="dropdown-btn-settings">
+            <i class="fa-solid fa-sliders"></i> <span>スタジオ設定</span>
+          </button>
+          <button type="button" class="dropdown-item" id="dropdown-btn-notifs">
+            <i class="fa-solid fa-bell"></i> <span>通知センター</span>
+          </button>
+          <button type="button" class="dropdown-item" id="dropdown-btn-info">
+            <i class="fa-solid fa-circle-info"></i> <span>利用統計・詳細</span>
+          </button>
+          <button type="button" class="dropdown-item" id="dropdown-btn-projects">
+            <i class="fa-solid fa-folder-closed"></i> <span>プロジェクト一覧</span>
+          </button>
+          <button type="button" class="dropdown-item" id="dropdown-btn-friends">
+            <i class="fa-solid fa-users"></i> <span>フレンド一覧</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item dropdown-item-danger" id="dropdown-btn-logout">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>ログアウト</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -121,138 +154,155 @@
   <section id="view-home" class="pdf-page-view" style="display: block;">
     <div class="pdf-view-content">
       
-      <!-- GitHub Style Dashboard (Exact Reference Match) -->
-      <div class="github-dashboard-container">
-        <!-- LEFT COLUMN: Profile Sidebar -->
-        <aside class="github-sidebar">
-          <!-- User Profile Card -->
-          <div class="github-profile-card">
-            <div class="github-avatar-wrap" id="home-account-box-btn" title="クリックしてプロフィール設定を開く">
-              <img id="home-user-avatar" src="https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat" alt="Avatar" class="github-avatar-img">
+      <!-- Top: 4-Card Overview Row (クリックできるものは独立したカード化 & 広い間隔) -->
+      <div class="home-overview-grid">
+        <!-- Card 1: Account Avatar & Info -->
+        <div class="home-overview-card" id="home-account-box-btn" title="クリックしてプロフィール設定を開く">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+            <div class="account-avatar-wrap" style="width: 60px; height: 60px; flex-shrink: 0; position: relative;">
+              <img id="home-user-avatar" src="https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_cat" alt="Avatar" class="account-avatar-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; image-rendering: pixelated; border: 2px solid var(--border-medium);">
+              <span class="user-online-pip" style="position: absolute; bottom: 2px; right: 2px; width: 10px; height: 10px; border-radius: 50%; background: #2ea44f; border: 2px solid var(--bg-card);"></span>
             </div>
-            <h2 id="home-user-name" class="github-username">Wizユーザー</h2>
-            <div id="home-user-id" class="github-userid">@cat_creator</div>
-            <div class="github-status-pill">
-              <span class="github-status-dot"></span>
-              <span>オンライン</span>
-            </div>
-            <a href="javascript:void(0)" id="home-projects-box-btn" class="github-repo-count-link" title="プロジェクト一覧へ">
-              <i class="fa-solid fa-book-bookmark"></i>
-              <span><strong id="home-projects-count">0</strong> あなたのプロジェクト</span>
-            </a>
-
-            <!-- Activity Grass Sub-Card (アクティビティ草生やしグラフ) -->
-            <div class="github-activity-box">
-              <div class="github-activity-header">
-                <span class="github-activity-title"><i class="fa-solid fa-seedling" style="color: #2ea44f;"></i> アクティビティ草生やしグラフ</span>
-                <span class="github-activity-commits"><span id="home-total-prompts">0</span> コミット / 年</span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
+                <span id="home-user-name" style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary);">Wizユーザー</span>
+                <span id="home-user-id" style="font-size: 0.8rem; color: var(--text-secondary);">@wiz_user</span>
               </div>
-              <div class="github-heatmap-grid" id="home-heatmap-grid">
-                <span class="github-heat-cell l0"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l4"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l3"></span>
-                <span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l4"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l4"></span>
-                <span class="github-heat-cell l0"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l4"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l3"></span>
-                <span class="github-heat-cell l2"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l4"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l1"></span><span class="github-heat-cell l0"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l3"></span><span class="github-heat-cell l4"></span><span class="github-heat-cell l2"></span><span class="github-heat-cell l4"></span>
-              </div>
-              <div class="github-heatmap-legend">
-                <span>Less</span>
-                <span class="github-legend-cell" style="background:var(--bg-tertiary);"></span>
-                <span class="github-legend-cell" style="background:#9be9a8;"></span>
-                <span class="github-legend-cell" style="background:#40c463;"></span>
-                <span class="github-legend-cell" style="background:#30a14e;"></span>
-                <span class="github-legend-cell" style="background:#216e39;"></span>
-                <span>More</span>
-              </div>
+              <p id="home-user-bio" style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Wizのユーザーです。</p>
             </div>
-
-            <!-- Secondary Links -->
-            <div class="github-sidebar-links">
-              <a href="javascript:void(0)" id="home-friends-box-btn" class="github-sidebar-link-item" title="フレンド一覧を開く">
-                <span style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-users" style="color:var(--wiz-accent);"></i> フレンド</span>
-                <span style="font-weight:600;"><span id="home-friends-count">0</span> 人</span>
-              </a>
-              <a href="javascript:void(0)" id="home-other-info-box-btn" class="github-sidebar-link-item" title="その他の詳細情報を見る">
-                <span style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-chart-pie" style="color:var(--wiz-accent);"></i> その他の情報</span>
-                <span style="font-weight:600;"><span id="home-total-lines">0</span> 行</span>
-              </a>
-            </div>
-
-            <!-- Compatibility elements -->
-            <span id="home-user-bio" style="display:none;"></span>
-            <span id="home-friends-online-desc" style="display:none;"></span>
-            <span id="home-mini-proj-name" style="display:none;"></span>
-            <span id="home-mini-proj-desc" style="display:none;"></span>
-            <div id="home-recent-friends-container" style="display:none;"></div>
           </div>
-
-          <!-- 重要なボタン: High-Contrast Green Primary CTA Button -->
-          <button id="home-btn-new-project" class="btn-github-green" type="button">
-            <i class="fa-solid fa-plus"></i> <span>新規プロジェクトを作成</span>
-          </button>
-        </aside>
-
-        <!-- RIGHT COLUMN: Main Content -->
-        <main class="github-main-content">
-          <!-- Header Row -->
-          <div class="github-main-header-row">
-            <h1 class="github-main-title">あなたのプロジェクト</h1>
-            <span class="github-main-hint">※ プロジェクトをクリックするとスタジオが開きます</span>
+          <div class="stat-action-hint" style="font-size: 0.76rem; color: #0969da; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-weight: 600;">
+            <span>プロフィール設定へ</span> <i class="fa-solid fa-arrow-right"></i>
           </div>
+        </div>
 
-          <!-- Search & Filter Card -->
-          <div class="github-filter-card">
-            <!-- Tabs -->
-            <div class="github-filter-tabs">
-              <button class="github-filter-tab-btn active" id="home-tab-my-proj" type="button">
-                <i class="fa-solid fa-lock"></i> 自分のプロジェクト
+        <!-- Card 2: Friends Count -->
+        <div class="home-overview-card" id="home-friends-box-btn" title="クリックしてフレンド画面を開く">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.86rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-users" style="color: var(--wiz-accent);"></i> フレンド
+              </span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+            <div style="font-size: 1.7rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+              <span id="home-friends-count">0</span><span style="font-size: 0.95rem; font-weight: 500; margin-left: 2px;">人</span>
+            </div>
+            <!-- クリックできない情報は普通のテキスト -->
+            <div id="home-friends-online-desc" style="font-size: 0.82rem; color: var(--text-muted);">オンライン: 0人</div>
+          </div>
+          <div class="stat-action-hint" style="font-size: 0.76rem; color: #0969da; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-weight: 600; margin-top: 10px;">
+            <span>フレンド一覧へ</span> <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Projects Count -->
+        <div class="home-overview-card" id="home-projects-box-btn" title="クリックしてプロジェクト一覧を開く">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.86rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-folder-closed" style="color: #0969da;"></i> プロジェクト数
+              </span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+            <div style="font-size: 1.7rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+              <span id="home-projects-count">0</span>
+            </div>
+            <!-- クリックできない情報は普通のテキスト -->
+            <div style="background: var(--bg-secondary); border-radius: 6px; padding: 6px 10px; border: 1px solid var(--border-subtle);">
+              <div id="home-mini-proj-name" style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">プロジェクトなし</div>
+              <div id="home-mini-proj-desc" style="font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">新規作成して開発を始めましょう</div>
+            </div>
+          </div>
+          <div class="stat-action-hint" style="font-size: 0.76rem; color: #0969da; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-weight: 600; margin-top: 10px;">
+            <span>プロジェクト一覧へ</span> <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Other Info -->
+        <div class="home-overview-card" id="home-other-info-box-btn" title="クリックして詳細情報を開く">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.86rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-chart-pie" style="color: var(--wiz-accent);"></i> その他の情報
+              </span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);"><i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+            <!-- クリックできない情報は普通のテキスト -->
+            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--text-secondary);">
+              <div><i class="fa-solid fa-code" style="width: 16px; color: var(--text-muted);"></i> 累計コード: <strong id="home-total-lines" style="color: var(--text-primary);">1,450</strong> 行</div>
+              <div><i class="fa-solid fa-wand-magic-sparkles" style="width: 16px; color: var(--wiz-accent);"></i> Wiz対話: <strong id="home-total-prompts" style="color: var(--text-primary);">24</strong> 回</div>
+              <div><i class="fa-solid fa-circle-check" style="width: 16px; color: #2ea44f;"></i> ステータス: <strong style="color: var(--text-primary);">正常稼働中</strong></div>
+            </div>
+          </div>
+          <div class="stat-action-hint" style="font-size: 0.76rem; color: #0969da; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-weight: 600; margin-top: 10px;">
+            <span>詳細ページを見る</span> <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Area: フレンドやプロジェクト一覧＆詳細 -->
+      <div class="home-main-container">
+        <!-- Header with colored important button -->
+        <div class="home-main-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
+          <h1 class="pdf-main-heading" style="margin: 0; font-size: 1.45rem; font-weight: 700;">フレンドやプロジェクト一覧＆詳細</h1>
+          <div class="home-header-actions" style="display: flex; gap: 12px; align-items: center;">
+            <!-- 重要なボタンは色を付ける: High-Contrast Green Button -->
+            <button id="home-btn-new-project" class="btn-github-green" type="button" style="width: auto; padding: 9px 20px;">
+              <i class="fa-solid fa-plus"></i> <span>新しいプロジェクト</span>
+            </button>
+            <button id="home-btn-open-studio" class="btn btn-secondary" type="button" style="padding: 9px 18px;">
+              <i class="fa-solid fa-code"></i> <span>スタジオ（エディタ）を開く</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Template Fast-Starter -->
+        <div class="template-fast-start-bar" style="margin-bottom: 28px; padding: 14px 20px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <span class="fast-start-title" style="font-size: 0.86rem; font-weight: 600; color: var(--text-secondary);"><i class="fa-solid fa-bolt" style="color:#e3b341;"></i> テンプレートから即時作成:</span>
+          <div class="fast-start-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="fast-chip-btn" data-tmpl="breaker"><i class="fa-solid fa-cubes"></i> ネオン・ブロック崩し</button>
+            <button class="fast-chip-btn" data-tmpl="shooter"><i class="fa-solid fa-rocket"></i> スペースシューター</button>
+            <button class="fast-chip-btn" data-tmpl="clicker"><i class="fa-solid fa-hand-pointer"></i> クリッカー</button>
+            <button class="fast-chip-btn" data-tmpl="rpg"><i class="fa-solid fa-shield-halved"></i> ドット絵RPG</button>
+            <button class="fast-chip-btn" data-tmpl="puzzle"><i class="fa-solid fa-puzzle-piece"></i> 2048パズル</button>
+          </div>
+        </div>
+
+        <!-- Two Columns: Recent Projects vs Friends Overview (情報同士の間隔を広くする) -->
+        <div class="home-columns-grid" style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 28px;">
+          <!-- Column 1: Projects Overview -->
+          <div class="home-column-box" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 22px 24px;">
+            <div class="column-box-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-folder-closed" style="color: #0969da;"></i> 最近のプロジェクト
+              </h2>
+              <button id="home-see-all-projects-btn" class="btn-text-link" style="font-size: 0.84rem; color: #0969da; font-weight: 600; background: none; border: none; cursor: pointer;">
+                すべてのプロジェクトを見る <i class="fa-solid fa-arrow-right"></i>
               </button>
-              <button class="github-filter-tab-btn" id="home-tab-public-proj" type="button" onclick="window.app?.switchPageView('marketplace')">
-                <i class="fa-solid fa-globe"></i> 全ユーザーの公開プロジェクト
+            </div>
+            <!-- Clickable cards list with plain text details -->
+            <div id="home-recent-projects-container" class="home-projects-preview-grid">
+              <!-- Dynamically populated projects with .github-repo-card -->
+            </div>
+          </div>
+
+          <!-- Column 2: Friends Overview -->
+          <div class="home-column-box" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 22px 24px;">
+            <div class="column-box-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-users" style="color: var(--wiz-accent);"></i> フレンド & 共同開発メンバー
+              </h2>
+              <button id="home-see-all-friends-btn" class="btn-text-link" style="font-size: 0.84rem; color: #0969da; font-weight: 600; background: none; border: none; cursor: pointer;">
+                フレンド管理 <i class="fa-solid fa-arrow-right"></i>
               </button>
             </div>
-
-            <!-- Search Bar -->
-            <div class="github-search-input-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="home-projects-search-input" class="github-search-input" placeholder="アカウント名、プロジェクト名でプロジェクトを検索...">
-            </div>
-
-            <!-- Filter Chips -->
-            <div class="github-filter-chips" id="home-filter-chips">
-              <button class="github-filter-chip active" data-filter="all" type="button">すべて</button>
-              <button class="github-filter-chip" data-filter="starred" type="button"><i class="fa-solid fa-star" style="color:#e3b341;"></i> スター済み</button>
-              <button class="github-filter-chip" data-filter="html" type="button">HTML / JS</button>
-              <button class="github-filter-chip" data-filter="python" type="button">Python 🐍</button>
-              <button class="github-filter-chip" data-filter="cpp" type="button">C++ ⚡</button>
-              <button class="github-filter-chip" data-filter="canvas" type="button">Canvas 🎮</button>
+            <div id="home-recent-friends-container" class="home-friends-preview-grid">
+              <!-- Dynamically populated friends with cards -->
             </div>
           </div>
+        </div>
 
-          <!-- Clickable Project Cards List (クリックできるものはカード化) -->
-          <div id="home-recent-projects-container" class="github-repo-list">
-            <!-- Populated dynamically with .github-repo-card -->
-          </div>
-
-          <!-- Fast starter template chips -->
-          <div style="margin-top: 24px; padding: 18px 22px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px;">
-            <div style="font-size: 0.86rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; display:flex; align-items:center; gap:6px;">
-              <i class="fa-solid fa-bolt" style="color:#e3b341;"></i> テンプレートから即時作成:
-            </div>
-            <div class="fast-start-chips" style="display:flex; flex-wrap:wrap; gap:8px;">
-              <button class="fast-chip-btn" data-tmpl="breaker"><i class="fa-solid fa-cubes"></i> ネオン・ブロック崩し</button>
-              <button class="fast-chip-btn" data-tmpl="shooter"><i class="fa-solid fa-rocket"></i> スペースシューター</button>
-              <button class="fast-chip-btn" data-tmpl="clicker"><i class="fa-solid fa-hand-pointer"></i> クリッカー</button>
-              <button class="fast-chip-btn" data-tmpl="rpg"><i class="fa-solid fa-shield-halved"></i> ドット絵RPG</button>
-              <button class="fast-chip-btn" data-tmpl="puzzle"><i class="fa-solid fa-puzzle-piece"></i> 2048パズル</button>
-            </div>
-          </div>
-
-          <!-- Compatibility triggers -->
-          <div style="display: none;">
-            <button id="home-btn-open-studio"></button>
-            <button id="home-see-all-projects-btn"></button>
-            <button id="home-see-all-friends-btn"></button>
-          </div>
-        </main>
       </div>
     </div>
   </section>
