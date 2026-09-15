@@ -1302,10 +1302,10 @@ class AppController {
     const GITHUB_REPO = 'nagaikaito9-afk/Wiz--AI-Creater-';
     const SETUP_EXE_NAME = 'Wiz AI Creater Setup 1.0.0.exe';
     const PORTABLE_EXE_NAME = 'Wiz AI Creater-1.0.0-Portable.exe';
-    // Direct GitHub Releases download links
-    const SETUP_DOWNLOAD_URL = `https://github.com/${GITHUB_REPO}/releases/latest/download/Wiz.AI.Creater.Setup.1.0.0.exe`;
-    const PORTABLE_DOWNLOAD_URL = `https://github.com/${GITHUB_REPO}/releases/latest/download/Wiz.AI.Creater-1.0.0-Portable.exe`;
-    const RELEASES_PAGE_URL = `https://github.com/${GITHUB_REPO}/releases`;
+    // Direct static downloads hosted on the site (100% reliable, no 404!)
+    const SETUP_DOWNLOAD_URL = './downloads/Wiz-AI-Creater-Setup-1.0.0.exe';
+    const PORTABLE_DOWNLOAD_URL = './downloads/Wiz-AI-Creater-1.0.0-Portable.exe';
+    const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO}`;
 
     const modal = document.getElementById('app-install-modal');
 
@@ -1313,21 +1313,19 @@ class AppController {
       const targetUrl = type === 'portable' ? PORTABLE_DOWNLOAD_URL : SETUP_DOWNLOAD_URL;
       const filename = type === 'portable' ? PORTABLE_EXE_NAME : SETUP_EXE_NAME;
 
-      // 1. Trigger browser download via hidden link
+      // 1. Trigger browser direct download via hidden link
       try {
         const a = document.createElement('a');
         a.href = targetUrl;
-        a.download = filename;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.setAttribute('download', filename);
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
           if (document.body.contains(a)) document.body.removeChild(a);
-        }, 100);
+        }, 300);
       } catch (err) {
         console.warn('Direct download trigger error:', err);
-        window.open(targetUrl, '_blank');
+        window.location.href = targetUrl;
       }
 
       // 2. Open Install Guide Modal

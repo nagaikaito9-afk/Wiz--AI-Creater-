@@ -1876,12 +1876,9 @@
         </div>
 
         <!-- Download Buttons Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.2rem;">
-          <button id="modal-download-setup-btn" type="button" class="btn btn-primary" style="padding: 10px 14px; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; background: linear-gradient(135deg, #0078d4 0%, #00a4ef 100%); border: none;">
-            <i class="fa-solid fa-download"></i> <span>インストーラー (setup.exe)</span>
-          </button>
-          <button id="modal-download-portable-btn" type="button" class="btn btn-secondary" style="padding: 10px 14px; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fa-solid fa-box-archive"></i> <span>ポータブル版 (.exe)</span>
+        <div style="margin-bottom: 1.2rem;">
+          <button id="modal-download-setup-btn" type="button" class="btn btn-primary" style="width: 100%; padding: 12px 18px; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; background: linear-gradient(135deg, #0078d4 0%, #00a4ef 100%); border: none; border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 164, 239, 0.35);">
+            <i class="fa-solid fa-download"></i> <span>Wiz AI Creater Setup 1.0.0.exe をダウンロード (83MB)</span>
           </button>
         </div>
 
@@ -1906,11 +1903,19 @@
           </div>
         </div>
 
+        <!-- Local PC Direct Run Hint -->
+        <div style="background: rgba(56, 139, 253, 0.08); border: 1px dashed rgba(56, 139, 253, 0.4); border-radius: 10px; padding: 10px 14px; margin-bottom: 1.2rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+          <div style="font-weight: 700; color: #58a6ff; margin-bottom: 2px;">
+            <i class="fa-solid fa-laptop-code"></i> お使いのPCで開発中の場合:
+          </div>
+          プロジェクトフォルダの <code>dist\Wiz AI Creater Setup 1.0.0.exe</code> または <code>Wiz-AI-Creater-1.0.0-Portable.exe</code> を直接ダブルクリックしても即座に起動・インストール可能です！
+        </div>
+
         <!-- Release Notes Link -->
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
-          <span>GitHub Releases で全バージョン公開中</span>
-          <a href="https://github.com/nagaikaito9-afk/Wiz--AI-Creater-/releases" target="_blank" rel="noopener" style="color: var(--wiz-accent); text-decoration: none; display: flex; align-items: center; gap: 4px; font-weight: 600;">
-            <i class="fa-brands fa-github"></i> Releases を見る <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem;"></i>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap; gap: 8px;">
+          <span>Webサイトから直接ダウンロード中（無料・高速）</span>
+          <a href="https://github.com/nagaikaito9-afk/Wiz--AI-Creater-" target="_blank" rel="noopener" style="color: var(--wiz-accent); text-decoration: none; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+            <i class="fa-brands fa-github"></i> GitHub リポジトリ <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem;"></i>
           </a>
         </div>
       </div>
