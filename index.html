@@ -161,11 +161,11 @@
             <span class="col-action-arrow" title="プロジェクト一覧へ"><i class="fa-solid fa-arrow-right"></i></span>
           </div>
           <div class="stat-number-row">
-            <span id="home-projects-count" class="stat-number">1</span>
+            <span id="home-projects-count" class="stat-number">0</span>
           </div>
           <div class="mini-project-card" id="home-mini-project-preview">
-            <div class="mini-proj-title" id="home-mini-proj-name">ネオン・ブロック崩し</div>
-            <div class="mini-proj-desc" id="home-mini-proj-desc">レトロフューチャー・ブロック崩し</div>
+            <div class="mini-proj-title" id="home-mini-proj-name">プロジェクトなし</div>
+            <div class="mini-proj-desc" id="home-mini-proj-desc">新規作成して開発を始めましょう</div>
           </div>
           <div class="stat-action-hint">プロジェクト一覧へ <i class="fa-solid fa-chevron-right" style="font-size: 0.65rem;"></i></div>
         </div>
@@ -572,11 +572,6 @@
         <div>
           <h1 class="pdf-page-title"><i class="fa-solid fa-store" style="color:var(--brand-primary); margin-right:0.5rem;"></i>マーケット</h1>
           <span class="pdf-block-desc">世界中のクリエイターが制作したWebゲームを遊んだり、スタジオへ直接インポートできます</span>
-        </div>
-        <div class="block-tools-row">
-          <button id="marketplace-publish-current-btn" class="btn btn-primary" type="button">
-            <i class="fa-solid fa-cloud-arrow-up"></i> <span>現在のゲームを公開</span>
-          </button>
         </div>
       </div>
 
@@ -2050,6 +2045,62 @@
     </div>
   </div>
 
+  <!-- PROJECT PUBLISH MODAL (マーケット公開設定モーダル) -->
+  <div class="modal-backdrop" id="publish-project-modal" style="display: none;">
+    <div class="modal-card modal-card-md" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cloud-arrow-up" style="color:var(--wiz-cyan);"></i> マーケットに公開</h3>
+        <button id="close-publish-modal-btn" class="btn-close" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="publish-project-id" value="">
+        
+        <div id="publish-project-fork-banner" class="publish-fork-info-banner" style="display:none; margin-bottom:1rem; padding:0.75rem 1rem; border-radius:8px; background:rgba(0, 243, 255, 0.08); border:1px solid rgba(0, 243, 255, 0.3); font-size:0.85rem; color:var(--wiz-accent);">
+          <i class="fa-solid fa-code-fork" style="margin-right:0.4rem;"></i>
+          <span id="publish-project-fork-text"></span>
+        </div>
+
+        <div class="auth-field" style="margin-bottom:1rem;">
+          <label class="auth-field-label"><i class="fa-solid fa-heading"></i> 公開タイトル <span style="color:var(--danger);">*</span></label>
+          <input type="text" id="publish-project-name" placeholder="ゲームのタイトルを入力" class="auth-input" maxlength="60" required>
+        </div>
+
+        <div class="auth-field" style="margin-bottom:1rem;">
+          <label class="auth-field-label"><i class="fa-solid fa-align-left"></i> ゲームの説明・遊び方</label>
+          <textarea id="publish-project-desc" class="auth-input" rows="4" placeholder="ゲームのルールや操作方法、こだわりポイントを入力..." style="resize:vertical; min-height:80px;"></textarea>
+        </div>
+
+        <div class="auth-field" style="margin-bottom:1rem;">
+          <label class="auth-field-label"><i class="fa-solid fa-tags"></i> カテゴリ</label>
+          <select id="publish-project-category" class="auth-input" style="background:var(--bg-card); color:var(--text-primary); cursor:pointer;">
+            <option value="action">アクション</option>
+            <option value="puzzle">パズル</option>
+            <option value="retro">レトロ</option>
+            <option value="rpg">RPG</option>
+            <option value="clicker">クリッカー</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+
+        <div class="auth-field" style="margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem; padding:0.6rem 0.8rem; background:var(--bg-subtle); border-radius:8px; border:1px solid var(--border-subtle);">
+          <input type="checkbox" id="publish-project-allow-fork" checked style="width:18px; height:18px; cursor:pointer; accent-color:var(--wiz-cyan);">
+          <label for="publish-project-allow-fork" style="font-size:0.88rem; cursor:pointer; user-select:none; margin:0; font-weight:600;">
+            他のユーザーによるフォーク（改変・インポート）を許可する
+          </label>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin:0.25rem 0 0 0.5rem;">
+          ※ フォークを許可すると、他のクリエイターがこの作品をもとに改造や拡張を行えるようになります。
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-publish-modal-btn" class="btn btn-ghost" type="button">キャンセル</button>
+        <button id="confirm-publish-project-btn" class="btn btn-primary" type="button">
+          <i class="fa-solid fa-cloud-arrow-up"></i> <span>マーケットに公開する</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- PROJECT TEAM & SHARING MODAL (共有プロジェクト・権限管理) -->
   <div class="modal-backdrop" id="project-team-modal" style="display: none;">
     <div class="modal-card modal-card-lg">
@@ -2171,6 +2222,11 @@
     </div>
     <div class="notification-items-list" id="notification-items-list">
       <!-- Dynamically rendered by notifications.js -->
+    </div>
+    <div style="padding: 0.75rem 1rem; border-top: 1px solid var(--border-subtle); text-align: center; background: var(--bg-card);">
+      <button id="drawer-open-full-notifs-btn" class="btn btn-ghost btn-sm" style="width: 100%; font-size: 0.82rem; color: var(--wiz-accent);" type="button">
+        <i class="fa-solid fa-expand"></i> 全画面通知センターを開く
+      </button>
     </div>
   </div>
 

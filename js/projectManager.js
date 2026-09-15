@@ -176,18 +176,6 @@ class ProjectManager {
     const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
     const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
 
-    // Clean out legacy demo project (room_default / ネオン・ブロック崩し)
-    if (this.rooms && this.rooms.length > 0) {
-      const beforeCount = this.rooms.length;
-      this.rooms = this.rooms.filter(r => r.id !== 'room_default' && r.name !== 'ネオン・ブロック崩し');
-      if (this.rooms.length !== beforeCount) {
-        if (this.activeRoomId === 'room_default') {
-          this.activeRoomId = this.rooms.length > 0 ? this.rooms[0].id : null;
-        }
-        this.saveRooms();
-      }
-    }
-
     if (!this.rooms) {
       this.rooms = [];
       this.activeRoomId = null;
@@ -1191,6 +1179,10 @@ class ProjectManager {
       vfsRoot: clonedVfs
     };
 
+    if (sourceRoom.forkedFrom) {
+      clonedRoom.forkedFrom = JSON.parse(JSON.stringify(sourceRoom.forkedFrom));
+    }
+
     this.rooms.unshift(clonedRoom);
     this.saveRooms();
     this.renderRoomsList();
@@ -1284,6 +1276,18 @@ class ProjectManager {
       `;
     }
 
+    // Fork lineage badge
+    let forkBadgeHtml = '';
+    if (room.forkedFrom) {
+      const author = room.forkedFrom.originalAuthor || '不明';
+      const title = room.forkedFrom.originalTitle || '作品';
+      forkBadgeHtml = `
+        <div class="project-fork-badge" title="フォーク元: ${this.escapeHtml(author)}作『${this.escapeHtml(title)}』">
+          <i class="fa-solid fa-code-fork"></i> ${this.escapeHtml(author)}作『${this.escapeHtml(title)}』のフォーク
+        </div>
+      `;
+    }
+
     return `
       <div class="project-card-modern ${isActive ? 'active' : ''}" data-room-id="${room.id}">
         <div>
@@ -1307,6 +1311,8 @@ class ProjectManager {
             </div>
           </div>
 
+          ${forkBadgeHtml}
+
           <div class="project-card-modern-desc">
             ${this.escapeHtml(truncatedDesc)}
           </div>
@@ -1317,6 +1323,9 @@ class ProjectManager {
             ${teamHtml}
           </div>
           <div class="project-card-actions-group">
+            <button class="btn btn-ghost btn-sm" onclick="window.app?.openPublishModal('${room.id}')" title="マーケットに公開" style="color:var(--wiz-accent); border:1px solid rgba(0, 243, 255, 0.3);">
+              <i class="fa-solid fa-cloud-arrow-up"></i> 公開
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="window.projectManager.openInFullscreen('${room.id}')" title="全画面でプレイ">
               <i class="fa-solid fa-play"></i> プレイ
             </button>

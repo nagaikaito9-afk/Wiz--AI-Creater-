@@ -1199,6 +1199,7 @@ class AppController {
 
   switchPageView(viewName) {
     this.currentView = viewName;
+    document.body.classList.toggle('in-studio', viewName === 'studio');
 
     // Nav button active class
     const navButtons = [
@@ -1295,14 +1296,15 @@ class AppController {
     }
 
     listContainer.innerHTML = notifs.map(n => {
-      const icon = n.type === 'project' ? 'fa-gamepad' : n.type === 'friend' ? 'fa-user-group' : 'fa-info';
+      const icon = n.type === 'project' || n.type === 'project_invite' || n.type === 'project_update' ? 'fa-gamepad' : n.type === 'friend' || n.type === 'friend_request' ? 'fa-user-group' : 'fa-info';
+      const timeStr = window.notificationsManager ? window.notificationsManager.formatTime(n.timestamp || n.time) : (n.time || '');
       return `
-        <div class="notification-page-card">
+        <div class="notification-page-card ${n.read ? '' : 'unread'}">
           <div class="notif-page-icon"><i class="fa-solid ${icon}"></i></div>
           <div class="notif-page-content">
             <div class="notif-page-title">${this.escapeHtml(n.title || '通知')}</div>
             <div class="notif-page-message">${this.escapeHtml(n.message || '')}</div>
-            <div class="notif-page-time">${n.time || ''}</div>
+            <div class="notif-page-time">${timeStr}</div>
           </div>
         </div>
       `;
@@ -1666,40 +1668,6 @@ class AppController {
   // 4P: Full-page Marketplace Logic
   // ==========================================
   initMarketplaceEvents() {
-    // Publish current game button
-    document.getElementById('marketplace-publish-current-btn')?.addEventListener('click', async () => {
-      const activeRoom = window.projectManager?.getActiveRoom();
-      if (!activeRoom) {
-        if (window.showToast) window.showToast('公開できるプロジェクトがありません', 'warning');
-        return;
-      }
-      const title = await window.showPrompt('公開するゲームタイトルを入力してください:', activeRoom.name, 'マーケットに公開');
-      if (!title) return;
-      const desc = await window.showPrompt('ゲームの簡単な説明を入力してください:', activeRoom.rules || '面白いWebゲームです！', 'ゲーム説明');
-
-      const newMarketItem = {
-        id: 'market_' + Date.now(),
-        title: title,
-        description: desc || 'Wiz Studioで作成されたゲーム',
-        author: window.supabaseAuth?.currentUser?.username || 'Wizユーザー',
-        authorId: window.supabaseAuth?.currentUser?.userId || 'wiz_user',
-        authorAvatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${window.supabaseAuth?.currentUser?.userId || 'wiz_user'}`,
-        category: 'action',
-        plays: 1,
-        rating: 5.0,
-        createdAt: Date.now(),
-        roomId: activeRoom.id,
-        vfsRoot: activeRoom.vfsRoot
-      };
-
-      const savedMarket = JSON.parse(localStorage.getItem('wiz_custom_marketplace_items') || '[]');
-      savedMarket.unshift(newMarketItem);
-      localStorage.setItem('wiz_custom_marketplace_items', JSON.stringify(savedMarket));
-
-      if (window.showToast) window.showToast(`「${title}」をマーケットに公開しました！🎉`, 'success');
-      this.renderMarketplacePageView();
-    });
-
     // Category chips
     document.querySelectorAll('#marketplace-category-chips .fast-chip-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1715,6 +1683,162 @@ class AppController {
       this.marketSearchQuery = e.target.value.trim().toLowerCase();
       this.renderMarketplacePageView();
     });
+
+    // Publish modal control buttons
+    document.getElementById('close-publish-modal-btn')?.addEventListener('click', () => this.closePublishModal());
+    document.getElementById('cancel-publish-modal-btn')?.addEventListener('click', () => this.closePublishModal());
+    document.getElementById('confirm-publish-project-btn')?.addEventListener('click', () => this.confirmPublishProject());
+  }
+
+  // Open Publish Settings Modal for a specific project
+  openPublishModal(roomId) {
+    const room = (window.projectManager?.rooms || []).find(r => r.id === roomId) || window.projectManager?.getActiveRoom();
+    if (!room) {
+      if (window.showToast) window.showToast('公開対象のプロジェクトが見つかりません', 'error');
+      return;
+    }
+
+    const modal = document.getElementById('publish-project-modal');
+    if (!modal) return;
+
+    const idInput = document.getElementById('publish-project-id');
+    const nameInput = document.getElementById('publish-project-name');
+    const descInput = document.getElementById('publish-project-desc');
+    const catSelect = document.getElementById('publish-project-category');
+    const forkCheck = document.getElementById('publish-project-allow-fork');
+    const forkBanner = document.getElementById('publish-project-fork-banner');
+    const forkText = document.getElementById('publish-project-fork-text');
+
+    if (idInput) idInput.value = room.id;
+    if (nameInput) nameInput.value = room.name || '';
+    if (descInput) descInput.value = room.rules || '';
+    if (catSelect) catSelect.value = 'action';
+    if (forkCheck) forkCheck.checked = true;
+
+    // Lineage display if project is a fork
+    if (room.forkedFrom && forkBanner && forkText) {
+      forkBanner.style.display = 'block';
+      const origAuthor = room.forkedFrom.originalAuthor || '不明';
+      const origTitle = room.forkedFrom.originalTitle || '作品';
+      forkText.textContent = `この作品は「${origAuthor}作『${origTitle}』のフォーク」です。マーケット公開時もフォーク元クレジットが明記されます。`;
+    } else if (forkBanner) {
+      forkBanner.style.display = 'none';
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  closePublishModal() {
+    const modal = document.getElementById('publish-project-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  confirmPublishProject() {
+    const idInput = document.getElementById('publish-project-id');
+    const nameInput = document.getElementById('publish-project-name');
+    const descInput = document.getElementById('publish-project-desc');
+    const catSelect = document.getElementById('publish-project-category');
+    const forkCheck = document.getElementById('publish-project-allow-fork');
+
+    const roomId = idInput ? idInput.value : '';
+    const room = (window.projectManager?.rooms || []).find(r => r.id === roomId);
+    if (!room) {
+      if (window.showToast) window.showToast('プロジェクト情報が見つかりません', 'error');
+      return;
+    }
+
+    const title = (nameInput ? nameInput.value : '').trim();
+    if (!title) {
+      if (window.showToast) window.showToast('公開タイトルを入力してください', 'warning');
+      nameInput?.focus();
+      return;
+    }
+
+    const desc = descInput ? descInput.value.trim() : '';
+    const category = catSelect ? catSelect.value : 'action';
+    const allowFork = forkCheck ? forkCheck.checked : true;
+
+    const myId = window.supabaseAuth?.currentUser?.userId || 'wiz_creator';
+    const myName = window.supabaseAuth?.currentUser?.username || 'Wiz Creator';
+
+    // Build standalone executable HTML bundle from room VFS
+    let bundleHtml = null;
+    let vfsData = room.vfsRoot;
+    if (window.vfs) {
+      if (window.vfs.currentRoomId === room.id) {
+        bundleHtml = window.vfs.buildHtmlBundle('index.html');
+        vfsData = window.vfs.root;
+      } else if (room.vfsRoot) {
+        const findIndexNode = (node) => {
+          if (!node) return null;
+          if (node.type === 'file' && node.name === 'index.html') return node.content;
+          if (node.children) {
+            for (const child of Object.values(node.children)) {
+              const res = findIndexNode(child);
+              if (res) return res;
+            }
+          }
+          return null;
+        };
+        bundleHtml = findIndexNode(room.vfsRoot) || '<!DOCTYPE html><html><body><h1>' + title + '</h1></body></html>';
+      }
+    }
+
+    // Retain perpetual fork lineage
+    let forkedFrom = null;
+    if (room.forkedFrom) {
+      forkedFrom = {
+        originalAuthor: room.forkedFrom.originalAuthor || '不明',
+        originalTitle: room.forkedFrom.originalTitle || '作品',
+        originalId: room.forkedFrom.originalId || null,
+        forkedAt: room.forkedFrom.forkedAt || Date.now()
+      };
+    }
+
+    const newMarketItem = {
+      id: 'market_' + Date.now(),
+      roomId: room.id,
+      title: title,
+      description: desc || 'Wiz AI Game Creatorで制作されたWebゲーム',
+      author: myName,
+      authorId: myId,
+      authorAvatar: this.getUserAvatar(),
+      category: category,
+      plays: 0,
+      rating: 5.0,
+      publishedAt: Date.now(),
+      allowFork: allowFork,
+      forkedFrom: forkedFrom,
+      vfsRoot: JSON.parse(JSON.stringify(vfsData || {})),
+      bundleHtml: bundleHtml
+    };
+
+    const savedMarket = JSON.parse(localStorage.getItem('wiz_custom_marketplace_items') || '[]');
+    const existingIdx = savedMarket.findIndex(item => item.roomId === room.id);
+    if (existingIdx !== -1) {
+      savedMarket[existingIdx] = { ...savedMarket[existingIdx], ...newMarketItem, id: savedMarket[existingIdx].id };
+    } else {
+      savedMarket.unshift(newMarketItem);
+    }
+    localStorage.setItem('wiz_custom_marketplace_items', JSON.stringify(savedMarket));
+
+    this.closePublishModal();
+
+    if (window.showToast) {
+      window.showToast(`ゲーム「${title}」をマーケットに公開しました！🚀`, 'success');
+    }
+
+    if (window.notificationsManager) {
+      window.notificationsManager.notify({
+        type: 'project_update',
+        title: 'マーケット公開',
+        message: `「${title}」をマーケットに公開しました！`
+      });
+    }
+
+    if (this.currentView === 'marketplace') {
+      this.renderMarketplacePageView();
+    }
   }
 
   renderMarketplacePageView() {
@@ -1729,7 +1853,7 @@ class AppController {
         description: '反射角度とスピードアップを極めたサイバー調ブロック崩し！',
         author: 'ドット勇者',
         authorId: 'pixel_hero',
-        authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=pixel_hero',
+        authorAvatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=pixel_hero',
         category: 'action',
         plays: 342,
         rating: 4.9,
@@ -1741,7 +1865,7 @@ class AppController {
         description: '自動採掘機と施設を強化して億万長者を目指す放置系クリッカー。',
         author: '音響魔術師',
         authorId: 'sound_mage',
-        authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sound_mage',
+        authorAvatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=sound_mage',
         category: 'clicker',
         plays: 512,
         rating: 4.8,
@@ -1753,7 +1877,7 @@ class AppController {
         description: '怒涛の弾幕を掻い潜り敵艦隊を殲滅する縦スクロールシューター！',
         author: 'レトロゲーマー',
         authorId: 'retro_gamer',
-        authorAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=retro_gamer',
+        authorAvatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=retro_gamer',
         category: 'action',
         plays: 289,
         rating: 4.7,
@@ -1789,6 +1913,20 @@ class AppController {
     }
 
     grid.innerHTML = allGames.map(game => {
+      // Fork Attribution Lineage Badge
+      let forkBadgeHtml = '';
+      if (game.forkedFrom) {
+        const origAuthor = game.forkedFrom.originalAuthor || '不明';
+        const origTitle = game.forkedFrom.originalTitle || '作品';
+        forkBadgeHtml = `
+          <div class="market-fork-badge" title="フォーク元: ${this.escapeHtml(origAuthor)}作『${this.escapeHtml(origTitle)}』">
+            <i class="fa-solid fa-code-fork"></i> ${this.escapeHtml(origAuthor)}作『${this.escapeHtml(origTitle)}』のフォーク
+          </div>
+        `;
+      }
+
+      const allowFork = game.allowFork !== false;
+
       return `
         <div class="project-card-modern">
           <div>
@@ -1811,6 +1949,8 @@ class AppController {
               </div>
             </div>
 
+            ${forkBadgeHtml}
+
             <div class="project-card-modern-desc">
               ${this.escapeHtml(game.description)}
             </div>
@@ -1821,12 +1961,18 @@ class AppController {
               ${game.category ? game.category.toUpperCase() : 'WEB'}
             </span>
             <div class="project-card-actions-group">
-              <button class="btn btn-secondary btn-sm" onclick="window.app.playMarketGame('${game.id}', '${game.templateKey || 'breaker'}')" title="今すぐプレイ">
+              <button class="btn btn-secondary btn-sm" onclick="window.app.playMarketGame('${game.id}')" title="今すぐプレイ">
                 <i class="fa-solid fa-play"></i> プレイ
               </button>
-              <button class="btn btn-primary btn-sm" onclick="window.app.importMarketGame('${game.id}', '${game.templateKey || 'breaker'}')">
-                <i class="fa-solid fa-download"></i> インポート
-              </button>
+              ${allowFork ? `
+                <button class="btn btn-primary btn-sm" onclick="window.app.importMarketGame('${game.id}')" title="スタジオへフォーク・インポート">
+                  <i class="fa-solid fa-download"></i> インポート
+                </button>
+              ` : `
+                <button class="btn btn-ghost btn-sm" disabled title="作者によりフォークが制限されています" style="opacity:0.45; cursor:not-allowed;">
+                  <i class="fa-solid fa-lock"></i> フォーク不可
+                </button>
+              `}
             </div>
           </div>
         </div>
@@ -1834,16 +1980,166 @@ class AppController {
     }).join('');
   }
 
-  // Import Game from Marketplace directly into user's studio
-  importMarketGame(gameId, templateKey) {
-    this.createProjectFromTemplate(templateKey);
+  // Play Game from Marketplace directly in runner modal without creating project
+  playMarketGame(gameId) {
+    const defaultGames = [
+      { id: 'comm_breaker', title: 'ネオン・ブロック崩し DX', templateKey: 'breaker' },
+      { id: 'comm_clicker', title: 'クリッカー・タイクーン 2026', templateKey: 'clicker' },
+      { id: 'comm_shooter', title: 'ギャラクシー・ストライカー', templateKey: 'breaker' }
+    ];
+    const customGames = JSON.parse(localStorage.getItem('wiz_custom_marketplace_items') || '[]');
+    const allGames = [...customGames, ...defaultGames];
+    const game = allGames.find(g => g.id === gameId);
+
+    if (!game) {
+      if (window.showToast) window.showToast('ゲームが見つかりませんでした', 'error');
+      return;
+    }
+
+    // Increment plays count
+    if (customGames.some(g => g.id === gameId)) {
+      const idx = customGames.findIndex(g => g.id === gameId);
+      if (idx !== -1) {
+        customGames[idx].plays = (customGames[idx].plays || 0) + 1;
+        localStorage.setItem('wiz_custom_marketplace_items', JSON.stringify(customGames));
+        if (this.currentView === 'marketplace') {
+          this.renderMarketplacePageView();
+        }
+      }
+    }
+
+    // If game has bundleHtml
+    if (game.bundleHtml && window.runner) {
+      window.runner.runDirectCodeInModal(game.bundleHtml, game.title);
+      return;
+    }
+
+    // If game has vfsRoot
+    if (game.vfsRoot && window.runner) {
+      const findIndexNode = (node) => {
+        if (!node) return null;
+        if (node.type === 'file' && (node.name === 'index.html' || node.name.endsWith('.html'))) return node.content;
+        if (node.children) {
+          for (const child of Object.values(node.children)) {
+            const res = findIndexNode(child);
+            if (res) return res;
+          }
+        }
+        return null;
+      };
+      const htmlCode = findIndexNode(game.vfsRoot) || '<!DOCTYPE html><html><body><h1>' + game.title + '</h1></body></html>';
+      window.runner.runDirectCodeInModal(htmlCode, game.title);
+      return;
+    }
+
+    // Fallback template execution
+    const tmplData = this.getTemplateData(game.templateKey || 'breaker');
+    if (window.runner) {
+      window.runner.runDirectCodeInModal(tmplData.html, game.title);
+    }
   }
 
-  playMarketGame(gameId, templateKey) {
-    this.createProjectFromTemplate(templateKey);
-    setTimeout(() => {
-      if (window.runner) window.runner.openFullscreenModal();
-    }, 400);
+  // Import Game from Marketplace directly into user's studio with persistent fork lineage
+  importMarketGame(gameId) {
+    const defaultGames = [
+      { id: 'comm_breaker', title: 'ネオン・ブロック崩し DX', author: 'ドット勇者', templateKey: 'breaker', description: '反射角度とスピードアップを極めたサイバー調ブロック崩し！' },
+      { id: 'comm_clicker', title: 'クリッカー・タイクーン 2026', author: '音響魔術師', templateKey: 'clicker', description: '自動採掘機と施設を強化して億万長者を目指す放置系クリッカー。' },
+      { id: 'comm_shooter', title: 'ギャラクシー・ストライカー', author: 'レトロゲーマー', templateKey: 'breaker', description: '怒涛の弾幕を掻い潜り敵艦隊を殲滅する縦スクロールシューター！' }
+    ];
+    const customGames = JSON.parse(localStorage.getItem('wiz_custom_marketplace_items') || '[]');
+    const allGames = [...customGames, ...defaultGames];
+    const game = allGames.find(g => g.id === gameId);
+
+    if (!game) {
+      if (window.showToast) window.showToast('対象のゲームが見つかりませんでした', 'error');
+      return;
+    }
+
+    if (game.allowFork === false) {
+      if (window.showToast) window.showToast('この作品は作者によりフォーク（改変・インポート）が制限されています', 'warning');
+      return;
+    }
+
+    // Lineage inheritance:
+    // Perpetual attribution: If the game was already a fork, retain the root original author and title!
+    const origAuthor = game.forkedFrom?.originalAuthor || game.author || '不明';
+    const origTitle = game.forkedFrom?.originalTitle || game.title || '作品';
+    const origId = game.forkedFrom?.originalId || game.id;
+
+    const forkTitle = `${game.title} (フォーク)`;
+
+    // Create a new room
+    if (!window.projectManager) return;
+    window.projectManager.createNewRoom(forkTitle);
+    const room = window.projectManager.getActiveRoom();
+    if (!room) return;
+
+    room.forkedFrom = {
+      originalAuthor: origAuthor,
+      originalTitle: origTitle,
+      originalId: origId,
+      forkedAt: Date.now()
+    };
+    room.rules = game.description || '';
+
+    // Restore VFS root from game if custom
+    if (game.vfsRoot && window.vfs) {
+      room.vfsRoot = JSON.parse(JSON.stringify(game.vfsRoot));
+      window.vfs.root = JSON.parse(JSON.stringify(game.vfsRoot));
+      window.vfs.saveCurrentRoom();
+    } else {
+      // Create from template files
+      const tmplData = this.getTemplateData(game.templateKey || 'breaker');
+      const vfsRoot = {
+        name: 'root',
+        type: 'directory',
+        children: {
+          'index.html': { name: 'index.html', type: 'file', content: tmplData.html },
+          'style.css': { name: 'style.css', type: 'file', content: tmplData.css },
+          'game.js': { name: 'game.js', type: 'file', content: tmplData.js }
+        }
+      };
+      room.vfsRoot = vfsRoot;
+      if (window.vfs) {
+        window.vfs.root = vfsRoot;
+        window.vfs.saveCurrentRoom();
+      }
+    }
+
+    window.projectManager.saveRooms();
+    window.projectManager.renderRoomsList();
+    window.projectManager.renderProjectsView();
+
+    this.switchPageView('studio');
+    if (window.editor) {
+      window.editor.renderTree();
+      window.editor.openFile('index.html');
+    }
+
+    if (window.showToast) {
+      window.showToast(`『${game.title}』をフォークしてスタジオにインポートしました！✨`, 'success');
+    }
+  }
+
+  // Preset Template Code Generator
+  getTemplateData(key) {
+    if (key === 'clicker') {
+      return {
+        name: 'クリッカー・タイクーン 2026',
+        rules: 'タップでコインを稼ぎ、アップグレードを購入して自動生成レートを高める放置系クリッカー。',
+        html: `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>クリッカー・タイクーン</title><link rel="stylesheet" href="style.css"></head><body><div class="clicker-app"><h1>⭐ クリッカー・タイクーン</h1><div class="stats"><div id="coins-display">0 コイン</div><div id="cps-display">秒間: 0 コイン</div></div><button id="big-coin-btn">🪙 タップしてコイン獲得！</button><div class="upgrades"><h3>ショップ & アップグレード</h3><button class="upgrade-btn" id="upgrade-auto-clicker">オートクリッカー (費用: 15) [+1/秒]</button><button class="upgrade-btn" id="upgrade-super-miner">スーパー採掘機 (費用: 100) [+10/秒]</button></div></div><script src="game.js"></script></body></html>`,
+        css: `body{margin:0;background:#202124;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;}.clicker-app{text-align:center;background:#2d3035;padding:2rem;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);width:340px;}#big-coin-btn{font-size:1.2rem;padding:1rem 1.5rem;border:none;border-radius:12px;background:#38bdf8;color:#000;font-weight:bold;cursor:pointer;margin:1rem 0;transition:transform 0.1s;}#big-coin-btn:active{transform:scale(0.95);}.upgrade-btn{display:block;width:100%;padding:0.75rem;margin:0.5rem 0;background:#3c4043;color:#e8eaed;border:1px solid #5f6368;border-radius:8px;cursor:pointer;font-size:0.85rem;}.upgrade-btn:hover{background:#5f6368;}`,
+        js: `let coins=0,cps=0,autoClickers=0,superMiners=0;const coinsEl=document.getElementById('coins-display'),cpsEl=document.getElementById('cps-display'),coinBtn=document.getElementById('big-coin-btn'),autoBtn=document.getElementById('upgrade-auto-clicker'),superBtn=document.getElementById('upgrade-super-miner');function updateDisplay(){coinsEl.textContent=Math.floor(coins)+' コイン';cpsEl.textContent='秒間: '+cps+' コイン';}coinBtn.onclick=()=>{coins+=1;updateDisplay();};autoBtn.onclick=()=>{const cost=Math.floor(15*Math.pow(1.15,autoClickers));if(coins>=cost){coins-=cost;autoClickers++;cps+=1;autoBtn.textContent='オートクリッカー (費用: '+Math.floor(15*Math.pow(1.15,autoClickers))+') [+1/秒]';updateDisplay();}else{alert('コインが足りません！');}};superBtn.onclick=()=>{const cost=Math.floor(100*Math.pow(1.2,superMiners));if(coins>=cost){coins-=cost;superMiners++;cps+=10;superBtn.textContent='スーパー採掘機 (費用: '+Math.floor(100*Math.pow(1.2,superMiners))+') [+10/秒]';updateDisplay();}else{alert('コインが足りません！');}};setInterval(()=>{coins+=cps/10;updateDisplay();},100);`
+      };
+    }
+    // Default: breaker / breakout
+    return {
+      name: 'ネオン・ブロック崩し DX',
+      rules: '反射角度とスピードアップを極めたサイバー調ブロック崩し！',
+      html: `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>ネオン・ブロック崩し</title><link rel="stylesheet" href="style.css"></head><body><div class="game-container"><div class="hud"><div id="score">SCORE: 0</div><div id="lives">LIVES: 3</div></div><canvas id="gameCanvas" width="600" height="400"></canvas><div class="instructions">← → キー または マウスでパドル操作</div></div><script src="game.js"></script></body></html>`,
+      css: `body{margin:0;background:#0d1117;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;}.game-container{text-align:center;}.hud{display:flex;justify-content:space-between;width:600px;margin-bottom:8px;font-weight:bold;color:#8ab4f8;}canvas{background:#000;border:2px solid #8ab4f8;box-shadow:0 0 20px rgba(138,180,248,0.4);border-radius:8px;}.instructions{margin-top:8px;font-size:0.85rem;color:#aaa;}`,
+      js: `const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');let score=0,lives=3,paddleH=12,paddleW=85,paddleX=(canvas.width-paddleW)/2,x=canvas.width/2,y=canvas.height-30,dx=3,dy=-3,ballR=8,rightPressed=false,leftPressed=false;const rows=4,cols=7,bw=72,bh=18,pad=10,top=30,left=18,colors=['#ea4335','#fbbc04','#34a853','#4285f4'],bricks=[];for(let c=0;c<cols;c++){bricks[c]=[];for(let r=0;r<rows;r++)bricks[c][r]={x:0,y:0,status:1,color:colors[r]};}document.addEventListener('keydown',e=>{if(e.key==='Right'||e.key==='ArrowRight')rightPressed=true;else if(e.key==='Left'||e.key==='ArrowLeft')leftPressed=true;});document.addEventListener('keyup',e=>{if(e.key==='Right'||e.key==='ArrowRight')rightPressed=false;else if(e.key==='Left'||e.key==='ArrowLeft')leftPressed=false;});document.addEventListener('mousemove',e=>{const rect=canvas.getBoundingClientRect(),relX=e.clientX-rect.left;if(relX>0&&relX<canvas.width)paddleX=relX-paddleW/2;});function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);for(let c=0;c<cols;c++){for(let r=0;r<rows;r++){if(bricks[c][r].status===1){const bx=c*(bw+pad)+left,by=r*(bh+pad)+top;bricks[c][r].x=bx;bricks[c][r].y=by;ctx.fillStyle=bricks[c][r].color;ctx.fillRect(bx,by,bw,bh);if(x>bx&&x<bx+bw&&y>by&&y<by+bh){dy=-dy;bricks[c][r].status=0;score+=10;document.getElementById('score').innerText='SCORE: '+score;}}}}ctx.fillStyle='#8ab4f8';ctx.fillRect(paddleX,canvas.height-paddleH,paddleW,paddleH);ctx.beginPath();ctx.arc(x,y,ballR,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();if(x+dx>canvas.width-ballR||x+dx<ballR)dx=-dx;if(y+dy<ballR)dy=-dy;else if(y+dy>canvas.height-ballR-paddleH){if(x>paddleX&&x<paddleX+paddleW){dy=-dy;dx=6*((x-(paddleX+paddleW/2))/paddleW);}else if(y+dy>canvas.height-ballR){lives--;document.getElementById('lives').innerText='LIVES: '+lives;if(!lives){alert('GAME OVER');document.location.reload();return;}else{x=canvas.width/2;y=canvas.height-30;dx=3;dy=-3;paddleX=(canvas.width-paddleW)/2;}}}if(rightPressed&&paddleX<canvas.width-paddleW)paddleX+=6;else if(leftPressed&&paddleX>0)paddleX-=6;x+=dx;y+=dy;requestAnimationFrame(draw);}draw();`
+    };
   }
 
   // Render PDF 1P Home View
@@ -1852,6 +2148,7 @@ class AppController {
     const currentUser = window.supabaseAuth?.currentUser;
     const userId = currentUser?.user_metadata?.user_id || currentUser?.userId || '';
     const username = currentUser?.user_metadata?.full_name || currentUser?.username || 'クリエイター';
+    const userBio = currentUser?.user_metadata?.bio || 'AI Web Game Creator';
     const avatarUrl = this.getUserAvatar();
 
     const avatarEl = document.getElementById('home-user-avatar');
@@ -1890,6 +2187,9 @@ class AppController {
     if (activeRoom) {
       if (miniProjName) miniProjName.textContent = activeRoom.name;
       if (miniProjDesc) miniProjDesc.textContent = activeRoom.rules ? activeRoom.rules.slice(0, 35) + '...' : 'ゲームプロジェクト';
+    } else {
+      if (miniProjName) miniProjName.textContent = 'プロジェクトなし';
+      if (miniProjDesc) miniProjDesc.textContent = '新規作成して開発を始めましょう';
     }
 
     // Dynamic Code Stats update on Home Card

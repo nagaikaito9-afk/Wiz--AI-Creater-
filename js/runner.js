@@ -416,11 +416,32 @@ class ProgramRunner {
       this.modal.style.display = 'flex';
     }
 
-    if (filePath.endsWith('.py')) {
+    if (filePath && filePath.endsWith && filePath.endsWith('.py')) {
       this.runPythonModal(filePath);
     } else {
-      this.runHtmlModal(filePath);
+      this.runHtmlModal(filePath || 'index.html');
     }
+  }
+
+  // Alias for compatibility
+  openFullscreenModal(filePath = 'index.html') {
+    this.openInModal(filePath);
+  }
+
+  // Run direct HTML code / bundle in fullscreen modal without altering active project VFS
+  runDirectCodeInModal(htmlCode, title = 'ゲームプレイ') {
+    if (this.modalTargetLabel) {
+      this.modalTargetLabel.textContent = title;
+    }
+    if (this.modal) {
+      this.modal.style.display = 'flex';
+    }
+    if (this.modalPythonWrapper) this.modalPythonWrapper.style.display = 'none';
+    if (this.modalIframeWrapper) this.modalIframeWrapper.style.display = 'block';
+    if (this.modalIframe) {
+      this.modalIframe.srcdoc = htmlCode;
+    }
+    this.addConsoleLog('info', `[${title}] を全画面プレイヤーで起動しました`);
   }
 
   closeModal() {

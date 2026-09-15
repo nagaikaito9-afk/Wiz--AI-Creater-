@@ -128,6 +128,16 @@ class NotificationCenter {
       });
     }
 
+    const fullNotifsBtn = document.getElementById('drawer-open-full-notifs-btn');
+    if (fullNotifsBtn) {
+      fullNotifsBtn.addEventListener('click', () => {
+        this.closeDrawer();
+        if (window.app && typeof window.app.switchPageView === 'function') {
+          window.app.switchPageView('notifications');
+        }
+      });
+    }
+
     // Close when clicking outside drawer
     document.addEventListener('click', (e) => {
       if (this.drawerEl && this.drawerEl.style.display === 'flex') {
@@ -177,16 +187,26 @@ class NotificationCenter {
 
   updateBadge() {
     const unreadCount = this.notifications.filter(n => !n.read).length;
+    const badgeText = unreadCount > 99 ? '99+' : `${unreadCount}`;
+    const show = unreadCount > 0;
+
     if (!this.badgeEl) this.badgeEl = document.getElementById('notification-badge');
     if (this.badgeEl) {
-      this.badgeEl.textContent = unreadCount > 99 ? '99+' : unreadCount;
-      this.badgeEl.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
+      this.badgeEl.textContent = badgeText;
+      this.badgeEl.style.display = show ? 'inline-flex' : 'none';
+    }
+
+    const navBadge = document.getElementById('nav-notifs-badge');
+    if (navBadge) {
+      navBadge.textContent = badgeText;
+      navBadge.style.display = show ? 'inline-block' : 'none';
     }
   }
 
   formatTime(isoString) {
     try {
       const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString || '';
       const now = new Date();
       const diffSec = Math.floor((now - d) / 1000);
       if (diffSec < 60) return 'たった今';
@@ -224,6 +244,9 @@ class NotificationCenter {
           <p>新しい通知はありません</p>
         </div>
       `;
+      if (window.app && window.app.currentView === 'notifications') {
+        window.app.renderNotificationCenterView();
+      }
       return;
     }
 
@@ -244,6 +267,10 @@ class NotificationCenter {
     `).join('');
 
     this.bindItemEvents();
+
+    if (window.app && window.app.currentView === 'notifications') {
+      window.app.renderNotificationCenterView();
+    }
   }
 
   renderActions(n) {
