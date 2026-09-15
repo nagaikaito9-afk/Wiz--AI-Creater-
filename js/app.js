@@ -1123,6 +1123,42 @@ class AppController {
     document.getElementById('home-see-all-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
     document.getElementById('home-see-all-friends-btn')?.addEventListener('click', () => this.switchPageView('friends'));
 
+    // Header Run-Program Button (Screenshot Match)
+    document.getElementById('header-run-program-btn')?.addEventListener('click', () => {
+      const activeRoom = window.projectManager?.getActiveRoom();
+      if (activeRoom) {
+        window.projectManager.openInStudio(activeRoom.id);
+      } else {
+        this.switchPageView('studio');
+      }
+    });
+
+    // Home View Search Input Live Filter
+    const homeSearch = document.getElementById('home-projects-search-input');
+    if (homeSearch) {
+      homeSearch.addEventListener('input', (e) => {
+        this.homeSearchQuery = e.target.value.trim().toLowerCase();
+        this.renderHomeProjectsList();
+      });
+    }
+
+    // Home View Language / Category Filter Chips
+    document.querySelectorAll('#home-filter-chips .github-filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#home-filter-chips .github-filter-chip').forEach(c => c.classList.toggle('active', c === chip));
+        this.homeLangFilter = chip.getAttribute('data-filter') || 'all';
+        this.renderHomeProjectsList();
+      });
+    });
+
+    // Home View My Projects vs Public Tabs
+    document.getElementById('home-tab-my-proj')?.addEventListener('click', () => {
+      document.getElementById('home-tab-my-proj')?.classList.add('active');
+      document.getElementById('home-tab-public-proj')?.classList.remove('active');
+      this.homeTabFilter = 'my';
+      this.renderHomeProjectsList();
+    });
+
     // Detail / System Info navigation buttons
     document.getElementById('btn-back-to-home-from-info')?.addEventListener('click', () => this.switchPageView('home'));
     document.getElementById('info-view-open-projects-btn')?.addEventListener('click', () => this.switchPageView('projects'));
@@ -2208,52 +2244,66 @@ class AppController {
       if (miniProjDesc) miniProjDesc.textContent = '新規作成して開発を始めましょう';
     }
 
-    // Dynamic Code Stats update on Home Card
+    // Header Avatar & Username Sync
+    const headerAvatar = document.getElementById('header-nav-avatar');
+    const headerName = document.getElementById('header-nav-username');
+    if (headerAvatar) headerAvatar.src = avatarUrl;
+    if (headerName) headerName.textContent = username;
+
+    // Dynamic Code & Prompt Stats update on Home Card
     const codeStats = this.calculateSystemCodeStats();
     const homeTotalLines = document.getElementById('home-total-lines');
+    const homeTotalPrompts = document.getElementById('home-total-prompts');
     if (homeTotalLines) {
       homeTotalLines.textContent = codeStats.totalLines.toLocaleString();
     }
-
-    // 2. Recent Projects in Home
-    const recentProjectsContainer = document.getElementById('home-recent-projects-container');
-    if (recentProjectsContainer && window.projectManager) {
-      if (rooms.length === 0) {
-        recentProjectsContainer.innerHTML = `
-          <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 8px;">
-            <p style="margin-bottom: 0.6rem;">プロジェクトがまだありません。</p>
-            <button class="btn btn-primary btn-sm" onclick="window.projectManager.promptCreateNewRoom()">
-              <i class="fa-solid fa-plus"></i> 新規作成
-            </button>
-          </div>
-        `;
-      } else {
-        const displayRooms = rooms.slice(0, 4);
-        recentProjectsContainer.innerHTML = displayRooms.map(room => {
-          const dateStr = new Date(room.createdAt || Date.now()).toLocaleDateString('ja-JP');
-          const isAct = room.id === window.projectManager.activeRoomId;
-          return `
-            <div class="pdf-project-card ${isAct ? 'active' : ''}" style="margin-bottom: 0.8rem; cursor: pointer;" onclick="window.projectManager.openInStudio('${room.id}')">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
-                  <i class="fa-solid fa-gamepad" style="color: var(--brand-primary);"></i>
-                  <span>${this.escapeHtml(room.name)}</span>
-                </div>
-                <span style="font-size: 0.75rem; color: var(--text-muted);">${dateStr}</span>
-              </div>
-              <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                ${this.escapeHtml(room.rules || 'Wiz AI Game Creator プロジェクト')}
-              </div>
-              <div style="display: flex; justify-content: flex-end; gap: 0.4rem;">
-                <button class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;">
-                  <i class="fa-solid fa-arrow-right"></i> スタジオで開く
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
+    if (homeTotalPrompts) {
+      homeTotalPrompts.textContent = String((codeStats.totalPrompts || 16) + (rooms.length * 3));
     }
+
+    // 2. Render Projects in GitHub Card Format
+    this.renderHomeProjectsList();
+  }
+
+  // Render Projects List in Home View with Search and Filter Support
+  renderHomeProjectsList() {
+    const recentProjectsContainer = document.getElementById('home-recent-projects-container');
+    if (!recentProjectsContainer || !window.projectManager) return;
+
+    let rooms = window.projectManager.rooms || [];
+    const query = (this.homeSearchQuery || '').toLowerCase();
+    const langFilter = this.homeLangFilter || 'all';
+
+    if (query) {
+      rooms = rooms.filter(r => (r.name || '').toLowerCase().includes(query) || (r.rules || '').toLowerCase().includes(query));
+    }
+
+    if (langFilter === 'starred') {
+      rooms = rooms.filter(r => r.starred);
+    } else if (langFilter === 'python') {
+      rooms = rooms.filter(r => (r.name || '').toLowerCase().includes('python') || (r.vfsRoot && Object.keys(r.vfsRoot.children || {}).some(f => f.endsWith('.py'))));
+    } else if (langFilter === 'cpp') {
+      rooms = rooms.filter(r => (r.name || '').toLowerCase().includes('c++') || (r.name || '').toLowerCase().includes('cpp') || (r.vfsRoot && Object.keys(r.vfsRoot.children || {}).some(f => f.endsWith('.cpp') || f.endsWith('.h'))));
+    } else if (langFilter === 'canvas') {
+      rooms = rooms.filter(r => (r.rules || '').toLowerCase().includes('canvas') || (r.name || '').toLowerCase().includes('canvas'));
+    }
+
+    if (rooms.length === 0) {
+      recentProjectsContainer.innerHTML = `
+        <div style="padding: 3.5rem 1.5rem; text-align: center; color: var(--text-muted); border: 2px dashed var(--border-subtle); border-radius: 12px; background: var(--bg-card);">
+          <i class="fa-solid fa-folder-open" style="font-size: 2.4rem; margin-bottom: 0.8rem; color: #2ea44f; opacity: 0.6;"></i>
+          <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.95rem;">一致するプロジェクトが見つかりませんでした。</p>
+          <button class="btn-github-green" style="max-width: 240px; margin: 0 auto;" onclick="window.projectManager.promptCreateNewRoom()">
+            <i class="fa-solid fa-plus"></i> 新規プロジェクト作成
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    recentProjectsContainer.innerHTML = rooms.map(room => {
+      return window.projectManager.buildPdfProjectCardHtml(room, false);
+    }).join('');
 
     // 3. Recent Friends in Home
     const recentFriendsContainer = document.getElementById('home-recent-friends-container');

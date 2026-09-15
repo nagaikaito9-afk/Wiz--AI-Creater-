@@ -1255,8 +1255,30 @@ class ProjectManager {
       day: '2-digit'
     });
     const isActive = room.id === this.activeRoomId;
-    const desc = room.rules ? room.rules.replace(/\n/g, ' ') : 'Wiz AI Game Creator プロジェクト';
-    const truncatedDesc = desc.length > 90 ? desc.substring(0, 90) + '...' : desc;
+    const desc = room.rules ? room.rules.replace(/\n/g, ' ') : '';
+    const truncatedDesc = desc.length > 120 ? desc.substring(0, 120) + '...' : (desc || '説明なし');
+
+    // Determine language and file count
+    let langName = 'HTML / JS';
+    let langClass = 'html';
+    let fileCount = 2;
+    if (room.vfsRoot?.children) {
+      fileCount = Object.keys(room.vfsRoot.children).length || 2;
+      const fileNames = Object.keys(room.vfsRoot.children);
+      if (fileNames.some(f => f.endsWith('.py'))) {
+        langName = 'Python';
+        langClass = 'python';
+      } else if (fileNames.some(f => f.endsWith('.cpp') || f.endsWith('.h'))) {
+        langName = 'C++';
+        langClass = 'cpp';
+      }
+    } else if (room.name && room.name.toLowerCase().includes('python')) {
+      langName = 'Python';
+      langClass = 'python';
+    } else if (room.name && (room.name.toLowerCase().includes('c++') || room.name.toLowerCase().includes('cpp'))) {
+      langName = 'C++';
+      langClass = 'cpp';
+    }
 
     // Team avatars
     let teamHtml = '';
@@ -1265,7 +1287,7 @@ class ProjectManager {
         const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${m.userId}`;
         return `
           <img src="${avatarUrl}" title="${this.escapeHtml(m.username)} (@${m.userId})"
-               style="width:24px; height:24px; border-radius:50%; border:2px solid var(--bg-card); object-fit:cover; margin-left:-6px;" />
+               style="width:22px; height:22px; border-radius:50%; border:2px solid var(--bg-card); object-fit:cover; margin-left:-6px;" />
         `;
       }).join('');
 
@@ -1282,54 +1304,71 @@ class ProjectManager {
       const author = room.forkedFrom.originalAuthor || '不明';
       const title = room.forkedFrom.originalTitle || '作品';
       forkBadgeHtml = `
-        <div class="project-fork-badge" title="フォーク元: ${this.escapeHtml(author)}作『${this.escapeHtml(title)}』">
+        <div class="project-fork-badge" style="margin-bottom: 8px;" title="フォーク元: ${this.escapeHtml(author)}作『${this.escapeHtml(title)}』">
           <i class="fa-solid fa-code-fork"></i> ${this.escapeHtml(author)}作『${this.escapeHtml(title)}』のフォーク
         </div>
       `;
     }
 
     return `
-      <div class="project-card-modern ${isActive ? 'active' : ''}" data-room-id="${room.id}">
-        <div>
-          <div class="project-card-modern-header">
-            <div class="project-card-modern-title-wrap">
-              <div class="project-card-icon-box">
-                <i class="fa-solid fa-gamepad"></i>
-              </div>
-              <div>
-                <div class="project-card-modern-title">${this.escapeHtml(room.name)}</div>
-                <div class="project-card-meta-date">作成: ${formattedDate} ${isActive ? '• <span style="color:var(--wiz-accent); font-weight:700;">アクティブ</span>' : ''}</div>
-              </div>
-            </div>
-            <div style="display:flex; gap:0.25rem;">
-              <button class="btn btn-ghost btn-sm" title="複製 (クローン)" onclick="window.projectManager.cloneRoom('${room.id}')">
-                <i class="fa-solid fa-copy"></i>
-              </button>
-              <button class="btn btn-ghost btn-sm" title="削除" onclick="window.projectManager.deleteRoom('${room.id}', event)" style="color:var(--danger);">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </div>
+      <div class="github-repo-card ${isActive ? 'active' : ''}" data-room-id="${room.id}" onclick="window.projectManager.openInStudio('${room.id}')">
+        <!-- Top Row: Icon + Title + Visibility Badge + Star Button -->
+        <div class="github-repo-card-top">
+          <div class="github-repo-card-title-group">
+            <i class="fa-solid fa-book-bookmark github-repo-card-icon"></i>
+            <a href="javascript:void(0)" class="github-repo-card-title">${this.escapeHtml(room.name)}</a>
+            <span class="github-repo-card-badge">${isShared ? '共同 (Shared)' : '非公開 (Private)'}</span>
+            ${isActive ? '<span style="font-size:0.75rem; color:#0969da; font-weight:700; background:rgba(9,105,218,0.1); padding:2px 8px; border-radius:12px;">アクティブ</span>' : ''}
           </div>
-
-          ${forkBadgeHtml}
-
-          <div class="project-card-modern-desc">
-            ${this.escapeHtml(truncatedDesc)}
+          <div class="github-repo-card-actions" onclick="event.stopPropagation();">
+            <button class="github-repo-star-btn" title="スター" type="button">
+              <i class="fa-regular fa-star"></i> <span>Star</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" title="複製 (クローン)" type="button" onclick="window.projectManager.cloneRoom('${room.id}')" style="padding:4px 8px;">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+            <button class="btn btn-ghost btn-sm" title="削除" type="button" onclick="window.projectManager.deleteRoom('${room.id}', event)" style="padding:4px 8px; color:var(--danger);">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
           </div>
         </div>
 
-        <div class="project-card-modern-footer">
-          <div style="display:flex; align-items:center;">
+        ${forkBadgeHtml}
+
+        <!-- Description: Plain normal text (クリックできない情報は普通のテキスト) -->
+        <p class="github-repo-card-desc">
+          ${this.escapeHtml(truncatedDesc)}
+        </p>
+
+        <!-- Meta row: Language, Files, Star, Updated Date, Action Buttons -->
+        <div class="github-repo-card-meta">
+          <div class="github-repo-card-meta-left">
+            <span class="github-repo-meta-item">
+              <span class="github-lang-dot ${langClass}"></span>
+              <span>${langName}</span>
+            </span>
+            <span class="github-repo-meta-item">
+              <i class="fa-regular fa-folder"></i>
+              <span>${fileCount} files</span>
+            </span>
+            <span class="github-repo-meta-item">
+              <i class="fa-solid fa-star" style="color: #e3b341;"></i>
+              <span>5.0</span>
+            </span>
+            <span class="github-repo-meta-item">
+              <span>更新: ${formattedDate}</span>
+            </span>
             ${teamHtml}
           </div>
-          <div class="project-card-actions-group">
-            <button class="btn btn-ghost btn-sm" onclick="window.app?.openPublishModal('${room.id}')" title="マーケットに公開" style="color:var(--wiz-accent); border:1px solid rgba(0, 243, 255, 0.3);">
+
+          <div class="github-repo-card-meta-right" onclick="event.stopPropagation();">
+            <button class="btn btn-ghost btn-sm" onclick="window.app?.openPublishModal('${room.id}')" title="マーケットに公開" style="color:#0969da; border:1px solid rgba(9, 105, 218, 0.3); font-size:0.78rem; padding:3px 10px;">
               <i class="fa-solid fa-cloud-arrow-up"></i> 公開
             </button>
-            <button class="btn btn-secondary btn-sm" onclick="window.projectManager.openInFullscreen('${room.id}')" title="全画面でプレイ">
+            <button class="btn btn-secondary btn-sm" onclick="window.projectManager.openInFullscreen('${room.id}')" title="全画面でプレイ" style="font-size:0.78rem; padding:3px 10px;">
               <i class="fa-solid fa-play"></i> プレイ
             </button>
-            <button class="btn btn-primary btn-sm" onclick="window.projectManager.openInStudio('${room.id}')">
+            <button class="btn btn-primary btn-sm" onclick="window.projectManager.openInStudio('${room.id}')" style="font-size:0.78rem; padding:3px 12px; background-color:#238636; border-color:rgba(27,31,36,0.15);">
               <i class="fa-solid fa-code"></i> スタジオで開く
             </button>
           </div>
