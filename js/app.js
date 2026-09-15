@@ -1365,7 +1365,8 @@ class AppController {
     const listContainer = document.getElementById('full-notifications-list');
     if (!listContainer) return;
 
-    const notifs = window.notificationsManager?.notifications || [];
+    const notifMgr = window.notificationsCenter || window.notificationsManager;
+    const notifs = notifMgr?.notifications || [];
     if (notifs.length === 0) {
       listContainer.innerHTML = `
         <div style="text-align:center; padding: 4rem 1.5rem; border: 2px dashed var(--border-subtle); border-radius: 16px; background: var(--bg-card); color: var(--text-muted);">
@@ -1379,7 +1380,7 @@ class AppController {
 
     listContainer.innerHTML = notifs.map(n => {
       const icon = n.type === 'project' || n.type === 'project_invite' || n.type === 'project_update' ? 'fa-gamepad' : n.type === 'friend' || n.type === 'friend_request' ? 'fa-user-group' : 'fa-info';
-      const timeStr = window.notificationsManager ? window.notificationsManager.formatTime(n.timestamp || n.time) : (n.time || '');
+      const timeStr = notifMgr?.formatTime ? notifMgr.formatTime(n.timestamp || n.time) : (n.time || '');
       return `
         <div class="notification-page-card ${n.read ? '' : 'unread'}">
           <div class="notif-page-icon"><i class="fa-solid ${icon}"></i></div>

@@ -234,8 +234,14 @@ class Auth0AuthManager {
         const u = JSON.parse(savedActive);
         if (u && (u.userId || u.username)) {
           this.currentUser = u;
-          this.completeLoginProcess(this.currentUser);
-          return true;
+          if (u.isProfileConfigured) {
+            this.completeLoginProcess(this.currentUser);
+            return true;
+          } else {
+            // Profile not yet configured: prompt initial modal
+            this.openInitialProfileModal(this.currentUser);
+            return true;
+          }
         }
       } catch (e) {}
     }
@@ -245,7 +251,7 @@ class Auth0AuthManager {
     if (savedAuth0) {
       try {
         const u = JSON.parse(savedAuth0);
-        if (u && (u.userId || u.username)) {
+        if (u && (u.userId || u.username) && u.isProfileConfigured) {
           this.currentUser = u;
           this.completeLoginProcess(this.currentUser);
           return true;
@@ -258,7 +264,7 @@ class Auth0AuthManager {
     if (savedMock) {
       try {
         const u = JSON.parse(savedMock);
-        if (u && (u.userId || u.username)) {
+        if (u && (u.userId || u.username) && u.isProfileConfigured) {
           this.currentUser = u;
           this.completeLoginProcess(this.currentUser);
           return true;
@@ -266,10 +272,10 @@ class Auth0AuthManager {
       } catch (e) {}
     }
 
-    // 4. Check Local users
+    // 4. Check Local users (ONLY if explicitly configured)
     const localUsers = this.getLocalUsers();
     if (localUsers && localUsers.length > 0) {
-      const configured = localUsers.find(u => u.isProfileConfigured) || localUsers[0];
+      const configured = localUsers.find(u => u.isProfileConfigured);
       if (configured && (configured.userId || configured.username)) {
         this.currentUser = configured;
         this.completeLoginProcess(this.currentUser);
@@ -285,25 +291,40 @@ class Auth0AuthManager {
   processAuth0UserLogin(auth0User) {
     if (!auth0User) return;
 
-    // Check if we already have this user customized in active, auth0, or local store
+    // Check if we already have THIS specific user customized in active, auth0, or local store
     const savedActive = localStorage.getItem('wiz_active_user') ? JSON.parse(localStorage.getItem('wiz_active_user')) : null;
     const savedAuth0 = localStorage.getItem('wiz_auth0_user') ? JSON.parse(localStorage.getItem('wiz_auth0_user')) : null;
     const localUsers = this.getLocalUsers();
-    const existing = (savedActive && savedActive.isProfileConfigured ? savedActive : null) ||
-                     (savedAuth0 && savedAuth0.isProfileConfigured ? savedAuth0 : null) ||
-                     localUsers.find(u => (u.id && u.id === auth0User.sub) || (u.email && u.email === auth0User.email)) ||
-                     savedAuth0;
+
+    const isMatchingUser = (u) => {
+      if (!u) return false;
+      const subMatch = (u.id && auth0User.sub && u.id === auth0User.sub) ||
+                       (u.auth0_sub && auth0User.sub && u.auth0_sub === auth0User.sub);
+      const emailMatch = u.email && auth0User.email && u.email.toLowerCase() === auth0User.email.toLowerCase();
+      return Boolean(subMatch || emailMatch);
+    };
+
+    let existing = null;
+    if (savedActive && isMatchingUser(savedActive)) {
+      existing = savedActive;
+    } else if (savedAuth0 && isMatchingUser(savedAuth0)) {
+      existing = savedAuth0;
+    } else {
+      existing = localUsers.find(isMatchingUser) || null;
+    }
 
     const email = auth0User.email || '';
-    const defaultName = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : 'ねこクリエイター');
-    const rawId = auth0User.nickname || (email ? email.split('@')[0] : 'cat_creator');
-    const defaultUserId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20) || 'cat_' + Math.floor(Math.random() * 1000);
+    const defaultName = auth0User.name || auth0User.nickname || (email ? email.split('@')[0] : '');
+    const rawId = auth0User.nickname || (email ? email.split('@')[0] : '');
+    const defaultUserId = rawId.replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 20) || 'creator';
     const defaultAvatar = WIZ_PIXEL_AVATARS[0].svg;
 
-    // CRITICAL: If an account already exists or was configured, KEEP IT PERMANENTLY! Never ask for ID again on reload!
+    // CRITICAL: Only bypass profile setup if THIS user was already explicitly configured by the user before!
     if (existing && existing.isProfileConfigured) {
       this.currentUser = {
         ...existing,
+        id: auth0User.sub || existing.id,
+        auth0_sub: auth0User.sub || existing.auth0_sub,
         email: email || existing.email,
         auth0_profile: auth0User,
         isProfileConfigured: true
@@ -313,15 +334,17 @@ class Auth0AuthManager {
       return;
     }
 
+    // New user registration or profile not configured yet: MUST prompt initial profile modal!
     this.currentUser = {
       id: auth0User.sub,
+      auth0_sub: auth0User.sub,
       email: email,
-      username: defaultName,
+      username: defaultName || 'クリエイター',
       userId: defaultUserId,
       avatar: defaultAvatar,
       isProfileConfigured: false,
       user_metadata: {
-        full_name: defaultName,
+        full_name: defaultName || 'クリエイター',
         user_id: defaultUserId,
         avatar_url: defaultAvatar
       },
@@ -454,7 +477,7 @@ class Auth0AuthManager {
       e.target.value = e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
     });
 
-    submitBtn?.addEventListener('click', () => {
+    const handleProfileSubmit = () => {
       const username = nameInput?.value.trim();
       let userId = idInput?.value.trim().replace(/^@/, '').toLowerCase();
 
@@ -503,6 +526,18 @@ class Auth0AuthManager {
       if (window.showToast) window.showToast(`🎉 ようこそ、${username}さん！スタジオが準備できました`, 'success');
 
       this.completeLoginProcess(this.currentUser);
+    };
+
+    submitBtn?.addEventListener('click', handleProfileSubmit);
+
+    // Enter key submits the profile setup
+    [nameInput, idInput].forEach(inp => {
+      inp?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleProfileSubmit();
+        }
+      });
     });
   }
 
@@ -514,8 +549,17 @@ class Auth0AuthManager {
 
     if (!initModal) return;
 
-    if (nameInput) nameInput.value = user.username || 'ねこクリエイター';
-    if (idInput) idInput.value = user.userId || 'cat_creator';
+    // Prefill with suggested username if available, or leave clean with placeholder
+    const suggestedName = user.username && user.username !== 'クリエイター' && user.username !== 'ねこクリエイター' ? user.username : '';
+    if (nameInput) {
+      nameInput.value = suggestedName;
+    }
+
+    // Prefill with suggested userId if clean alphanumeric, or leave clean with placeholder
+    const suggestedId = user.userId && !user.userId.startsWith('creator') && !user.userId.startsWith('cat_') ? user.userId : '';
+    if (idInput) {
+      idInput.value = suggestedId;
+    }
 
     if (avatarGrid) {
       avatarGrid.innerHTML = WIZ_PIXEL_AVATARS.map((preset, idx) => {
@@ -539,6 +583,13 @@ class Auth0AuthManager {
     const gateModal = document.getElementById('auth-gate-modal');
     if (gateModal) gateModal.style.display = 'none';
     initModal.style.display = 'flex';
+
+    setTimeout(() => {
+      if (nameInput) {
+        nameInput.focus();
+        if (nameInput.value) nameInput.select();
+      }
+    }, 100);
   }
 
   /* ==========================================================================
@@ -844,8 +895,12 @@ class Auth0AuthManager {
     const isAuth0 = Boolean(this.currentUser?.auth0_profile || localStorage.getItem('wiz_auth0_user'));
 
     this.currentUser = null;
+    localStorage.removeItem('wiz_active_user');
     localStorage.removeItem('wiz_mock_user');
     localStorage.removeItem('wiz_auth0_user');
+    localStorage.removeItem('wiz_custom_avatar');
+    localStorage.removeItem('wiz_custom_username');
+    localStorage.removeItem('wiz_custom_userid');
 
     this.hideHomeDashboard();
     this.updateGateVisibility();

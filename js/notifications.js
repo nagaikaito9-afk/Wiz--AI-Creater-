@@ -138,6 +138,28 @@ class NotificationCenter {
       });
     }
 
+    const markAllFullBtn = document.getElementById('mark-all-read-full-btn');
+    if (markAllFullBtn) {
+      markAllFullBtn.addEventListener('click', () => {
+        this.markAllRead();
+        if (window.app && typeof window.app.renderNotificationCenterView === 'function') {
+          window.app.renderNotificationCenterView();
+        }
+      });
+    }
+
+    const clearAllFullBtn = document.getElementById('clear-all-notifications-btn');
+    if (clearAllFullBtn) {
+      clearAllFullBtn.addEventListener('click', () => {
+        if (confirm('すべての通知を消去しますか？')) {
+          this.clearAll();
+          if (window.app && typeof window.app.renderNotificationCenterView === 'function') {
+            window.app.renderNotificationCenterView();
+          }
+        }
+      });
+    }
+
     // Close when clicking outside drawer
     document.addEventListener('click', (e) => {
       if (this.drawerEl && this.drawerEl.style.display === 'flex') {
@@ -393,3 +415,4 @@ class NotificationCenter {
 
 // Global instance
 window.notificationsCenter = new NotificationCenter();
+window.notificationsManager = window.notificationsCenter; // Alias for backward compatibility
